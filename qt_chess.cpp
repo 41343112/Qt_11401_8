@@ -8,6 +8,7 @@
 #include <QLabel>
 #include <QPushButton>
 #include <QEvent>
+#include <QResizeEvent>
 
 namespace {
     const QString CHECK_HIGHLIGHT_STYLE = "QPushButton { background-color: #FF6B6B; border: 2px solid #FF0000; }";
@@ -26,6 +27,10 @@ Qt_Chess::Qt_Chess(QWidget *parent)
     ui->setupUi(this);
     setWindowTitle("國際象棋 - 雙人對弈");
     resize(700, 750);
+    
+    // Set minimum window size: width 320px (8 squares × 40px), height 470px (320px board + ~150px UI elements)
+    setMinimumSize(320, 470);
+    
     setMouseTracking(true);
     
     setupUI();
@@ -61,14 +66,15 @@ void Qt_Chess::setupUI() {
     m_boardWidget->setMouseTracking(true);
     QGridLayout* gridLayout = new QGridLayout(m_boardWidget);
     gridLayout->setSpacing(0);
+    gridLayout->setContentsMargins(2, 2, 2, 2);  // Add 2px margin on all sides to prevent border clipping
     
     m_squares.resize(8, std::vector<QPushButton*>(8));
     
     for (int row = 0; row < 8; ++row) {
         for (int col = 0; col < 8; ++col) {
             QPushButton* square = new QPushButton(m_boardWidget);
-            square->setMinimumSize(80, 80);
-            square->setMaximumSize(80, 80);
+            square->setMinimumSize(40, 40);  // Set a reasonable minimum size
+            square->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
             square->setMouseTracking(true);
             
             QFont buttonFont;
@@ -123,6 +129,10 @@ void Qt_Chess::updateBoard() {
     
     // Highlight king in red if in check
     applyCheckHighlight();
+    // Reapply highlights if a piece is selected
+    if (m_pieceSelected) {
+        highlightValidMoves();
+    }
 }
 
 void Qt_Chess::updateStatus() {
@@ -519,4 +529,63 @@ void Qt_Chess::mouseReleaseEvent(QMouseEvent *event) {
     }
     
     QMainWindow::mouseReleaseEvent(event);
+}
+
+void Qt_Chess::resizeEvent(QResizeEvent *event) {
+    QMainWindow::resizeEvent(event);
+    updateSquareSizes();
+    
+    // Reapply highlights after resize
+    if (m_pieceSelected) {
+        highlightValidMoves();
+    }
+}
+
+void Qt_Chess::updateSquareSizes() {
+    if (!m_boardWidget || m_squares.empty()) return;
+    
+    // Get the central widget
+    QWidget* central = centralWidget();
+    if (!central) return;
+    
+    // Calculate available space for the board
+    // Account for the turn label, status label, and new game button
+    int reservedHeight = 0;
+    if (m_turnLabel) reservedHeight += m_turnLabel->sizeHint().height();
+    if (m_statusLabel) reservedHeight += m_statusLabel->sizeHint().height();
+    if (m_newGameButton) reservedHeight += m_newGameButton->minimumHeight();
+    
+    // Add some padding for layout margins and spacing (estimate ~50px)
+    reservedHeight += 50;
+    
+    int availableWidth = central->width();
+    int availableHeight = central->height() - reservedHeight;
+    
+    // Calculate the size for each square (use the smaller dimension to keep squares square)
+    int squareSize = qMin(availableWidth, availableHeight) / 8;
+    
+    // Ensure minimum and reasonable maximum size
+    squareSize = qMax(squareSize, 40);
+    squareSize = qMin(squareSize, 120);  // Cap at a reasonable maximum
+    
+    // Calculate font size based on square size (approximately 45% of square size)
+    int fontSize = squareSize * 9 / 20;  // This gives roughly 36pt for 80px squares
+    fontSize = qMax(fontSize, 12);  // Ensure minimum readable font size
+    fontSize = qMin(fontSize, 54);  // Cap font size for very large boards
+    
+    // Update all squares
+    for (int row = 0; row < 8; ++row) {
+        for (int col = 0; col < 8; ++col) {
+            QPushButton* square = m_squares[row][col];
+            square->setFixedSize(squareSize, squareSize);
+            
+            QFont font = square->font();
+            font.setPointSize(fontSize);
+            square->setFont(font);
+        }
+    }
+    
+    // Update the board widget size to fit the squares exactly
+    // Add 4 extra pixels (2px on each side) to prevent border clipping when squares are highlighted
+    m_boardWidget->setFixedSize(squareSize * 8 + 4, squareSize * 8 + 4);
 }
