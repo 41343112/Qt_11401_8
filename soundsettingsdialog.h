@@ -8,6 +8,7 @@
 #include <QLineEdit>
 #include <QLabel>
 #include <QSoundEffect>
+#include <QGridLayout>
 
 class SoundSettingsDialog : public QDialog
 {
