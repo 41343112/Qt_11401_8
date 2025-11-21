@@ -900,10 +900,9 @@ void Qt_Chess::loadPieceIconsToCache() {
     
     // Load all piece icons into cache
     auto loadIconToCache = [this](const QString& iconPath) {
-        if (!iconPath.isEmpty() && QFile::exists(iconPath)) {
+        if (!iconPath.isEmpty() && !m_pieceIconCache.contains(iconPath) && QFile::exists(iconPath)) {
             QPixmap pixmap(iconPath);
             if (!pixmap.isNull()) {
-                // insert() will replace if already exists, so no need to check contains()
                 m_pieceIconCache.insert(iconPath, pixmap);
             }
         }
