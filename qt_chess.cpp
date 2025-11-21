@@ -391,7 +391,29 @@ QPoint Qt_Chess::getSquareAtPosition(const QPoint& pos) const {
 void Qt_Chess::restorePieceToSquare(const QPoint& square) {
     if (square.x() >= 0 && square.y() >= 0 && square.x() < 8 && square.y() < 8) {
         const ChessPiece& piece = m_chessBoard.getPiece(square.y(), square.x());
-        m_squares[square.y()][square.x()]->setText(piece.getSymbol());
+        
+        // Clear previous content
+        m_squares[square.y()][square.x()]->setText("");
+        m_squares[square.y()][square.x()]->setIcon(QIcon());
+        
+        // Restore piece with icon or symbol
+        if (m_pieceIconSettings.useCustomIcons) {
+            QString iconPath = getPieceIconPath(piece.getType(), piece.getColor());
+            if (!iconPath.isEmpty() && QFile::exists(iconPath)) {
+                QPixmap pixmap(iconPath);
+                if (!pixmap.isNull()) {
+                    QIcon icon(pixmap);
+                    m_squares[square.y()][square.x()]->setIcon(icon);
+                    m_squares[square.y()][square.x()]->setIconSize(m_squares[square.y()][square.x()]->size() * 0.8);
+                } else {
+                    m_squares[square.y()][square.x()]->setText(piece.getSymbol());
+                }
+            } else {
+                m_squares[square.y()][square.x()]->setText(piece.getSymbol());
+            }
+        } else {
+            m_squares[square.y()][square.x()]->setText(piece.getSymbol());
+        }
     }
 }
 
@@ -488,10 +510,34 @@ void Qt_Chess::mousePressEvent(QMouseEvent *event) {
             
             // Create drag label
             m_dragLabel = new QLabel(this);
-            m_dragLabel->setText(piece.getSymbol());
-            QFont font;
-            font.setPointSize(36);
-            m_dragLabel->setFont(font);
+            
+            // Use custom icon or Unicode symbol
+            if (m_pieceIconSettings.useCustomIcons) {
+                QString iconPath = getPieceIconPath(piece.getType(), piece.getColor());
+                if (!iconPath.isEmpty() && QFile::exists(iconPath)) {
+                    QPixmap pixmap(iconPath);
+                    if (!pixmap.isNull()) {
+                        int iconSize = m_squares[square.y()][square.x()]->size().width() * 0.8;
+                        m_dragLabel->setPixmap(pixmap.scaled(iconSize, iconSize, Qt::KeepAspectRatio, Qt::SmoothTransformation));
+                    } else {
+                        m_dragLabel->setText(piece.getSymbol());
+                        QFont font;
+                        font.setPointSize(36);
+                        m_dragLabel->setFont(font);
+                    }
+                } else {
+                    m_dragLabel->setText(piece.getSymbol());
+                    QFont font;
+                    font.setPointSize(36);
+                    m_dragLabel->setFont(font);
+                }
+            } else {
+                m_dragLabel->setText(piece.getSymbol());
+                QFont font;
+                font.setPointSize(36);
+                m_dragLabel->setFont(font);
+            }
+            
             m_dragLabel->setStyleSheet("QLabel { background-color: transparent; border: none; }");
             m_dragLabel->adjustSize();
             m_dragLabel->move(event->pos() - QPoint(m_dragLabel->width() / 2, m_dragLabel->height() / 2));
@@ -500,6 +546,7 @@ void Qt_Chess::mousePressEvent(QMouseEvent *event) {
             
             // Hide the piece from the original square during drag
             m_squares[square.y()][square.x()]->setText("");
+            m_squares[square.y()][square.x()]->setIcon(QIcon());
             
             highlightValidMoves();
         }
@@ -655,6 +702,11 @@ void Qt_Chess::updateSquareSizes() {
             QFont font = square->font();
             font.setPointSize(fontSize);
             square->setFont(font);
+            
+            // Update icon size if using custom icons
+            if (m_pieceIconSettings.useCustomIcons && !square->icon().isNull()) {
+                square->setIconSize(QSize(squareSize * 0.8, squareSize * 0.8));
+            }
         }
     }
     
