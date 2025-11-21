@@ -102,6 +102,19 @@ void Qt_Chess::updateBoard() {
             updateSquareColor(row, col);
         }
     }
+    
+    // Highlight king in red if in check
+    PieceColor currentPlayer = m_chessBoard.getCurrentPlayer();
+    if (m_chessBoard.isInCheck(currentPlayer)) {
+        QPoint kingPos = m_chessBoard.findKing(currentPlayer);
+        if (kingPos.x() >= 0 && kingPos.y() >= 0) {
+            int row = kingPos.y();
+            int col = kingPos.x();
+            m_squares[row][col]->setStyleSheet(
+                "QPushButton { background-color: #FF6B6B; border: 2px solid #FF0000; }"
+            );
+        }
+    }
 }
 
 void Qt_Chess::updateStatus() {
@@ -138,6 +151,19 @@ void Qt_Chess::clearHighlights() {
             updateSquareColor(row, col);
         }
     }
+    
+    // Re-apply red background to king if in check
+    PieceColor currentPlayer = m_chessBoard.getCurrentPlayer();
+    if (m_chessBoard.isInCheck(currentPlayer)) {
+        QPoint kingPos = m_chessBoard.findKing(currentPlayer);
+        if (kingPos.x() >= 0 && kingPos.y() >= 0) {
+            int row = kingPos.y();
+            int col = kingPos.x();
+            m_squares[row][col]->setStyleSheet(
+                "QPushButton { background-color: #FF6B6B; border: 2px solid #FF0000; }"
+            );
+        }
+    }
 }
 
 void Qt_Chess::highlightValidMoves() {
@@ -160,6 +186,19 @@ void Qt_Chess::highlightValidMoves() {
                     QString("QPushButton { background-color: %1; border: 2px solid #FFA500; }").arg(color)
                 );
             }
+        }
+    }
+    
+    // Re-apply red background to king if in check and king is not the selected piece
+    PieceColor currentPlayer = m_chessBoard.getCurrentPlayer();
+    if (m_chessBoard.isInCheck(currentPlayer)) {
+        QPoint kingPos = m_chessBoard.findKing(currentPlayer);
+        if (kingPos.x() >= 0 && kingPos.y() >= 0 && kingPos != m_selectedSquare) {
+            int row = kingPos.y();
+            int col = kingPos.x();
+            m_squares[row][col]->setStyleSheet(
+                "QPushButton { background-color: #FF6B6B; border: 2px solid #FF0000; }"
+            );
         }
     }
 }
