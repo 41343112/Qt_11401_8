@@ -91,25 +91,30 @@ bool ChessBoard::wouldBeInCheck(const QPoint& from, const QPoint& to, PieceColor
     std::vector<std::vector<ChessPiece>> tempBoard = m_board;
     
     // Perform the move on the temporary board
+    // Note: QPoint(x, y) maps to board[y][x] since x=col, y=row
     tempBoard[to.y()][to.x()] = tempBoard[from.y()][from.x()];
     tempBoard[from.y()][from.x()] = ChessPiece(PieceType::None, PieceColor::None);
     
     // Find king position after the move
-    QPoint kingPos;
+    QPoint kingPos(-1, -1);
     if (tempBoard[to.y()][to.x()].getType() == PieceType::King) {
         kingPos = to;
     } else {
-        for (int row = 0; row < 8; ++row) {
+        // Search for the king
+        bool found = false;
+        for (int row = 0; row < 8 && !found; ++row) {
             for (int col = 0; col < 8; ++col) {
                 const ChessPiece& piece = tempBoard[row][col];
                 if (piece.getType() == PieceType::King && piece.getColor() == color) {
                     kingPos = QPoint(col, row);
+                    found = true;
                     break;
                 }
             }
         }
     }
     
+    // If king not found, consider it as check (defensive programming)
     if (kingPos.x() < 0) return true;
     
     PieceColor opponentColor = (color == PieceColor::White) ? PieceColor::Black : PieceColor::White;
