@@ -72,5 +72,8 @@ private:
     QPoint getSquareAtPosition(const QPoint& pos) const;
     void updateSquareSizes();
     void initializeSounds();
+    bool isCaptureMove(const QPoint& from, const QPoint& to) const;
+    bool isCastlingMove(const QPoint& from, const QPoint& to) const;
+    void playSoundForMove(bool isCapture, bool isCastling);
 };
 #endif // QT_CHESS_H
