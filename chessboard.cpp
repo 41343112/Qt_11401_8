@@ -316,8 +316,8 @@ bool ChessBoard::isInsufficientMaterial() const {
     // Count pieces on the board
     int whiteKnights = 0, blackKnights = 0;
     int whiteBishops = 0, blackBishops = 0;
-    int whiteBishopsOnLight = 0, whiteBishopsOnDark = 0;
-    int blackBishopsOnLight = 0, blackBishopsOnDark = 0;
+    int whiteBishopsOnEvenSquares = 0, whiteBishopsOnOddSquares = 0;
+    int blackBishopsOnEvenSquares = 0, blackBishopsOnOddSquares = 0;
     bool hasWhiteKing = false, hasBlackKing = false;
     bool hasOtherPieces = false;
     
@@ -336,15 +336,15 @@ bool ChessBoard::isInsufficientMaterial() const {
                 if (color == PieceColor::White) whiteKnights++;
                 else blackKnights++;
             } else if (type == PieceType::Bishop) {
-                bool isLightSquare = (row + col) % 2 == 0;
+                bool isEvenSquare = (row + col) % 2 == 0;
                 if (color == PieceColor::White) {
                     whiteBishops++;
-                    if (isLightSquare) whiteBishopsOnLight++;
-                    else whiteBishopsOnDark++;
+                    if (isEvenSquare) whiteBishopsOnEvenSquares++;
+                    else whiteBishopsOnOddSquares++;
                 } else {
                     blackBishops++;
-                    if (isLightSquare) blackBishopsOnLight++;
-                    else blackBishopsOnDark++;
+                    if (isEvenSquare) blackBishopsOnEvenSquares++;
+                    else blackBishopsOnOddSquares++;
                 }
             } else {
                 // Pawn, Rook, or Queen - sufficient material
@@ -352,6 +352,9 @@ bool ChessBoard::isInsufficientMaterial() const {
             }
         }
     }
+    
+    // Safety check: both kings must be present
+    if (!hasWhiteKing || !hasBlackKing) return false;
     
     // If there are pawns, rooks, or queens, material is sufficient
     if (hasOtherPieces) return false;
@@ -376,9 +379,9 @@ bool ChessBoard::isInsufficientMaterial() const {
     
     // King and Bishop vs King and Bishop with bishops on same color squares
     if (whiteBishops == 1 && blackBishops == 1 && whiteKnights == 0 && blackKnights == 0) {
-        // Both bishops must be on the same color squares
-        if ((whiteBishopsOnLight > 0 && blackBishopsOnLight > 0) ||
-            (whiteBishopsOnDark > 0 && blackBishopsOnDark > 0)) {
+        // Both bishops must be on the same color squares (both on even or both on odd)
+        if ((whiteBishopsOnEvenSquares > 0 && blackBishopsOnEvenSquares > 0) ||
+            (whiteBishopsOnOddSquares > 0 && blackBishopsOnOddSquares > 0)) {
             return true;
         }
     }
