@@ -11,6 +11,7 @@
 #include <QMap>
 #include <QButtonGroup>
 #include <QRadioButton>
+#include <QScrollArea>
 #include "chesspiece.h"
 
 class PieceIconSettingsDialog : public QDialog
@@ -101,6 +102,7 @@ private:
     QComboBox* m_iconSetComboBox;
     QCheckBox* m_useCustomIconsCheckBox;
     QButtonGroup* m_iconSetButtonGroup;
+    QScrollArea* m_customIconsScrollArea;
     
     // White pieces
     QLineEdit* m_whiteKingEdit;

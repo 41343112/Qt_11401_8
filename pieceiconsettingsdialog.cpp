@@ -11,6 +11,7 @@
 #include <QRadioButton>
 #include <QButtonGroup>
 #include <QFrame>
+#include <QSlider>
 
 PieceIconSettingsDialog::PieceIconSettingsDialog(QWidget *parent)
     : QDialog(parent)
@@ -80,9 +81,10 @@ void PieceIconSettingsDialog::setupUI()
     connect(m_useCustomIconsCheckBox, &QCheckBox::toggled, this, &PieceIconSettingsDialog::onUseCustomIconsToggled);
     mainLayout->addWidget(m_useCustomIconsCheckBox);
     
-    // Scroll area for piece settings
-    QScrollArea* scrollArea = new QScrollArea(this);
-    scrollArea->setWidgetResizable(true);
+    // Scroll area for piece settings (hidden by default, shown only for custom icons)
+    m_customIconsScrollArea = new QScrollArea(this);
+    m_customIconsScrollArea->setWidgetResizable(true);
+    m_customIconsScrollArea->setVisible(false);  // Hidden by default
     
     QWidget* scrollWidget = new QWidget();
     QVBoxLayout* scrollLayout = new QVBoxLayout(scrollWidget);
@@ -174,8 +176,8 @@ void PieceIconSettingsDialog::setupUI()
     scrollLayout->addWidget(blackGroup);
     scrollLayout->addStretch();
     
-    scrollArea->setWidget(scrollWidget);
-    mainLayout->addWidget(scrollArea);
+    m_customIconsScrollArea->setWidget(scrollWidget);
+    mainLayout->addWidget(m_customIconsScrollArea);
     
     // Buttons
     QHBoxLayout* buttonLayout = new QHBoxLayout();
@@ -259,12 +261,73 @@ void PieceIconSettingsDialog::previewIcon(const QString& iconFile)
     
     QDialog previewDialog(this);
     previewDialog.setWindowTitle("圖標預覽");
+    previewDialog.resize(400, 500);
     QVBoxLayout* layout = new QVBoxLayout(&previewDialog);
     
-    QLabel* imageLabel = new QLabel(&previewDialog);
-    imageLabel->setPixmap(pixmap.scaled(200, 200, Qt::KeepAspectRatio, Qt::SmoothTransformation));
-    layout->addWidget(imageLabel);
+    // Image label with scroll area for zoom
+    QScrollArea* scrollArea = new QScrollArea(&previewDialog);
+    scrollArea->setAlignment(Qt::AlignCenter);
+    scrollArea->setWidgetResizable(false);
     
+    QLabel* imageLabel = new QLabel(scrollArea);
+    imageLabel->setAlignment(Qt::AlignCenter);
+    scrollArea->setWidget(imageLabel);
+    layout->addWidget(scrollArea, 1);  // Give it more space
+    
+    // Zoom controls
+    QHBoxLayout* zoomLayout = new QHBoxLayout();
+    QLabel* zoomLabel = new QLabel("縮放:", &previewDialog);
+    zoomLayout->addWidget(zoomLabel);
+    
+    QPushButton* zoomOutButton = new QPushButton("-", &previewDialog);
+    zoomOutButton->setFixedWidth(30);
+    zoomLayout->addWidget(zoomOutButton);
+    
+    QSlider* zoomSlider = new QSlider(Qt::Horizontal, &previewDialog);
+    zoomSlider->setMinimum(25);   // 25% zoom
+    zoomSlider->setMaximum(400);  // 400% zoom
+    zoomSlider->setValue(100);    // 100% zoom (default)
+    zoomSlider->setTickPosition(QSlider::TicksBelow);
+    zoomSlider->setTickInterval(25);
+    zoomLayout->addWidget(zoomSlider);
+    
+    QPushButton* zoomInButton = new QPushButton("+", &previewDialog);
+    zoomInButton->setFixedWidth(30);
+    zoomLayout->addWidget(zoomInButton);
+    
+    QLabel* zoomValueLabel = new QLabel("100%", &previewDialog);
+    zoomValueLabel->setFixedWidth(50);
+    zoomValueLabel->setAlignment(Qt::AlignCenter);
+    zoomLayout->addWidget(zoomValueLabel);
+    
+    layout->addLayout(zoomLayout);
+    
+    // Zoom step for +/- buttons
+    const int zoomStep = 25;
+    
+    // Update image function - capture pixmap by value to avoid dangling reference
+    auto updateImage = [pixmap, imageLabel, zoomValueLabel](int zoomPercent) {
+        int newWidth = pixmap.width() * zoomPercent / 100;
+        int newHeight = pixmap.height() * zoomPercent / 100;
+        imageLabel->setPixmap(pixmap.scaled(newWidth, newHeight, Qt::KeepAspectRatio, Qt::SmoothTransformation));
+        zoomValueLabel->setText(QString("%1%").arg(zoomPercent));
+    };
+    
+    // Connect zoom controls
+    connect(zoomSlider, &QSlider::valueChanged, updateImage);
+    
+    connect(zoomInButton, &QPushButton::clicked, [zoomSlider, zoomStep]() {
+        zoomSlider->setValue(qMin(zoomSlider->value() + zoomStep, zoomSlider->maximum()));
+    });
+    
+    connect(zoomOutButton, &QPushButton::clicked, [zoomSlider, zoomStep]() {
+        zoomSlider->setValue(qMax(zoomSlider->value() - zoomStep, zoomSlider->minimum()));
+    });
+    
+    // Set initial display
+    updateImage(100);
+    
+    // Close button
     QPushButton* closeButton = new QPushButton("關閉", &previewDialog);
     connect(closeButton, &QPushButton::clicked, &previewDialog, &QDialog::accept);
     layout->addWidget(closeButton);
@@ -527,6 +590,9 @@ void PieceIconSettingsDialog::onIconSetTypeChanged(int index)
 void PieceIconSettingsDialog::updateCustomIconsControls()
 {
     bool enableCustomEditing = (m_settings.iconSetType == IconSetType::Custom);
+    
+    // Show/hide the scroll area based on whether custom icons are selected
+    m_customIconsScrollArea->setVisible(enableCustomEditing);
     
     // Enable/disable all browse, preview, and reset buttons
     m_whiteKingBrowseButton->setEnabled(enableCustomEditing);
