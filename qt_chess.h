@@ -59,6 +59,7 @@ private:
     void updateStatus();
     void highlightValidMoves();
     void clearHighlights();
+    void restorePieceToSquare(const QPoint& square);
     PieceType showPromotionDialog(PieceColor color);
     QPoint getSquareAtPosition(const QPoint& pos) const;
 };
