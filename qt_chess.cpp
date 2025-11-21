@@ -24,7 +24,7 @@ Qt_Chess::Qt_Chess(QWidget *parent)
     setWindowTitle("國際象棋 - 雙人對弈");
     resize(700, 750);
     
-    // Set minimum window size: 8 squares × 40px + UI elements height (~150px)
+    // Set minimum window size: board (8 squares × 40px = 320px) + UI elements (~150px) = 470px height
     setMinimumSize(320, 470);
     
     setMouseTracking(true);
