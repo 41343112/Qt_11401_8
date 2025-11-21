@@ -461,7 +461,8 @@ PieceIconSettingsDialog::PieceIconSettings PieceIconSettingsDialog::getPresetSet
         settings.blackKnightIcon = basePath + "black_knight.png";
         settings.blackPawnIcon = basePath + "black_pawn.png";
     } else {
-        // Custom - keep existing paths
+        // Custom - return empty settings structure (user will populate paths via browse)
+        // All QString members are already empty by default initialization
         settings.iconSetType = setType;
         settings.useCustomIcons = true;
     }
@@ -555,9 +556,15 @@ void PieceIconSettingsDialog::applyPresetIconSet(IconSetType setType)
 QString PieceIconSettingsDialog::getSetDirectoryName(IconSetType setType) const
 {
     switch (setType) {
-        case IconSetType::Preset1: return "set1";
-        case IconSetType::Preset2: return "set2";
-        case IconSetType::Preset3: return "set3";
-        default: return "";
+        case IconSetType::Preset1: 
+            return "set1";
+        case IconSetType::Preset2: 
+            return "set2";
+        case IconSetType::Preset3: 
+            return "set3";
+        case IconSetType::Unicode:
+        case IconSetType::Custom:
+        default: 
+            return "";
     }
 }
