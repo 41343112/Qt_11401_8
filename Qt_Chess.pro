@@ -1,4 +1,4 @@
-QT       += core gui
+QT       += core gui multimedia
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
@@ -12,15 +12,20 @@ SOURCES += \
     main.cpp \
     qt_chess.cpp \
     chesspiece.cpp \
-    chessboard.cpp
+    chessboard.cpp \
+    soundsettingsdialog.cpp
 
 HEADERS += \
     qt_chess.h \
     chesspiece.h \
-    chessboard.h
+    chessboard.h \
+    soundsettingsdialog.h
 
 FORMS += \
     qt_chess.ui
+
+RESOURCES += \
+    resources.qrc
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin

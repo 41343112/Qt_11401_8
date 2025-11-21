@@ -8,8 +8,13 @@
 #include <QVBoxLayout>
 #include <QMouseEvent>
 #include <QMap>
+#include <QSoundEffect>
+#include <QMenuBar>
+#include <QMenu>
+#include <QAction>
 #include <vector>
 #include "chessboard.h"
+#include "soundsettingsdialog.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui {
@@ -35,6 +40,7 @@ protected:
 private slots:
     void onSquareClicked(int row, int col);
     void onNewGameClicked();
+    void onSoundSettingsClicked();
 
 private:
     Ui::Qt_Chess *ui;
@@ -51,8 +57,18 @@ private:
     
     QPushButton* m_newGameButton;
     QWidget* m_boardWidget;
+    QMenuBar* m_menuBar;
+    
+    // Sound effects
+    QSoundEffect m_moveSound;
+    QSoundEffect m_captureSound;
+    QSoundEffect m_castlingSound;
+    QSoundEffect m_checkSound;
+    QSoundEffect m_checkmateSound;
+    SoundSettingsDialog::SoundSettings m_soundSettings;
     
     void setupUI();
+    void setupMenuBar();
     void updateBoard();
     void updateSquareColor(int row, int col);
     void updateStatus();
@@ -63,5 +79,12 @@ private:
     PieceType showPromotionDialog(PieceColor color);
     QPoint getSquareAtPosition(const QPoint& pos) const;
     void updateSquareSizes();
+    void initializeSounds();
+    void loadSoundSettings();
+    void applySoundSettings();
+    void setSoundSource(QSoundEffect& sound, const QString& path);
+    bool isCaptureMove(const QPoint& from, const QPoint& to) const;
+    bool isCastlingMove(const QPoint& from, const QPoint& to) const;
+    void playSoundForMove(bool isCapture, bool isCastling);
 };
 #endif // QT_CHESS_H

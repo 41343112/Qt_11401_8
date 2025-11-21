@@ -1,5 +1,6 @@
 #include "qt_chess.h"
 #include "ui_qt_chess.h"
+#include "soundsettingsdialog.h"
 #include <QMessageBox>
 #include <QFont>
 #include <QDialog>
@@ -9,6 +10,7 @@
 #include <QPushButton>
 #include <QEvent>
 #include <QResizeEvent>
+#include <QSettings>
 
 namespace {
     const QString CHECK_HIGHLIGHT_STYLE = "QPushButton { background-color: #FF6B6B; border: 2px solid #FF0000; }";
@@ -23,6 +25,7 @@ Qt_Chess::Qt_Chess(QWidget *parent)
     , m_dragStartSquare(-1, -1)
     , m_dragLabel(nullptr)
     , m_boardWidget(nullptr)
+    , m_menuBar(nullptr)
 {
     ui->setupUi(this);
     setWindowTitle("國際象棋 - 雙人對弈");
@@ -33,6 +36,9 @@ Qt_Chess::Qt_Chess(QWidget *parent)
     
     setMouseTracking(true);
     
+    loadSoundSettings();
+    initializeSounds();
+    setupMenuBar();
     setupUI();
     updateBoard();
     updateStatus();
@@ -97,6 +103,18 @@ void Qt_Chess::setupUI() {
     mainLayout->addWidget(m_newGameButton);
     
     setCentralWidget(centralWidget);
+}
+
+void Qt_Chess::setupMenuBar() {
+    m_menuBar = menuBar();
+    
+    // Settings menu
+    QMenu* settingsMenu = m_menuBar->addMenu("設定");
+    
+    // Sound settings action
+    QAction* soundSettingsAction = new QAction("音效設定", this);
+    connect(soundSettingsAction, &QAction::triggered, this, &Qt_Chess::onSoundSettingsClicked);
+    settingsMenu->addAction(soundSettingsAction);
 }
 
 void Qt_Chess::updateSquareColor(int row, int col) {
@@ -201,6 +219,10 @@ void Qt_Chess::onSquareClicked(int row, int col) {
             highlightValidMoves();
         }
     } else {
+        // Detect move type before executing the move
+        bool isCapture = isCaptureMove(m_selectedSquare, clickedSquare);
+        bool isCastling = isCastlingMove(m_selectedSquare, clickedSquare);
+        
         // Try to move the selected piece
         if (m_chessBoard.movePiece(m_selectedSquare, clickedSquare)) {
             m_pieceSelected = false;
@@ -213,6 +235,9 @@ void Qt_Chess::onSquareClicked(int row, int col) {
                 m_chessBoard.promotePawn(clickedSquare, promotionType);
                 updateBoard();
             }
+            
+            // Play appropriate sound effect
+            playSoundForMove(isCapture, isCastling);
             
             updateStatus();
         } else if (clickedSquare == m_selectedSquare) {
@@ -236,6 +261,16 @@ void Qt_Chess::onNewGameClicked() {
     m_pieceSelected = false;
     updateBoard();
     updateStatus();
+}
+
+void Qt_Chess::onSoundSettingsClicked() {
+    SoundSettingsDialog dialog(this);
+    dialog.setSettings(m_soundSettings);
+    
+    if (dialog.exec() == QDialog::Accepted) {
+        m_soundSettings = dialog.getSettings();
+        applySoundSettings();
+    }
 }
 
 PieceType Qt_Chess::showPromotionDialog(PieceColor color) {
@@ -453,6 +488,10 @@ void Qt_Chess::mouseReleaseEvent(QMouseEvent *event) {
         m_isDragging = false;
         
         if (dropSquare.x() >= 0 && dropSquare.y() >= 0) {
+            // Detect move type before executing the move
+            bool isCapture = isCaptureMove(m_dragStartSquare, dropSquare);
+            bool isCastling = isCastlingMove(m_dragStartSquare, dropSquare);
+            
             // Try to move the piece
             if (m_chessBoard.movePiece(m_dragStartSquare, dropSquare)) {
                 m_pieceSelected = false;
@@ -465,6 +504,9 @@ void Qt_Chess::mouseReleaseEvent(QMouseEvent *event) {
                     m_chessBoard.promotePawn(dropSquare, promotionType);
                     updateBoard();
                 }
+                
+                // Play appropriate sound effect
+                playSoundForMove(isCapture, isCastling);
                 
                 updateStatus();
                 clearHighlights();
@@ -561,4 +603,124 @@ void Qt_Chess::updateSquareSizes() {
     // Update the board widget size to fit the squares exactly
     // Add 4 extra pixels (2px on each side) to prevent border clipping when squares are highlighted
     m_boardWidget->setFixedSize(squareSize * 8 + 4, squareSize * 8 + 4);
+}
+
+void Qt_Chess::initializeSounds() {
+    applySoundSettings();
+}
+
+void Qt_Chess::loadSoundSettings() {
+    SoundSettingsDialog::SoundSettings defaults = SoundSettingsDialog::getDefaultSettings();
+    QSettings settings("QtChess", "SoundSettings");
+    
+    m_soundSettings.moveSound = settings.value("moveSound", defaults.moveSound).toString();
+    m_soundSettings.captureSound = settings.value("captureSound", defaults.captureSound).toString();
+    m_soundSettings.castlingSound = settings.value("castlingSound", defaults.castlingSound).toString();
+    m_soundSettings.checkSound = settings.value("checkSound", defaults.checkSound).toString();
+    m_soundSettings.checkmateSound = settings.value("checkmateSound", defaults.checkmateSound).toString();
+    
+    m_soundSettings.moveVolume = settings.value("moveVolume", defaults.moveVolume).toDouble();
+    m_soundSettings.captureVolume = settings.value("captureVolume", defaults.captureVolume).toDouble();
+    m_soundSettings.castlingVolume = settings.value("castlingVolume", defaults.castlingVolume).toDouble();
+    m_soundSettings.checkVolume = settings.value("checkVolume", defaults.checkVolume).toDouble();
+    m_soundSettings.checkmateVolume = settings.value("checkmateVolume", defaults.checkmateVolume).toDouble();
+    
+    m_soundSettings.moveSoundEnabled = settings.value("moveSoundEnabled", defaults.moveSoundEnabled).toBool();
+    m_soundSettings.captureSoundEnabled = settings.value("captureSoundEnabled", defaults.captureSoundEnabled).toBool();
+    m_soundSettings.castlingSoundEnabled = settings.value("castlingSoundEnabled", defaults.castlingSoundEnabled).toBool();
+    m_soundSettings.checkSoundEnabled = settings.value("checkSoundEnabled", defaults.checkSoundEnabled).toBool();
+    m_soundSettings.checkmateSoundEnabled = settings.value("checkmateSoundEnabled", defaults.checkmateSoundEnabled).toBool();
+    m_soundSettings.allSoundsEnabled = settings.value("allSoundsEnabled", defaults.allSoundsEnabled).toBool();
+}
+
+void Qt_Chess::setSoundSource(QSoundEffect& sound, const QString& path) {
+    // Helper function to set sound source with proper URL handling
+    // - For Qt resource paths (qrc:), use QUrl constructor directly
+    // - For local file paths, use QUrl::fromLocalFile for proper conversion
+    if (path.startsWith("qrc:")) {
+        sound.setSource(QUrl(path));
+    } else {
+        sound.setSource(QUrl::fromLocalFile(path));
+    }
+}
+
+void Qt_Chess::applySoundSettings() {
+    // Initialize sound effects with settings
+    setSoundSource(m_moveSound, m_soundSettings.moveSound);
+    m_moveSound.setVolume(m_soundSettings.moveVolume);
+    
+    setSoundSource(m_captureSound, m_soundSettings.captureSound);
+    m_captureSound.setVolume(m_soundSettings.captureVolume);
+    
+    setSoundSource(m_castlingSound, m_soundSettings.castlingSound);
+    m_castlingSound.setVolume(m_soundSettings.castlingVolume);
+    
+    setSoundSource(m_checkSound, m_soundSettings.checkSound);
+    m_checkSound.setVolume(m_soundSettings.checkVolume);
+    
+    setSoundSource(m_checkmateSound, m_soundSettings.checkmateSound);
+    m_checkmateSound.setVolume(m_soundSettings.checkmateVolume);
+}
+
+bool Qt_Chess::isCaptureMove(const QPoint& from, const QPoint& to) const {
+    const ChessPiece& movingPiece = m_chessBoard.getPiece(from.y(), from.x());
+    const ChessPiece& destinationPiece = m_chessBoard.getPiece(to.y(), to.x());
+    
+    // Check for regular capture
+    if (destinationPiece.getType() != PieceType::None && 
+        destinationPiece.getColor() != movingPiece.getColor()) {
+        return true;
+    }
+    
+    // Check for en passant capture
+    if (movingPiece.getType() == PieceType::Pawn && 
+        to == m_chessBoard.getEnPassantTarget() && 
+        m_chessBoard.getEnPassantTarget().x() >= 0) {
+        return true;
+    }
+    
+    return false;
+}
+
+bool Qt_Chess::isCastlingMove(const QPoint& from, const QPoint& to) const {
+    const ChessPiece& movingPiece = m_chessBoard.getPiece(from.y(), from.x());
+    
+    // Check if the moving piece is a king moving 2 squares horizontally
+    if (movingPiece.getType() != PieceType::King || abs(to.x() - from.x()) != 2) {
+        return false;
+    }
+    
+    // Verify the move is on the correct starting rank (row 0 for black, row 7 for white)
+    if (movingPiece.getColor() == PieceColor::White && from.y() == 7 && to.y() == 7) {
+        return true;
+    }
+    if (movingPiece.getColor() == PieceColor::Black && from.y() == 0 && to.y() == 0) {
+        return true;
+    }
+    
+    return false;
+}
+
+void Qt_Chess::playSoundForMove(bool isCapture, bool isCastling) {
+    // Check if all sounds are disabled
+    if (!m_soundSettings.allSoundsEnabled) {
+        return;
+    }
+    
+    // Note: After movePiece(), the turn has switched, so currentPlayer is now the opponent
+    PieceColor opponentColor = m_chessBoard.getCurrentPlayer();
+    bool opponentInCheck = m_chessBoard.isInCheck(opponentColor);
+    bool opponentCheckmate = m_chessBoard.isCheckmate(opponentColor);
+    
+    if (opponentCheckmate && m_soundSettings.checkmateSoundEnabled) {
+        m_checkmateSound.play();
+    } else if (opponentInCheck && m_soundSettings.checkSoundEnabled) {
+        m_checkSound.play();
+    } else if (isCastling && m_soundSettings.castlingSoundEnabled) {
+        m_castlingSound.play();
+    } else if (isCapture && m_soundSettings.captureSoundEnabled) {
+        m_captureSound.play();
+    } else if (m_soundSettings.moveSoundEnabled) {
+        m_moveSound.play();
+    }
 }
