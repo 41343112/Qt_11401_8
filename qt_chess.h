@@ -72,6 +72,7 @@ private:
     
     // Piece icon settings
     PieceIconSettingsDialog::PieceIconSettings m_pieceIconSettings;
+    QMap<QString, QPixmap> m_pieceIconCache; // Cache for loaded piece icons
     
     void setupUI();
     void setupMenuBar();
@@ -97,5 +98,9 @@ private:
     void applyPieceIconSettings();
     QString getPieceIconPath(PieceType type, PieceColor color) const;
     void displayPieceOnSquare(QPushButton* square, const ChessPiece& piece);
+    void loadPieceIconsToCache();
+    void clearPieceIconCache();
+    QPixmap getCachedPieceIcon(PieceType type, PieceColor color) const;
+    int calculateIconSize(QPushButton* square) const;
 };
 #endif // QT_CHESS_H
