@@ -13,7 +13,7 @@ A fully functional player-vs-player chess game built with Qt5.
 - **Move Validation**: Only legal moves are allowed
 - **Check Detection**: The game detects when a king is in check
 - **Checkmate & Stalemate Detection**: Game automatically detects end conditions
-- **Visual Highlights**: Selected pieces and valid moves are highlighted
+- **Visual Highlights**: Selected pieces and valid moves are highlighted (orange for normal moves, red for capture moves)
 - **Clean UI**: Classic chessboard with Unicode chess piece symbols
 - **New Game**: Reset the board to start a new game at any time
 - **Sound Effects**: Different sounds for moves, captures, castling, check, and checkmate
@@ -56,7 +56,7 @@ make
 1. **Select a Piece**: Click on one of your pieces (White starts first)
 2. **Drag and Drop**: Click and drag a piece to move it to a valid square
 3. **Cancel Move**: Right-click at any time during dragging to cancel and return the piece to its original position
-4. **Valid Moves**: Valid destination squares will be highlighted in orange
+4. **Valid Moves**: Valid destination squares will be highlighted (orange for normal moves, red for capture moves)
 5. **Move**: Click on a highlighted square to move the piece, or drag and drop
 6. **Deselect**: Click the selected piece again or right-click to deselect it
 7. **Turn Indicator**: The current player's turn is displayed at the top
