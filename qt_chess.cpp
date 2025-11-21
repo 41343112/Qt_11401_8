@@ -297,6 +297,13 @@ QPoint Qt_Chess::getSquareAtPosition(const QPoint& pos) const {
     return QPoint(-1, -1);
 }
 
+void Qt_Chess::restorePieceToSquare(const QPoint& square) {
+    if (square.x() >= 0 && square.y() >= 0 && square.x() < 8 && square.y() < 8) {
+        const ChessPiece& piece = m_chessBoard.getPiece(square.y(), square.x());
+        m_squares[square.y()][square.x()]->setText(piece.getSymbol());
+    }
+}
+
 bool Qt_Chess::eventFilter(QObject *obj, QEvent *event) {
     // Check if the event is from one of our chess square buttons
     QPushButton* button = qobject_cast<QPushButton*>(obj);
@@ -361,6 +368,8 @@ void Qt_Chess::mousePressEvent(QMouseEvent *event) {
                 m_dragLabel->deleteLater();
                 m_dragLabel = nullptr;
             }
+            // Restore the piece to the original square
+            restorePieceToSquare(m_dragStartSquare);
             m_dragStartSquare = QPoint(-1, -1);
             clearHighlights();
         } else if (m_pieceSelected) {
@@ -372,7 +381,8 @@ void Qt_Chess::mousePressEvent(QMouseEvent *event) {
     }
     
     // Left click - start drag
-    if (event->button() == Qt::LeftButton && square.x() >= 0 && square.y() >= 0) {
+    if (event->button() == Qt::LeftButton && square.x() >= 0 && square.y() >= 0 && 
+        square.x() < 8 && square.y() < 8) {
         const ChessPiece& piece = m_chessBoard.getPiece(square.y(), square.x());
         if (piece.getType() != PieceType::None && 
             piece.getColor() == m_chessBoard.getCurrentPlayer()) {
@@ -393,6 +403,9 @@ void Qt_Chess::mousePressEvent(QMouseEvent *event) {
             m_dragLabel->move(event->pos() - QPoint(m_dragLabel->width() / 2, m_dragLabel->height() / 2));
             m_dragLabel->show();
             m_dragLabel->raise();
+            
+            // Hide the piece from the original square during drag
+            m_squares[square.y()][square.x()]->setText("");
             
             highlightValidMoves();
         }
@@ -447,6 +460,8 @@ void Qt_Chess::mouseReleaseEvent(QMouseEvent *event) {
                 clearHighlights();
             } else if (dropSquare == m_dragStartSquare) {
                 // Dropped on same square - deselect
+                // Restore the piece to the original square
+                restorePieceToSquare(m_dragStartSquare);
                 m_pieceSelected = false;
                 clearHighlights();
             } else {
@@ -454,17 +469,23 @@ void Qt_Chess::mouseReleaseEvent(QMouseEvent *event) {
                 const ChessPiece& piece = m_chessBoard.getPiece(dropSquare.y(), dropSquare.x());
                 if (piece.getType() != PieceType::None && 
                     piece.getColor() == m_chessBoard.getCurrentPlayer()) {
+                    // Restore the piece to the original square first
+                    restorePieceToSquare(m_dragStartSquare);
                     m_selectedSquare = dropSquare;
                     m_pieceSelected = true;
                     highlightValidMoves();
                 } else {
                     // Invalid move and not selecting another piece
+                    // Restore the piece to the original square
+                    restorePieceToSquare(m_dragStartSquare);
                     m_pieceSelected = false;
                     clearHighlights();
                 }
             }
         } else {
             // Dropped outside board - cancel
+            // Restore the piece to the original square
+            restorePieceToSquare(m_dragStartSquare);
             m_pieceSelected = false;
             clearHighlights();
         }
