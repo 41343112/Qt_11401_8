@@ -26,10 +26,10 @@ Qt_Chess::Qt_Chess(QWidget *parent)
 {
     ui->setupUi(this);
     setWindowTitle("國際象棋 - 雙人對弈");
-    resize(700, 750);
+    resize(700, 660);
     
-    // Set minimum window size: width 320px (8 squares × 40px), height 470px (320px board + ~150px UI elements)
-    setMinimumSize(320, 470);
+    // Set minimum window size: width 320px (8 squares × 40px), height 380px (320px board + ~60px UI elements)
+    setMinimumSize(320, 380);
     
     setMouseTracking(true);
     
@@ -46,20 +46,6 @@ Qt_Chess::~Qt_Chess()
 void Qt_Chess::setupUI() {
     QWidget* centralWidget = new QWidget(this);
     QVBoxLayout* mainLayout = new QVBoxLayout(centralWidget);
-    
-    // Turn and status labels
-    m_turnLabel = new QLabel("當前回合：白方", this);
-    m_turnLabel->setAlignment(Qt::AlignCenter);
-    QFont font = m_turnLabel->font();
-    font.setPointSize(14);
-    font.setBold(true);
-    m_turnLabel->setFont(font);
-    mainLayout->addWidget(m_turnLabel);
-    
-    m_statusLabel = new QLabel("對局進行中", this);
-    m_statusLabel->setAlignment(Qt::AlignCenter);
-    m_statusLabel->setFont(font);
-    mainLayout->addWidget(m_statusLabel);
     
     // Chess board
     m_boardWidget = new QWidget(this);
@@ -103,7 +89,10 @@ void Qt_Chess::setupUI() {
     // New game button
     m_newGameButton = new QPushButton("新遊戲", this);
     m_newGameButton->setMinimumHeight(40);
-    m_newGameButton->setFont(font);
+    QFont buttonFont;
+    buttonFont.setPointSize(14);
+    buttonFont.setBold(true);
+    m_newGameButton->setFont(buttonFont);
     connect(m_newGameButton, &QPushButton::clicked, this, &Qt_Chess::onNewGameClicked);
     mainLayout->addWidget(m_newGameButton);
     
@@ -139,27 +128,13 @@ void Qt_Chess::updateStatus() {
     PieceColor currentPlayer = m_chessBoard.getCurrentPlayer();
     QString playerName = (currentPlayer == PieceColor::White) ? "白方" : "黑方";
     
-    m_turnLabel->setText(QString("當前回合：%1").arg(playerName));
-    
     if (m_chessBoard.isCheckmate(currentPlayer)) {
         QString winner = (currentPlayer == PieceColor::White) ? "黑方" : "白方";
-        m_statusLabel->setText(QString("將死！%1獲勝！").arg(winner));
-        m_statusLabel->setStyleSheet("QLabel { color: red; }");
         QMessageBox::information(this, "遊戲結束", QString("將死！%1獲勝！").arg(winner));
     } else if (m_chessBoard.isStalemate(currentPlayer)) {
-        m_statusLabel->setText("逼和！對局和棋。");
-        m_statusLabel->setStyleSheet("QLabel { color: orange; }");
         QMessageBox::information(this, "遊戲結束", "逼和！對局和棋。");
     } else if (m_chessBoard.isInsufficientMaterial()) {
-        m_statusLabel->setText("子力不足！對局和棋。");
-        m_statusLabel->setStyleSheet("QLabel { color: orange; }");
-        QMessageBox::information(this, "遊戲結束", "子力不足以將殺！對局和棋。");
-    } else if (m_chessBoard.isInCheck(currentPlayer)) {
-        m_statusLabel->setText(QString("%1被將軍！").arg(playerName));
-        m_statusLabel->setStyleSheet("QLabel { color: red; }");
-    } else {
-        m_statusLabel->setText("對局進行中");
-        m_statusLabel->setStyleSheet("QLabel { color: black; }");
+        QMessageBox::information(this, "遊戲結束", "子力不足以將死！對局和棋。");
     }
 }
 
@@ -549,10 +524,8 @@ void Qt_Chess::updateSquareSizes() {
     if (!central) return;
     
     // Calculate available space for the board
-    // Account for the turn label, status label, and new game button
+    // Account for the new game button
     int reservedHeight = 0;
-    if (m_turnLabel) reservedHeight += m_turnLabel->sizeHint().height();
-    if (m_statusLabel) reservedHeight += m_statusLabel->sizeHint().height();
     if (m_newGameButton) reservedHeight += m_newGameButton->minimumHeight();
     
     // Add some padding for layout margins and spacing (estimate ~50px)

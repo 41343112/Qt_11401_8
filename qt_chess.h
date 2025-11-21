@@ -49,8 +49,6 @@ private:
     QPoint m_dragStartSquare;
     QLabel* m_dragLabel;
     
-    QLabel* m_statusLabel;
-    QLabel* m_turnLabel;
     QPushButton* m_newGameButton;
     QWidget* m_boardWidget;
     
