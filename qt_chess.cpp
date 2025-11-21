@@ -12,6 +12,7 @@
 
 // Constants for responsive board sizing
 namespace {
+    constexpr int BOARD_SIZE = 8;              // Standard chess board is 8x8
     constexpr int BASE_MARGIN = 100;           // Base margin for UI elements
     constexpr int SIDE_MARGIN = 40;            // Side margin for the board
     constexpr int MIN_SQUARE_SIZE = 40;        // Minimum square size for usability
@@ -526,14 +527,14 @@ void Qt_Chess::updateSquareSizes() {
     
     // Calculate square size - use the smaller dimension to keep squares square
     int boardSize = qMin(availableWidth, availableHeight);
-    int squareSize = boardSize / 8;
+    int squareSize = boardSize / BOARD_SIZE;
     
     // Ensure a minimum size for usability
     squareSize = qMax(squareSize, MIN_SQUARE_SIZE);
     
     // Update each square's size
-    for (int row = 0; row < 8; ++row) {
-        for (int col = 0; col < 8; ++col) {
+    for (int row = 0; row < BOARD_SIZE; ++row) {
+        for (int col = 0; col < BOARD_SIZE; ++col) {
             m_squares[row][col]->setMinimumSize(squareSize, squareSize);
             m_squares[row][col]->setMaximumSize(squareSize, squareSize);
             
@@ -547,6 +548,6 @@ void Qt_Chess::updateSquareSizes() {
     }
     
     // Update the board widget's size
-    m_boardWidget->setMinimumSize(squareSize * 8, squareSize * 8);
-    m_boardWidget->setMaximumSize(squareSize * 8, squareSize * 8);
+    m_boardWidget->setMinimumSize(squareSize * BOARD_SIZE, squareSize * BOARD_SIZE);
+    m_boardWidget->setMaximumSize(squareSize * BOARD_SIZE, squareSize * BOARD_SIZE);
 }
