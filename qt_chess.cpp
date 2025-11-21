@@ -580,28 +580,28 @@ void Qt_Chess::updateSquareSizes() {
 
 void Qt_Chess::initializeSounds() {
     // Initialize sound effects
-    m_moveSound.setSource(QUrl("qrc:/sounds/resources/sounds/move.wav"));
+    m_moveSound.setSource(QUrl("qrc:/resources/sounds/move.wav"));
     m_moveSound.setVolume(0.5);
     
-    m_captureSound.setSource(QUrl("qrc:/sounds/resources/sounds/capture.wav"));
+    m_captureSound.setSource(QUrl("qrc:/resources/sounds/capture.wav"));
     m_captureSound.setVolume(0.5);
     
-    m_castlingSound.setSource(QUrl("qrc:/sounds/resources/sounds/castling.wav"));
+    m_castlingSound.setSource(QUrl("qrc:/resources/sounds/castling.wav"));
     m_castlingSound.setVolume(0.5);
     
-    m_checkSound.setSource(QUrl("qrc:/sounds/resources/sounds/check.wav"));
+    m_checkSound.setSource(QUrl("qrc:/resources/sounds/check.wav"));
     m_checkSound.setVolume(0.5);
     
     // Checkmate sound is slightly louder to emphasize the game-ending event
-    m_checkmateSound.setSource(QUrl("qrc:/sounds/resources/sounds/checkmate.wav"));
+    m_checkmateSound.setSource(QUrl("qrc:/resources/sounds/checkmate.wav"));
     m_checkmateSound.setVolume(0.6);
 }
 
 bool Qt_Chess::isCaptureMove(const QPoint& from, const QPoint& to) const {
-    Q_UNUSED(from);
+    const ChessPiece& movingPiece = m_chessBoard.getPiece(from.y(), from.x());
     const ChessPiece& destinationPiece = m_chessBoard.getPiece(to.y(), to.x());
     return (destinationPiece.getType() != PieceType::None && 
-            destinationPiece.getColor() != m_chessBoard.getCurrentPlayer());
+            destinationPiece.getColor() != movingPiece.getColor());
 }
 
 bool Qt_Chess::isCastlingMove(const QPoint& from, const QPoint& to) const {

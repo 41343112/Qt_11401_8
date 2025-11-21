@@ -1,5 +1,5 @@
 <RCC>
-    <qresource prefix="/sounds">
+    <qresource prefix="/">
         <file>resources/sounds/move.wav</file>
         <file>resources/sounds/capture.wav</file>
         <file>resources/sounds/castling.wav</file>
