@@ -21,6 +21,7 @@ A fully functional player-vs-player chess game built with Qt5.
   - Configure custom sound files for each event type
   - Adjust volume levels for each sound independently
   - Enable/disable individual sounds or all sounds
+  - Reset individual sound effects to default values independently
   - Preview sounds before applying settings
   - Settings are saved persistently between sessions
 
@@ -57,6 +58,8 @@ make
     - Choose custom sound files for each event (move, capture, castling, check, checkmate)
     - Adjust volume levels using sliders
     - Enable/disable individual sounds or all sounds
+    - Reset individual sound effects to their default values using the "重設" (Reset) button next to each sound
+    - Reset all sound effects at once using the "重設為預設值" (Reset to Defaults) button
     - Preview sounds before applying settings
     - **Supported audio formats**: WAV (recommended), MP3, OGG
       - WAV format is recommended for best compatibility across all platforms
