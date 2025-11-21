@@ -34,7 +34,8 @@ public:
     
     // Check if a move to target position is valid (basic piece movement rules)
     bool isValidMove(const QPoint& from, const QPoint& to, 
-                     const std::vector<std::vector<ChessPiece>>& board) const;
+                     const std::vector<std::vector<ChessPiece>>& board,
+                     const QPoint& enPassantTarget = QPoint(-1, -1)) const;
     
 private:
     PieceType m_type;
@@ -42,7 +43,8 @@ private:
     bool m_hasMoved;
     
     bool isValidPawnMove(const QPoint& from, const QPoint& to, 
-                         const std::vector<std::vector<ChessPiece>>& board) const;
+                         const std::vector<std::vector<ChessPiece>>& board,
+                         const QPoint& enPassantTarget) const;
     bool isValidRookMove(const QPoint& from, const QPoint& to, 
                          const std::vector<std::vector<ChessPiece>>& board) const;
     bool isValidKnightMove(const QPoint& from, const QPoint& to) const;
