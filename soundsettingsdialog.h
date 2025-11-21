@@ -121,6 +121,7 @@ private:
     void updateAllSoundsCheckBox();
     QString browseForSoundFile();
     void previewSound(const QString& soundFile, double volume);
+    bool eventFilter(QObject *obj, QEvent *event) override;
 };
 
 #endif // SOUNDSETTINGSDIALOG_H

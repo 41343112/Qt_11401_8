@@ -6,6 +6,9 @@
 #include <QFileDialog>
 #include <QMessageBox>
 #include <QSettings>
+#include <QStyle>
+#include <QEvent>
+#include <QMouseEvent>
 
 SoundSettingsDialog::SoundSettingsDialog(QWidget *parent)
     : QDialog(parent)
@@ -66,6 +69,22 @@ void SoundSettingsDialog::createSoundRow(QGridLayout* gridLayout, int& row, cons
     // File path edit
     soundEdit = new QLineEdit(this);
     soundEdit->setReadOnly(true);
+    
+    // Add folder icon to indicate the field is clickable
+    soundEdit->addAction(
+        style()->standardIcon(QStyle::SP_DirOpenIcon), 
+        QLineEdit::TrailingPosition
+    );
+    
+    // Set cursor to pointing hand to indicate it's clickable
+    soundEdit->setCursor(Qt::PointingHandCursor);
+    
+    // Install event filter to handle clicks
+    soundEdit->installEventFilter(this);
+    
+    // Add tooltip
+    soundEdit->setToolTip("點擊以選擇音效檔案");
+    
     gridLayout->addWidget(soundEdit, row, 2);
     
     // Browse button
@@ -440,4 +459,36 @@ void SoundSettingsDialog::onResetCheckmate()
     m_checkmateSoundEdit->setText(defaults.checkmateSound);
     m_checkmateSoundCheckBox->setChecked(defaults.checkmateSoundEnabled);
     m_checkmateVolumeSlider->setValue(static_cast<int>(defaults.checkmateVolume * 100));
+}
+
+bool SoundSettingsDialog::eventFilter(QObject *obj, QEvent *event)
+{
+    // Check if the event is a mouse button press
+    if (event->type() == QEvent::MouseButtonPress) {
+        QMouseEvent *mouseEvent = static_cast<QMouseEvent*>(event);
+        
+        // Only handle left clicks
+        if (mouseEvent->button() == Qt::LeftButton) {
+            // Check which QLineEdit was clicked and trigger the appropriate browse action
+            if (obj == m_moveSoundEdit) {
+                onBrowseMove();
+                return true;
+            } else if (obj == m_captureSoundEdit) {
+                onBrowseCapture();
+                return true;
+            } else if (obj == m_castlingSoundEdit) {
+                onBrowseCastling();
+                return true;
+            } else if (obj == m_checkSoundEdit) {
+                onBrowseCheck();
+                return true;
+            } else if (obj == m_checkmateSoundEdit) {
+                onBrowseCheckmate();
+                return true;
+            }
+        }
+    }
+    
+    // Pass the event to the base class for normal processing
+    return QDialog::eventFilter(obj, event);
 }
