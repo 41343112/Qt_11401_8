@@ -398,7 +398,7 @@ void Qt_Chess::mousePressEvent(QMouseEvent *event) {
             QFont font;
             font.setPointSize(36);
             m_dragLabel->setFont(font);
-            m_dragLabel->setStyleSheet("QLabel { background-color: rgba(127, 201, 127, 180); border: 2px solid #00FF00; padding: 5px; }");
+            m_dragLabel->setStyleSheet("QLabel { background-color: transparent; border: none; }");
             m_dragLabel->adjustSize();
             m_dragLabel->move(event->pos() - QPoint(m_dragLabel->width() / 2, m_dragLabel->height() / 2));
             m_dragLabel->show();
