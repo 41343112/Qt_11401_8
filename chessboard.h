@@ -20,6 +20,7 @@ public:
     bool isInCheck(PieceColor color) const;
     bool isCheckmate(PieceColor color) const;
     bool isStalemate(PieceColor color) const;
+    bool isInsufficientMaterial() const;
     
     QPoint findKing(PieceColor color) const;
     QPoint getEnPassantTarget() const { return m_enPassantTarget; }
