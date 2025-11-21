@@ -701,11 +701,22 @@ bool Qt_Chess::isCastlingMove(const QPoint& from, const QPoint& to) const {
     return false;
 }
 
+void Qt_Chess::stopAllSounds() {
+    m_moveSound.stop();
+    m_captureSound.stop();
+    m_castlingSound.stop();
+    m_checkSound.stop();
+    m_checkmateSound.stop();
+}
+
 void Qt_Chess::playSoundForMove(bool isCapture, bool isCastling) {
     // Check if all sounds are disabled
     if (!m_soundSettings.allSoundsEnabled) {
         return;
     }
+    
+    // Stop any currently playing sound before playing the new one
+    stopAllSounds();
     
     // Note: After movePiece(), the turn has switched, so currentPlayer is now the opponent
     PieceColor opponentColor = m_chessBoard.getCurrentPlayer();

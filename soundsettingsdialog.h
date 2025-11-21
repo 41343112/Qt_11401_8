@@ -8,7 +8,7 @@
 #include <QLineEdit>
 #include <QLabel>
 #include <QSoundEffect>
-#include<QGridLayout>
+#include <QGridLayout>
 
 class SoundSettingsDialog : public QDialog
 {
@@ -53,6 +53,11 @@ private slots:
     void onPreviewCastling();
     void onPreviewCheck();
     void onPreviewCheckmate();
+    void onResetMove();
+    void onResetCapture();
+    void onResetCastling();
+    void onResetCheck();
+    void onResetCheckmate();
     void onAllSoundsToggled(bool enabled);
     void onResetToDefaults();
     void onAccept();
@@ -68,6 +73,7 @@ private:
     QLabel* m_moveVolumeLabel;
     QPushButton* m_moveBrowseButton;
     QPushButton* m_movePreviewButton;
+    QPushButton* m_moveResetButton;
     
     QLineEdit* m_captureSoundEdit;
     QCheckBox* m_captureSoundCheckBox;
@@ -75,6 +81,7 @@ private:
     QLabel* m_captureVolumeLabel;
     QPushButton* m_captureBrowseButton;
     QPushButton* m_capturePreviewButton;
+    QPushButton* m_captureResetButton;
     
     QLineEdit* m_castlingSoundEdit;
     QCheckBox* m_castlingSoundCheckBox;
@@ -82,6 +89,7 @@ private:
     QLabel* m_castlingVolumeLabel;
     QPushButton* m_castlingBrowseButton;
     QPushButton* m_castlingPreviewButton;
+    QPushButton* m_castlingResetButton;
     
     QLineEdit* m_checkSoundEdit;
     QCheckBox* m_checkSoundCheckBox;
@@ -89,6 +97,7 @@ private:
     QLabel* m_checkVolumeLabel;
     QPushButton* m_checkBrowseButton;
     QPushButton* m_checkPreviewButton;
+    QPushButton* m_checkResetButton;
     
     QLineEdit* m_checkmateSoundEdit;
     QCheckBox* m_checkmateSoundCheckBox;
@@ -96,6 +105,7 @@ private:
     QLabel* m_checkmateVolumeLabel;
     QPushButton* m_checkmateBrowseButton;
     QPushButton* m_checkmatePreviewButton;
+    QPushButton* m_checkmateResetButton;
     
     QSoundEffect m_previewSound;
     
@@ -104,8 +114,10 @@ private:
                        QLineEdit*& soundEdit, QCheckBox*& soundCheckBox,
                        QSlider*& volumeSlider, QLabel*& volumeLabel,
                        QPushButton*& browseButton, QPushButton*& previewButton,
+                       QPushButton*& resetButton,
                        void (SoundSettingsDialog::*browseSlot)(),
-                       void (SoundSettingsDialog::*previewSlot)());
+                       void (SoundSettingsDialog::*previewSlot)(),
+                       void (SoundSettingsDialog::*resetSlot)());
     void updateAllSoundsCheckBox();
     QString browseForSoundFile();
     void previewSound(const QString& soundFile, double volume);

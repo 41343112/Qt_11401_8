@@ -49,8 +49,10 @@ void SoundSettingsDialog::createSoundRow(QGridLayout* gridLayout, int& row, cons
                                          QLineEdit*& soundEdit, QCheckBox*& soundCheckBox,
                                          QSlider*& volumeSlider, QLabel*& volumeLabel,
                                          QPushButton*& browseButton, QPushButton*& previewButton,
+                                         QPushButton*& resetButton,
                                          void (SoundSettingsDialog::*browseSlot)(),
-                                         void (SoundSettingsDialog::*previewSlot)())
+                                         void (SoundSettingsDialog::*previewSlot)(),
+                                         void (SoundSettingsDialog::*resetSlot)())
 {
     // Label
     QLabel* nameLabel = new QLabel(label, this);
@@ -97,6 +99,11 @@ void SoundSettingsDialog::createSoundRow(QGridLayout* gridLayout, int& row, cons
     connect(previewButton, &QPushButton::clicked, this, previewSlot);
     gridLayout->addWidget(previewButton, row, 7);
     
+    // Reset button
+    resetButton = new QPushButton("重設", this);
+    connect(resetButton, &QPushButton::clicked, this, resetSlot);
+    gridLayout->addWidget(resetButton, row, 8);
+    
     row++;
 }
 
@@ -128,23 +135,33 @@ void SoundSettingsDialog::setupUI()
     // Create rows for each sound type
     createSoundRow(gridLayout, row, "移動音效:", m_moveSoundEdit, m_moveSoundCheckBox, 
                    m_moveVolumeSlider, m_moveVolumeLabel, m_moveBrowseButton, m_movePreviewButton,
-                   &SoundSettingsDialog::onBrowseMove, &SoundSettingsDialog::onPreviewMove);
+                   m_moveResetButton,
+                   &SoundSettingsDialog::onBrowseMove, &SoundSettingsDialog::onPreviewMove,
+                   &SoundSettingsDialog::onResetMove);
     
     createSoundRow(gridLayout, row, "吃子音效:", m_captureSoundEdit, m_captureSoundCheckBox,
                    m_captureVolumeSlider, m_captureVolumeLabel, m_captureBrowseButton, m_capturePreviewButton,
-                   &SoundSettingsDialog::onBrowseCapture, &SoundSettingsDialog::onPreviewCapture);
+                   m_captureResetButton,
+                   &SoundSettingsDialog::onBrowseCapture, &SoundSettingsDialog::onPreviewCapture,
+                   &SoundSettingsDialog::onResetCapture);
     
     createSoundRow(gridLayout, row, "王車易位:", m_castlingSoundEdit, m_castlingSoundCheckBox,
                    m_castlingVolumeSlider, m_castlingVolumeLabel, m_castlingBrowseButton, m_castlingPreviewButton,
-                   &SoundSettingsDialog::onBrowseCastling, &SoundSettingsDialog::onPreviewCastling);
+                   m_castlingResetButton,
+                   &SoundSettingsDialog::onBrowseCastling, &SoundSettingsDialog::onPreviewCastling,
+                   &SoundSettingsDialog::onResetCastling);
     
     createSoundRow(gridLayout, row, "將軍音效:", m_checkSoundEdit, m_checkSoundCheckBox,
                    m_checkVolumeSlider, m_checkVolumeLabel, m_checkBrowseButton, m_checkPreviewButton,
-                   &SoundSettingsDialog::onBrowseCheck, &SoundSettingsDialog::onPreviewCheck);
+                   m_checkResetButton,
+                   &SoundSettingsDialog::onBrowseCheck, &SoundSettingsDialog::onPreviewCheck,
+                   &SoundSettingsDialog::onResetCheck);
     
     createSoundRow(gridLayout, row, "將死音效:", m_checkmateSoundEdit, m_checkmateSoundCheckBox,
                    m_checkmateVolumeSlider, m_checkmateVolumeLabel, m_checkmateBrowseButton, m_checkmatePreviewButton,
-                   &SoundSettingsDialog::onBrowseCheckmate, &SoundSettingsDialog::onPreviewCheckmate);
+                   m_checkmateResetButton,
+                   &SoundSettingsDialog::onBrowseCheckmate, &SoundSettingsDialog::onPreviewCheckmate,
+                   &SoundSettingsDialog::onResetCheckmate);
     
     mainLayout->addWidget(soundsGroupBox);
     
@@ -383,4 +400,44 @@ SoundSettingsDialog::SoundSettings SoundSettingsDialog::getDefaultSettings()
     defaults.allSoundsEnabled = true;
     
     return defaults;
+}
+
+void SoundSettingsDialog::onResetMove()
+{
+    SoundSettings defaults = getDefaultSettings();
+    m_moveSoundEdit->setText(defaults.moveSound);
+    m_moveSoundCheckBox->setChecked(defaults.moveSoundEnabled);
+    m_moveVolumeSlider->setValue(static_cast<int>(defaults.moveVolume * 100));
+}
+
+void SoundSettingsDialog::onResetCapture()
+{
+    SoundSettings defaults = getDefaultSettings();
+    m_captureSoundEdit->setText(defaults.captureSound);
+    m_captureSoundCheckBox->setChecked(defaults.captureSoundEnabled);
+    m_captureVolumeSlider->setValue(static_cast<int>(defaults.captureVolume * 100));
+}
+
+void SoundSettingsDialog::onResetCastling()
+{
+    SoundSettings defaults = getDefaultSettings();
+    m_castlingSoundEdit->setText(defaults.castlingSound);
+    m_castlingSoundCheckBox->setChecked(defaults.castlingSoundEnabled);
+    m_castlingVolumeSlider->setValue(static_cast<int>(defaults.castlingVolume * 100));
+}
+
+void SoundSettingsDialog::onResetCheck()
+{
+    SoundSettings defaults = getDefaultSettings();
+    m_checkSoundEdit->setText(defaults.checkSound);
+    m_checkSoundCheckBox->setChecked(defaults.checkSoundEnabled);
+    m_checkVolumeSlider->setValue(static_cast<int>(defaults.checkVolume * 100));
+}
+
+void SoundSettingsDialog::onResetCheckmate()
+{
+    SoundSettings defaults = getDefaultSettings();
+    m_checkmateSoundEdit->setText(defaults.checkmateSound);
+    m_checkmateSoundCheckBox->setChecked(defaults.checkmateSoundEnabled);
+    m_checkmateVolumeSlider->setValue(static_cast<int>(defaults.checkmateVolume * 100));
 }
