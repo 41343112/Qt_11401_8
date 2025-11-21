@@ -489,13 +489,13 @@ PieceIconSettingsDialog::PieceIconSettings PieceIconSettingsDialog::getPresetSet
         settings.whiteKingIcon = basePath + "white_king.png";
         settings.whiteQueenIcon = basePath + "white_queen.png";
         settings.whiteRookIcon = basePath + "white_rook.png";
-        settings.whiteBishopIcon = basePath + "white_biship.png";
+        settings.whiteBishopIcon = basePath + "white_bishop.png";
         settings.whiteKnightIcon = basePath + "white_knight.png";
         settings.whitePawnIcon = basePath + "white_pawn.png";
         settings.blackKingIcon = basePath + "black_king.png";
         settings.blackQueenIcon = basePath + "black_queen.png";
         settings.blackRookIcon = basePath + "black_rook.png";
-        settings.blackBishopIcon = basePath + "black_biship.png";
+        settings.blackBishopIcon = basePath + "black_bishop.png";
         settings.blackKnightIcon = basePath + "black_knight.png";
         settings.blackPawnIcon = basePath + "black_pawn.png";
     } else {
