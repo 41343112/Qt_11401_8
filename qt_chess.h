@@ -44,5 +44,6 @@ private:
     void updateStatus();
     void highlightValidMoves();
     void clearHighlights();
+    PieceType showPromotionDialog(PieceColor color);
 };
 #endif // QT_CHESS_H

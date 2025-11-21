@@ -34,7 +34,8 @@ QString ChessPiece::getSymbol() const {
 }
 
 bool ChessPiece::isValidMove(const QPoint& from, const QPoint& to, 
-                              const std::vector<std::vector<ChessPiece>>& board) const {
+                              const std::vector<std::vector<ChessPiece>>& board,
+                              const QPoint& enPassantTarget) const {
     if (from == to) return false;
     
     // Check bounds
@@ -45,7 +46,7 @@ bool ChessPiece::isValidMove(const QPoint& from, const QPoint& to,
     if (target.getColor() == m_color && target.getType() != PieceType::None) return false;
     
     switch (m_type) {
-        case PieceType::Pawn:   return isValidPawnMove(from, to, board);
+        case PieceType::Pawn:   return isValidPawnMove(from, to, board, enPassantTarget);
         case PieceType::Rook:   return isValidRookMove(from, to, board);
         case PieceType::Knight: return isValidKnightMove(from, to);
         case PieceType::Bishop: return isValidBishopMove(from, to, board);
@@ -56,7 +57,8 @@ bool ChessPiece::isValidMove(const QPoint& from, const QPoint& to,
 }
 
 bool ChessPiece::isValidPawnMove(const QPoint& from, const QPoint& to, 
-                                  const std::vector<std::vector<ChessPiece>>& board) const {
+                                  const std::vector<std::vector<ChessPiece>>& board,
+                                  const QPoint& enPassantTarget) const {
     int direction = (m_color == PieceColor::White) ? -1 : 1;
     int startRow = (m_color == PieceColor::White) ? 6 : 1;
     
@@ -80,7 +82,14 @@ bool ChessPiece::isValidPawnMove(const QPoint& from, const QPoint& to,
     // Diagonal capture
     else if (abs(dx) == 1 && dy == direction) {
         const ChessPiece& target = board[to.y()][to.x()];
-        return target.getType() != PieceType::None && target.getColor() != m_color;
+        // Normal diagonal capture
+        if (target.getType() != PieceType::None && target.getColor() != m_color) {
+            return true;
+        }
+        // En passant capture
+        if (enPassantTarget.x() >= 0 && to == enPassantTarget) {
+            return true;
+        }
     }
     
     return false;
@@ -112,7 +121,15 @@ bool ChessPiece::isValidQueenMove(const QPoint& from, const QPoint& to,
 bool ChessPiece::isValidKingMove(const QPoint& from, const QPoint& to) const {
     int dx = abs(to.x() - from.x());
     int dy = abs(to.y() - from.y());
-    return dx <= 1 && dy <= 1;
+    
+    // Normal king move (one square in any direction)
+    if (dx <= 1 && dy <= 1) return true;
+    
+    // Castling (2 squares horizontally)
+    // Note: Additional validation (e.g., not in check, path clear) is done in ChessBoard::canCastle
+    if (dx == 2 && dy == 0 && !m_hasMoved) return true;
+    
+    return false;
 }
 
 bool ChessPiece::isPathClear(const QPoint& from, const QPoint& to, 

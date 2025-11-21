@@ -2,6 +2,11 @@
 #include "ui_qt_chess.h"
 #include <QMessageBox>
 #include <QFont>
+#include <QDialog>
+#include <QVBoxLayout>
+#include <QHBoxLayout>
+#include <QLabel>
+#include <QPushButton>
 
 Qt_Chess::Qt_Chess(QWidget *parent)
     : QMainWindow(parent)
@@ -172,6 +177,15 @@ void Qt_Chess::onSquareClicked(int row, int col) {
         if (m_chessBoard.movePiece(m_selectedSquare, clickedSquare)) {
             m_pieceSelected = false;
             updateBoard();
+            
+            // Check if pawn promotion is needed
+            if (m_chessBoard.needsPromotion(clickedSquare)) {
+                const ChessPiece& piece = m_chessBoard.getPiece(clickedSquare.y(), clickedSquare.x());
+                PieceType promotionType = showPromotionDialog(piece.getColor());
+                m_chessBoard.promotePawn(clickedSquare, promotionType);
+                updateBoard();
+            }
+            
             updateStatus();
         } else if (clickedSquare == m_selectedSquare) {
             // Deselect the piece
@@ -194,4 +208,56 @@ void Qt_Chess::onNewGameClicked() {
     m_pieceSelected = false;
     updateBoard();
     updateStatus();
+}
+
+PieceType Qt_Chess::showPromotionDialog(PieceColor color) {
+    QDialog dialog(this);
+    dialog.setWindowTitle("Pawn Promotion");
+    dialog.setModal(true);
+    
+    QVBoxLayout* layout = new QVBoxLayout(&dialog);
+    
+    QLabel* label = new QLabel("Choose a piece to promote to:", &dialog);
+    QFont font = label->font();
+    font.setPointSize(12);
+    label->setFont(font);
+    label->setAlignment(Qt::AlignCenter);
+    layout->addWidget(label);
+    
+    QHBoxLayout* buttonLayout = new QHBoxLayout();
+    
+    // Create buttons for each promotion option
+    struct PromotionOption {
+        PieceType type;
+        QString symbol;
+    };
+    
+    std::vector<PromotionOption> options = {
+        {PieceType::Queen, color == PieceColor::White ? "♕" : "♛"},
+        {PieceType::Rook, color == PieceColor::White ? "♖" : "♜"},
+        {PieceType::Bishop, color == PieceColor::White ? "♗" : "♝"},
+        {PieceType::Knight, color == PieceColor::White ? "♘" : "♞"}
+    };
+    
+    PieceType selectedType = PieceType::Queen; // Default to Queen
+    
+    for (const auto& option : options) {
+        QPushButton* button = new QPushButton(option.symbol, &dialog);
+        button->setMinimumSize(80, 80);
+        QFont buttonFont;
+        buttonFont.setPointSize(36);
+        button->setFont(buttonFont);
+        
+        connect(button, &QPushButton::clicked, [&dialog, &selectedType, option]() {
+            selectedType = option.type;
+            dialog.accept();
+        });
+        
+        buttonLayout->addWidget(button);
+    }
+    
+    layout->addLayout(buttonLayout);
+    
+    dialog.exec();
+    return selectedType;
 }
