@@ -45,7 +45,9 @@ private:
     
     // Drag-and-drop state
     bool m_isDragging;
+    bool m_dragPreparing;  // Mouse pressed but not yet dragging
     QPoint m_dragStartSquare;
+    QPoint m_mousePressPos;  // Position where mouse was pressed
     QLabel* m_dragLabel;
     
     QLabel* m_statusLabel;

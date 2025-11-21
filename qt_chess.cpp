@@ -19,7 +19,9 @@ Qt_Chess::Qt_Chess(QWidget *parent)
     , m_selectedSquare(-1, -1)
     , m_pieceSelected(false)
     , m_isDragging(false)
+    , m_dragPreparing(false)
     , m_dragStartSquare(-1, -1)
+    , m_mousePressPos(-1, -1)
     , m_dragLabel(nullptr)
     , m_boardWidget(nullptr)
 {
@@ -350,12 +352,11 @@ bool Qt_Chess::eventFilter(QObject *obj, QEvent *event) {
         QMouseEvent mappedEvent(mouseEvent->type(), windowPos, mouseEvent->button(), 
                                mouseEvent->buttons(), mouseEvent->modifiers());
         mousePressEvent(&mappedEvent);
-        // Don't accept the event completely - let the button still handle clicks if no drag started
-        if (m_isDragging) {
-            return true; // Event handled, start dragging
-        }
+        // Don't block the click - we're just preparing, not dragging yet
+        // Let the clicked signal fire if the mouse is released without moving
+        return false;
     } else if (event->type() == QEvent::MouseMove) {
-        if (m_isDragging) {
+        if (m_dragPreparing || m_isDragging) {
             QMouseEvent* mouseEvent = static_cast<QMouseEvent*>(event);
             QPoint globalPos = button->mapToGlobal(mouseEvent->pos());
             QPoint windowPos = mapFromGlobal(globalPos);
@@ -365,14 +366,16 @@ bool Qt_Chess::eventFilter(QObject *obj, QEvent *event) {
             return true; // Event handled
         }
     } else if (event->type() == QEvent::MouseButtonRelease) {
-        if (m_isDragging) {
+        if (m_dragPreparing || m_isDragging) {
+            bool wasDragging = m_isDragging;  // Save state before release handler changes it
             QMouseEvent* mouseEvent = static_cast<QMouseEvent*>(event);
             QPoint globalPos = button->mapToGlobal(mouseEvent->pos());
             QPoint windowPos = mapFromGlobal(globalPos);
             QMouseEvent mappedEvent(mouseEvent->type(), windowPos, mouseEvent->button(), 
                                    mouseEvent->buttons(), mouseEvent->modifiers());
             mouseReleaseEvent(&mappedEvent);
-            return true; // Event handled
+            // If we were only preparing (didn't drag), let the click through
+            return wasDragging; // Only block if we actually dragged
         }
     }
     
@@ -397,6 +400,11 @@ void Qt_Chess::mousePressEvent(QMouseEvent *event) {
             restorePieceToSquare(m_dragStartSquare);
             m_dragStartSquare = QPoint(-1, -1);
             clearHighlights();
+        } else if (m_dragPreparing) {
+            // Cancel drag preparation
+            m_dragPreparing = false;
+            m_dragStartSquare = QPoint(-1, -1);
+            m_mousePressPos = QPoint(-1, -1);
         } else if (m_pieceSelected) {
             // Deselect piece if one is selected
             m_pieceSelected = false;
@@ -405,17 +413,36 @@ void Qt_Chess::mousePressEvent(QMouseEvent *event) {
         return;
     }
     
-    // Left click - start drag
+    // Left click - prepare for potential drag
     if (event->button() == Qt::LeftButton && square.x() >= 0 && square.y() >= 0 && 
         square.x() < 8 && square.y() < 8) {
         const ChessPiece& piece = m_chessBoard.getPiece(square.y(), square.x());
         if (piece.getType() != PieceType::None && 
             piece.getColor() == m_chessBoard.getCurrentPlayer()) {
             
-            m_isDragging = true;
+            // Don't start dragging yet - wait for mouse movement
+            m_dragPreparing = true;
             m_dragStartSquare = square;
-            m_selectedSquare = square;
+            m_mousePressPos = event->pos();
+        }
+    }
+    
+    QMainWindow::mousePressEvent(event);
+}
+
+void Qt_Chess::mouseMoveEvent(QMouseEvent *event) {
+    // Start dragging if mouse moved while preparing
+    if (m_dragPreparing && !m_isDragging) {
+        // Check if mouse moved enough to start drag (simple threshold)
+        QPoint delta = event->pos() - m_mousePressPos;
+        if (delta.manhattanLength() > 5) {  // 5 pixel threshold
+            // Now actually start the drag
+            m_isDragging = true;
+            m_dragPreparing = false;
+            m_selectedSquare = m_dragStartSquare;
             m_pieceSelected = true;
+            
+            const ChessPiece& piece = m_chessBoard.getPiece(m_dragStartSquare.y(), m_dragStartSquare.x());
             
             // Create drag label
             m_dragLabel = new QLabel(this);
@@ -430,17 +457,11 @@ void Qt_Chess::mousePressEvent(QMouseEvent *event) {
             m_dragLabel->raise();
             
             // Hide the piece from the original square during drag
-            m_squares[square.y()][square.x()]->setText("");
+            m_squares[m_dragStartSquare.y()][m_dragStartSquare.x()]->setText("");
             
             highlightValidMoves();
         }
-    }
-    
-    QMainWindow::mousePressEvent(event);
-}
-
-void Qt_Chess::mouseMoveEvent(QMouseEvent *event) {
-    if (m_isDragging && m_dragLabel) {
+    } else if (m_isDragging && m_dragLabel) {
         m_dragLabel->move(event->pos() - QPoint(m_dragLabel->width() / 2, m_dragLabel->height() / 2));
     }
     
@@ -450,6 +471,17 @@ void Qt_Chess::mouseMoveEvent(QMouseEvent *event) {
 void Qt_Chess::mouseReleaseEvent(QMouseEvent *event) {
     // Right click - already handled in mousePressEvent
     if (event->button() == Qt::RightButton) {
+        QMainWindow::mouseReleaseEvent(event);
+        return;
+    }
+    
+    // Left click release without drag - just reset preparing state
+    // The clicked signal will handle the selection
+    if (event->button() == Qt::LeftButton && m_dragPreparing) {
+        m_dragPreparing = false;
+        m_dragStartSquare = QPoint(-1, -1);
+        m_mousePressPos = QPoint(-1, -1);
+        // Let the clicked signal handle the rest
         QMainWindow::mouseReleaseEvent(event);
         return;
     }
