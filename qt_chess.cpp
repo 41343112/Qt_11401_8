@@ -11,6 +11,7 @@
 
 namespace {
     const QString CHECK_HIGHLIGHT_STYLE = "QPushButton { background-color: #FF6B6B; border: 2px solid #FF0000; }";
+    constexpr int DRAG_THRESHOLD_PIXELS = 5;  // Minimum mouse movement to start drag
 }
 
 Qt_Chess::Qt_Chess(QWidget *parent)
@@ -423,7 +424,7 @@ void Qt_Chess::mousePressEvent(QMouseEvent *event) {
             // Don't start dragging yet - wait for mouse movement
             m_dragPreparing = true;
             m_dragStartSquare = square;
-            m_mousePressPos = event->pos();
+            m_mousePressPos = event->pos();  // Store in window coordinates (mapped by eventFilter)
         }
     }
     
@@ -433,9 +434,9 @@ void Qt_Chess::mousePressEvent(QMouseEvent *event) {
 void Qt_Chess::mouseMoveEvent(QMouseEvent *event) {
     // Start dragging if mouse moved while preparing
     if (m_dragPreparing && !m_isDragging) {
-        // Check if mouse moved enough to start drag (simple threshold)
+        // Check if mouse moved enough to start drag
         QPoint delta = event->pos() - m_mousePressPos;
-        if (delta.manhattanLength() > 5) {  // 5 pixel threshold
+        if (delta.manhattanLength() > DRAG_THRESHOLD_PIXELS) {
             // Now actually start the drag
             m_isDragging = true;
             m_dragPreparing = false;
