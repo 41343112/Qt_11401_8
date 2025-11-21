@@ -158,15 +158,21 @@ bool ChessBoard::isValidMove(const QPoint& from, const QPoint& to) const {
     return true;
 }
 
-bool ChessBoard::movePiece(const QPoint& from, const QPoint& to) {
+bool ChessBoard::movePiece(const QPoint& from, const QPoint& to, MoveInfo* moveInfo) {
     if (!isValidMove(from, to)) return false;
     
     ChessPiece& piece = m_board[from.y()][from.x()];
     PieceType pieceType = piece.getType();
     PieceColor pieceColor = piece.getColor();
     
+    // 檢測是否吃子（目標位置有棋子）
+    bool isCapture = m_board[to.y()][to.x()].getType() != PieceType::None;
+    
+    // 檢測是否王車易位
+    bool isCastling = (pieceType == PieceType::King && abs(to.x() - from.x()) == 2);
+    
     // 處理王車易位
-    if (pieceType == PieceType::King && abs(to.x() - from.x()) == 2) {
+    if (isCastling) {
         // 王翼易位
         if (to.x() > from.x()) {
             // 將車從 h 列移至 f 列
@@ -190,6 +196,7 @@ bool ChessBoard::movePiece(const QPoint& from, const QPoint& to) {
         // 移除被捕獲的兵
         int capturedPawnRow = (pieceColor == PieceColor::White) ? to.y() + 1 : to.y() - 1;
         m_board[capturedPawnRow][to.x()] = ChessPiece(PieceType::None, PieceColor::None);
+        isCapture = true; // 吃過路兵也算吃子
     }
     
     // 在設置新目標前清除吃過路兵目標
@@ -209,6 +216,23 @@ bool ChessBoard::movePiece(const QPoint& from, const QPoint& to) {
     m_board[from.y()][from.x()] = ChessPiece(PieceType::None, PieceColor::None);
     
     switchPlayer();
+    
+    // 檢查移動後是否將軍或將死
+    PieceColor opponentColor = m_currentPlayer; // 已切換玩家，所以當前玩家是對手
+    bool isCheck = isInCheck(opponentColor);
+    bool isCheckmate = false;
+    if (isCheck) {
+        isCheckmate = isCheckmate(opponentColor);
+    }
+    
+    // 填充移動資訊
+    if (moveInfo) {
+        moveInfo->isCapture = isCapture;
+        moveInfo->isCastling = isCastling;
+        moveInfo->isCheck = isCheck;
+        moveInfo->isCheckmate = isCheckmate;
+    }
+    
     return true;
 }
 

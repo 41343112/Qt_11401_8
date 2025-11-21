@@ -5,6 +5,16 @@
 #include <QPoint>
 #include <vector>
 
+// 移動資訊結構
+struct MoveInfo {
+    bool isCapture;      // 是否吃子
+    bool isCastling;     // 是否王車易位
+    bool isCheck;        // 移動後是否將軍
+    bool isCheckmate;    // 移動後是否將死
+    
+    MoveInfo() : isCapture(false), isCastling(false), isCheck(false), isCheckmate(false) {}
+};
+
 // 棋盤類別 - 管理棋盤狀態和遊戲規則
 class ChessBoard {
 public:
@@ -14,7 +24,7 @@ public:
     const ChessPiece& getPiece(int row, int col) const;
     ChessPiece& getPiece(int row, int col);
     
-    bool movePiece(const QPoint& from, const QPoint& to);
+    bool movePiece(const QPoint& from, const QPoint& to, MoveInfo* moveInfo = nullptr);
     bool isValidMove(const QPoint& from, const QPoint& to) const;
     
     PieceColor getCurrentPlayer() const { return m_currentPlayer; }

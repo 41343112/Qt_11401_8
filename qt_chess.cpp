@@ -27,6 +27,11 @@ Qt_Chess::Qt_Chess(QWidget *parent)
     , m_dragStartSquare(-1, -1)
     , m_dragLabel(nullptr)
     , m_boardWidget(nullptr)
+    , m_moveSound(nullptr)
+    , m_captureSound(nullptr)
+    , m_checkSound(nullptr)
+    , m_castlingSound(nullptr)
+    , m_checkmateSound(nullptr)
 {
     ui->setupUi(this);
     setWindowTitle("國際象棋 - 雙人對弈");
@@ -34,12 +39,18 @@ Qt_Chess::Qt_Chess(QWidget *parent)
     setMouseTracking(true);
     
     setupUI();
+    setupSounds();
     updateBoard();
     updateStatus();
 }
 
 Qt_Chess::~Qt_Chess()
 {
+    delete m_moveSound;
+    delete m_captureSound;
+    delete m_checkSound;
+    delete m_castlingSound;
+    delete m_checkmateSound;
     delete ui;
 }
 
@@ -107,6 +118,45 @@ void Qt_Chess::setupUI() {
     mainLayout->addWidget(m_newGameButton);
     
     setCentralWidget(centralWidget);
+}
+
+void Qt_Chess::setupSounds() {
+    // 初始化音效物件
+    m_moveSound = new QSoundEffect(this);
+    m_moveSound->setSource(QUrl("qrc:/sounds/sounds/move.wav"));
+    m_moveSound->setVolume(0.5);
+    
+    m_captureSound = new QSoundEffect(this);
+    m_captureSound->setSource(QUrl("qrc:/sounds/sounds/capture.wav"));
+    m_captureSound->setVolume(0.5);
+    
+    m_checkSound = new QSoundEffect(this);
+    m_checkSound->setSource(QUrl("qrc:/sounds/sounds/check.wav"));
+    m_checkSound->setVolume(0.5);
+    
+    m_castlingSound = new QSoundEffect(this);
+    m_castlingSound->setSource(QUrl("qrc:/sounds/sounds/castling.wav"));
+    m_castlingSound->setVolume(0.5);
+    
+    m_checkmateSound = new QSoundEffect(this);
+    m_checkmateSound->setSource(QUrl("qrc:/sounds/sounds/checkmate.wav"));
+    m_checkmateSound->setVolume(0.5);
+}
+
+void Qt_Chess::playMoveSound(const MoveInfo& moveInfo) {
+    // 根據移動類型播放相應的音效
+    // 優先級: 將死 > 王車易位 > 將軍 > 吃子 > 一般移動
+    if (moveInfo.isCheckmate) {
+        m_checkmateSound->play();
+    } else if (moveInfo.isCastling) {
+        m_castlingSound->play();
+    } else if (moveInfo.isCheck) {
+        m_checkSound->play();
+    } else if (moveInfo.isCapture) {
+        m_captureSound->play();
+    } else {
+        m_moveSound->play();
+    }
 }
 
 void Qt_Chess::updateSquareColor(int row, int col) {
@@ -222,7 +272,8 @@ void Qt_Chess::onSquareClicked(int row, int col) {
         }
     } else {
         // 嘗試移動選中的棋子
-        if (m_chessBoard.movePiece(m_selectedSquare, clickedSquare)) {
+        MoveInfo moveInfo;
+        if (m_chessBoard.movePiece(m_selectedSquare, clickedSquare, &moveInfo)) {
             m_pieceSelected = false;
             updateBoard();
             
@@ -233,6 +284,9 @@ void Qt_Chess::onSquareClicked(int row, int col) {
                 m_chessBoard.promotePawn(clickedSquare, promotionType);
                 updateBoard();
             }
+            
+            // 播放移動音效
+            playMoveSound(moveInfo);
             
             updateStatus();
         } else if (clickedSquare == m_selectedSquare) {
@@ -474,7 +528,8 @@ void Qt_Chess::mouseReleaseEvent(QMouseEvent *event) {
         
         if (dropSquare.x() >= 0 && dropSquare.y() >= 0) {
             // 嘗試移動棋子
-            if (m_chessBoard.movePiece(m_dragStartSquare, dropSquare)) {
+            MoveInfo moveInfo;
+            if (m_chessBoard.movePiece(m_dragStartSquare, dropSquare, &moveInfo)) {
                 m_pieceSelected = false;
                 updateBoard();
                 
@@ -485,6 +540,9 @@ void Qt_Chess::mouseReleaseEvent(QMouseEvent *event) {
                     m_chessBoard.promotePawn(dropSquare, promotionType);
                     updateBoard();
                 }
+                
+                // 播放移動音效
+                playMoveSound(moveInfo);
                 
                 updateStatus();
                 clearHighlights();

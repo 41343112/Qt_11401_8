@@ -8,6 +8,7 @@
 #include <QVBoxLayout>
 #include <QMouseEvent>
 #include <QMap>
+#include <QSoundEffect>
 #include <vector>
 #include "chessboard.h"
 
@@ -55,7 +56,16 @@ private:
     QPushButton* m_newGameButton;
     QWidget* m_boardWidget;
     
+    // 音效
+    QSoundEffect* m_moveSound;
+    QSoundEffect* m_captureSound;
+    QSoundEffect* m_checkSound;
+    QSoundEffect* m_castlingSound;
+    QSoundEffect* m_checkmateSound;
+    
     void setupUI();
+    void setupSounds();
+    void playMoveSound(const MoveInfo& moveInfo);
     void updateBoard();
     void updateSquareColor(int row, int col);
     void updateStatus();
