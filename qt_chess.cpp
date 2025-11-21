@@ -332,6 +332,12 @@ void Qt_Chess::restorePieceToSquare(const QPoint& square) {
     }
 }
 
+void Qt_Chess::resetDragPreparation() {
+    m_dragPreparing = false;
+    m_dragStartSquare = QPoint(-1, -1);
+    m_mousePressPos = QPoint(-1, -1);
+}
+
 bool Qt_Chess::eventFilter(QObject *obj, QEvent *event) {
     // Check if the event is from one of our chess square buttons
     QPushButton* button = qobject_cast<QPushButton*>(obj);
@@ -403,9 +409,7 @@ void Qt_Chess::mousePressEvent(QMouseEvent *event) {
             clearHighlights();
         } else if (m_dragPreparing) {
             // Cancel drag preparation
-            m_dragPreparing = false;
-            m_dragStartSquare = QPoint(-1, -1);
-            m_mousePressPos = QPoint(-1, -1);
+            resetDragPreparation();
         } else if (m_pieceSelected) {
             // Deselect piece if one is selected
             m_pieceSelected = false;
@@ -479,9 +483,7 @@ void Qt_Chess::mouseReleaseEvent(QMouseEvent *event) {
     // Left click release without drag - just reset preparing state
     // The clicked signal will handle the selection
     if (event->button() == Qt::LeftButton && m_dragPreparing) {
-        m_dragPreparing = false;
-        m_dragStartSquare = QPoint(-1, -1);
-        m_mousePressPos = QPoint(-1, -1);
+        resetDragPreparation();
         // Let the clicked signal handle the rest
         QMainWindow::mouseReleaseEvent(event);
         return;

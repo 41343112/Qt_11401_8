@@ -63,6 +63,7 @@ private:
     void clearHighlights();
     void applyCheckHighlight(const QPoint& excludeSquare = QPoint(-1, -1));
     void restorePieceToSquare(const QPoint& square);
+    void resetDragPreparation();
     PieceType showPromotionDialog(PieceColor color);
     QPoint getSquareAtPosition(const QPoint& pos) const;
 };
