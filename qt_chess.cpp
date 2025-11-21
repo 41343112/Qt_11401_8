@@ -226,9 +226,10 @@ void Qt_Chess::onSquareClicked(int row, int col) {
             }
             
             // Play appropriate sound effect
-            PieceColor currentPlayer = m_chessBoard.getCurrentPlayer();
-            bool opponentInCheck = m_chessBoard.isInCheck(currentPlayer);
-            bool opponentCheckmate = m_chessBoard.isCheckmate(currentPlayer);
+            // Note: After movePiece(), the turn has switched, so currentPlayer is now the opponent
+            PieceColor opponentColor = m_chessBoard.getCurrentPlayer();
+            bool opponentInCheck = m_chessBoard.isInCheck(opponentColor);
+            bool opponentCheckmate = m_chessBoard.isCheckmate(opponentColor);
             
             if (opponentCheckmate) {
                 m_checkmateSound.play();
@@ -505,9 +506,10 @@ void Qt_Chess::mouseReleaseEvent(QMouseEvent *event) {
                 }
                 
                 // Play appropriate sound effect
-                PieceColor currentPlayer = m_chessBoard.getCurrentPlayer();
-                bool opponentInCheck = m_chessBoard.isInCheck(currentPlayer);
-                bool opponentCheckmate = m_chessBoard.isCheckmate(currentPlayer);
+                // Note: After movePiece(), the turn has switched, so currentPlayer is now the opponent
+                PieceColor opponentColor = m_chessBoard.getCurrentPlayer();
+                bool opponentInCheck = m_chessBoard.isInCheck(opponentColor);
+                bool opponentCheckmate = m_chessBoard.isCheckmate(opponentColor);
                 
                 if (opponentCheckmate) {
                     m_checkmateSound.play();
@@ -632,6 +634,7 @@ void Qt_Chess::initializeSounds() {
     m_checkSound.setSource(QUrl("qrc:/sounds/resources/sounds/check.wav"));
     m_checkSound.setVolume(0.5);
     
+    // Checkmate sound is slightly louder to emphasize the game-ending event
     m_checkmateSound.setSource(QUrl("qrc:/sounds/resources/sounds/checkmate.wav"));
     m_checkmateSound.setVolume(0.6);
 }
