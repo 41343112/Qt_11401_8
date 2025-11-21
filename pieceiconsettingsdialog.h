@@ -172,7 +172,6 @@ private:
     void previewIcon(const QString& iconFile);
     void updateCustomIconsControls();
     void applyPresetIconSet(IconSetType setType);
-    QString getPresetIconPath(IconSetType setType, const QString& pieceName);
     QString getSetDirectoryName(IconSetType setType) const;
 };
 

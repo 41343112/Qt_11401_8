@@ -438,13 +438,14 @@ PieceIconSettingsDialog::PieceIconSettings PieceIconSettingsDialog::getDefaultSe
 PieceIconSettingsDialog::PieceIconSettings PieceIconSettingsDialog::getPresetSettings(IconSetType setType)
 {
     PieceIconSettings settings;
-    settings.iconSetType = setType;
-    settings.useCustomIcons = (setType != IconSetType::Unicode);
     
     if (setType == IconSetType::Unicode) {
         // Use default Unicode symbols
         settings = getDefaultSettings();
+        settings.iconSetType = setType;  // Ensure iconSetType is preserved
     } else if (setType == IconSetType::Preset1 || setType == IconSetType::Preset2 || setType == IconSetType::Preset3) {
+        settings.iconSetType = setType;
+        settings.useCustomIcons = true;  // Enable custom icons for preset sets
         QString setDir = getSetDirectoryName(setType);
         QString basePath = ":/resources/icons/" + setDir + "/";
         settings.whiteKingIcon = basePath + "white_king.png";
@@ -461,6 +462,7 @@ PieceIconSettingsDialog::PieceIconSettings PieceIconSettingsDialog::getPresetSet
         settings.blackPawnIcon = basePath + "black_pawn.png";
     } else {
         // Custom - keep existing paths
+        settings.iconSetType = setType;
         settings.useCustomIcons = true;
     }
     
@@ -548,15 +550,6 @@ void PieceIconSettingsDialog::applyPresetIconSet(IconSetType setType)
     m_blackBishopEdit->setText(m_settings.blackBishopIcon);
     m_blackKnightEdit->setText(m_settings.blackKnightIcon);
     m_blackPawnEdit->setText(m_settings.blackPawnIcon);
-}
-
-QString PieceIconSettingsDialog::getPresetIconPath(IconSetType setType, const QString& pieceName)
-{
-    QString setDir = getSetDirectoryName(setType);
-    if (setDir.isEmpty()) {
-        return "";
-    }
-    return ":/resources/icons/" + setDir + "/" + pieceName + ".png";
 }
 
 QString PieceIconSettingsDialog::getSetDirectoryName(IconSetType setType) const
