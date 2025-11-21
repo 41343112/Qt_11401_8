@@ -498,6 +498,7 @@ void Qt_Chess::mouseReleaseEvent(QMouseEvent *event) {
                     clearHighlights();
                 } else {
                     // Was not selected, so keep it selected with highlights
+                    m_selectedSquare = m_dragStartSquare;
                     m_pieceSelected = true;
                     highlightValidMoves();
                 }
