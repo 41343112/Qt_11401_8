@@ -23,6 +23,10 @@ Qt_Chess::Qt_Chess(QWidget *parent)
     ui->setupUi(this);
     setWindowTitle("國際象棋 - 雙人對弈");
     resize(700, 750);
+    
+    // Set minimum window size: width 320px (8 squares × 40px), height 470px (320px board + ~150px UI elements)
+    setMinimumSize(320, 470);
+    
     setMouseTracking(true);
     
     setupUI();
@@ -116,6 +120,11 @@ void Qt_Chess::updateBoard() {
             m_squares[row][col]->setText(piece.getSymbol());
             updateSquareColor(row, col);
         }
+    }
+    
+    // Reapply highlights if a piece is selected
+    if (m_pieceSelected) {
+        highlightValidMoves();
     }
 }
 
@@ -500,6 +509,11 @@ void Qt_Chess::mouseReleaseEvent(QMouseEvent *event) {
 void Qt_Chess::resizeEvent(QResizeEvent *event) {
     QMainWindow::resizeEvent(event);
     updateSquareSizes();
+    
+    // Reapply highlights after resize
+    if (m_pieceSelected) {
+        highlightValidMoves();
+    }
 }
 
 void Qt_Chess::updateSquareSizes() {
