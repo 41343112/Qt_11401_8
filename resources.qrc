@@ -35,7 +35,7 @@
         <file>resources/icons/set2/black_pawn.png</file>
      
         <!-- Set 3 -->
-        <!--
+        
         <file>resources/icons/set3/white_king.png</file>
         <file>resources/icons/set3/white_queen.png</file>
         <file>resources/icons/set3/white_rook.png</file>
@@ -48,6 +48,6 @@
         <file>resources/icons/set3/black_bishop.png</file>
         <file>resources/icons/set3/black_knight.png</file>
         <file>resources/icons/set3/black_pawn.png</file>
-        -->
+        
     </qresource>
 </RCC>
