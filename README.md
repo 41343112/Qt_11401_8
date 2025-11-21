@@ -25,13 +25,17 @@ A fully functional player-vs-player chess game built with Qt5.
   - Preview sounds before applying settings
   - Settings are saved persistently between sessions
 - **Customizable Piece Icons**:
-  - Use custom images for chess pieces instead of Unicode symbols
+  - Choose from multiple icon set options:
+    - Default Unicode chess symbols
+    - Three preset icon sets (when images are provided)
+    - Fully custom user-selected icons
   - Configure custom icons for each of the 12 piece types (6 white + 6 black)
   - Support for common image formats (PNG, JPG, SVG, BMP)
   - Preview icons before applying
-  - Enable/disable custom icons with a single toggle
+  - Easy switching between different icon sets
   - Reset to default Unicode symbols at any time
   - Settings are saved persistently between sessions
+  - See [ADDING_ICON_SETS.md](ADDING_ICON_SETS.md) for instructions on adding preset icon images
 
 ## Building
 
@@ -72,9 +76,12 @@ make
     - **Supported audio formats**: WAV (recommended), MP3, OGG
       - WAV format is recommended for best compatibility across all platforms
 11. **Piece Icon Settings**: Click "設定" (Settings) menu > "棋子圖標設定" (Piece Icon Settings) to:
+    - Choose from multiple icon set options:
+      - Default Unicode chess symbols (♔, ♕, ♖, etc.)
+      - Three preset icon sets (when available)
+      - Custom user-selected icons
     - Upload custom image files for each piece type (white and black)
     - Preview icons before applying
-    - Enable/disable custom icons using the "使用自訂圖標" (Use Custom Icons) checkbox
     - Reset individual piece icons to default Unicode symbols using the "重設" (Reset) button
     - Reset all piece icons at once using the "重設為預設值" (Reset to Defaults) button
     - **Supported image formats**: PNG, JPG, SVG, BMP
