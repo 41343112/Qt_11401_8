@@ -172,7 +172,7 @@ private:
     void previewIcon(const QString& iconFile);
     void updateCustomIconsControls();
     void applyPresetIconSet(IconSetType setType);
-    QString getSetDirectoryName(IconSetType setType) const;
+    static QString getSetDirectoryName(IconSetType setType);
 };
 
 #endif // PIECEICONSETTINGSDIALOG_H

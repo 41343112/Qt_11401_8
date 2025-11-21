@@ -553,7 +553,7 @@ void PieceIconSettingsDialog::applyPresetIconSet(IconSetType setType)
     m_blackPawnEdit->setText(m_settings.blackPawnIcon);
 }
 
-QString PieceIconSettingsDialog::getSetDirectoryName(IconSetType setType) const
+QString PieceIconSettingsDialog::getSetDirectoryName(IconSetType setType)
 {
     switch (setType) {
         case IconSetType::Preset1: 
