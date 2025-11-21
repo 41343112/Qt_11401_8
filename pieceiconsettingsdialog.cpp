@@ -8,6 +8,9 @@
 #include <QCheckBox>
 #include <QComboBox>
 #include <QPixmap>
+#include <QRadioButton>
+#include <QButtonGroup>
+#include <QFrame>
 
 PieceIconSettingsDialog::PieceIconSettingsDialog(QWidget *parent)
     : QDialog(parent)
@@ -25,27 +28,50 @@ void PieceIconSettingsDialog::setupUI()
 {
     QVBoxLayout* mainLayout = new QVBoxLayout(this);
     
-    // Icon Set Selection Group
-    QGroupBox* iconSetGroup = new QGroupBox("圖標集選擇", this);
+    // Icon Set Selection Group with visual previews
+    QGroupBox* iconSetGroup = new QGroupBox("圖標集選擇 - 點擊預覽圖選擇", this);
     QVBoxLayout* iconSetLayout = new QVBoxLayout(iconSetGroup);
     
-    QHBoxLayout* comboLayout = new QHBoxLayout();
-    QLabel* iconSetLabel = new QLabel("選擇圖標集：", this);
-    comboLayout->addWidget(iconSetLabel);
+    // Create button group for radio buttons
+    m_iconSetButtonGroup = new QButtonGroup(this);
+    connect(m_iconSetButtonGroup, QOverload<int>::of(&QButtonGroup::idClicked),
+            this, &PieceIconSettingsDialog::onIconSetButtonClicked);
     
+    // Create a grid layout for icon set previews
+    QGridLayout* previewGrid = new QGridLayout();
+    previewGrid->setSpacing(15);
+    
+    // Row 1: Unicode and Preset1
+    QWidget* unicodeWidget = createIconSetPreviewWidget(IconSetType::Unicode, "Unicode 符號 (預設)");
+    previewGrid->addWidget(unicodeWidget, 0, 0);
+    
+    QWidget* preset1Widget = createIconSetPreviewWidget(IconSetType::Preset1, "預設圖標集 1");
+    previewGrid->addWidget(preset1Widget, 0, 1);
+    
+    // Row 2: Preset2 and Preset3
+    QWidget* preset2Widget = createIconSetPreviewWidget(IconSetType::Preset2, "預設圖標集 2");
+    previewGrid->addWidget(preset2Widget, 1, 0);
+    
+    QWidget* preset3Widget = createIconSetPreviewWidget(IconSetType::Preset3, "預設圖標集 3");
+    previewGrid->addWidget(preset3Widget, 1, 1);
+    
+    // Row 3: Custom (spans both columns)
+    QWidget* customWidget = createIconSetPreviewWidget(IconSetType::Custom, "自訂圖標");
+    previewGrid->addWidget(customWidget, 2, 0, 1, 2);
+    
+    iconSetLayout->addLayout(previewGrid);
+    mainLayout->addWidget(iconSetGroup);
+    
+    // Keep combo box hidden but functional for backward compatibility
     m_iconSetComboBox = new QComboBox(this);
     m_iconSetComboBox->addItem("Unicode 符號 (預設)", static_cast<int>(IconSetType::Unicode));
     m_iconSetComboBox->addItem("預設圖標集 1", static_cast<int>(IconSetType::Preset1));
     m_iconSetComboBox->addItem("預設圖標集 2", static_cast<int>(IconSetType::Preset2));
     m_iconSetComboBox->addItem("預設圖標集 3", static_cast<int>(IconSetType::Preset3));
     m_iconSetComboBox->addItem("自訂圖標", static_cast<int>(IconSetType::Custom));
+    m_iconSetComboBox->setVisible(false);  // Hidden, using visual interface instead
     connect(m_iconSetComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged), 
             this, &PieceIconSettingsDialog::onIconSetTypeChanged);
-    comboLayout->addWidget(m_iconSetComboBox);
-    comboLayout->addStretch();
-    
-    iconSetLayout->addLayout(comboLayout);
-    mainLayout->addWidget(iconSetGroup);
     
     // Use custom icons checkbox (legacy, for backward compatibility)
     m_useCustomIconsCheckBox = new QCheckBox("使用自訂圖標 (舊版相容)", this);
@@ -169,6 +195,12 @@ void PieceIconSettingsDialog::setupUI()
     buttonLayout->addWidget(cancelButton);
     
     mainLayout->addLayout(buttonLayout);
+    
+    // Set default selection to Unicode
+    QAbstractButton* defaultButton = m_iconSetButtonGroup->button(static_cast<int>(IconSetType::Unicode));
+    if (defaultButton) {
+        defaultButton->setChecked(true);
+    }
 }
 
 void PieceIconSettingsDialog::createPieceRow(QGridLayout* gridLayout, int& row, const QString& label,
@@ -396,6 +428,12 @@ void PieceIconSettingsDialog::setSettings(const PieceIconSettings& settings)
         m_iconSetComboBox->setCurrentIndex(index);
     }
     
+    // Set the radio button for the icon set
+    QAbstractButton* button = m_iconSetButtonGroup->button(static_cast<int>(settings.iconSetType));
+    if (button) {
+        button->setChecked(true);
+    }
+    
     m_useCustomIconsCheckBox->setChecked(settings.useCustomIcons);
     
     m_whiteKingEdit->setText(settings.whiteKingIcon);
@@ -451,13 +489,13 @@ PieceIconSettingsDialog::PieceIconSettings PieceIconSettingsDialog::getPresetSet
         settings.whiteKingIcon = basePath + "white_king.png";
         settings.whiteQueenIcon = basePath + "white_queen.png";
         settings.whiteRookIcon = basePath + "white_rook.png";
-        settings.whiteBishopIcon = basePath + "white_bishop.png";
+        settings.whiteBishopIcon = basePath + "white_biship.png";
         settings.whiteKnightIcon = basePath + "white_knight.png";
         settings.whitePawnIcon = basePath + "white_pawn.png";
         settings.blackKingIcon = basePath + "black_king.png";
         settings.blackQueenIcon = basePath + "black_queen.png";
         settings.blackRookIcon = basePath + "black_rook.png";
-        settings.blackBishopIcon = basePath + "black_bishop.png";
+        settings.blackBishopIcon = basePath + "black_biship.png";
         settings.blackKnightIcon = basePath + "black_knight.png";
         settings.blackPawnIcon = basePath + "black_pawn.png";
     } else {
@@ -567,4 +605,95 @@ QString PieceIconSettingsDialog::getSetDirectoryName(IconSetType setType)
         default: 
             return "";
     }
+}
+
+QWidget* PieceIconSettingsDialog::createIconSetPreviewWidget(IconSetType setType, const QString& label)
+{
+    QWidget* widget = new QWidget(this);
+    QVBoxLayout* layout = new QVBoxLayout(widget);
+    layout->setContentsMargins(5, 5, 5, 5);
+    
+    // Create a frame with border
+    QFrame* frame = new QFrame(widget);
+    frame->setFrameStyle(QFrame::Box | QFrame::Raised);
+    frame->setLineWidth(2);
+    QVBoxLayout* frameLayout = new QVBoxLayout(frame);
+    
+    // Radio button for selection
+    QRadioButton* radioButton = new QRadioButton(label, frame);
+    radioButton->setStyleSheet("QRadioButton { font-weight: bold; font-size: 11pt; }");
+    m_iconSetButtonGroup->addButton(radioButton, static_cast<int>(setType));
+    frameLayout->addWidget(radioButton);
+    
+    // Preview images layout
+    QHBoxLayout* previewLayout = new QHBoxLayout();
+    previewLayout->setSpacing(5);
+    
+    if (setType == IconSetType::Unicode) {
+        // Show Unicode symbols
+        QLabel* unicodeLabel = new QLabel("♔ ♕ ♖ ♗ ♘ ♙", frame);
+        unicodeLabel->setStyleSheet("QLabel { font-size: 36pt; }");
+        unicodeLabel->setAlignment(Qt::AlignCenter);
+        previewLayout->addWidget(unicodeLabel);
+    } else if (setType == IconSetType::Custom) {
+        // Show text description for custom
+        QLabel* customLabel = new QLabel("使用您自己的圖標檔案\n點擊下方「瀏覽」按鈕選擇", frame);
+        customLabel->setStyleSheet("QLabel { font-size: 10pt; color: #666; }");
+        customLabel->setAlignment(Qt::AlignCenter);
+        customLabel->setWordWrap(true);
+        previewLayout->addWidget(customLabel);
+    } else {
+        // Show preset icon previews
+        PieceIconSettings presetSettings = getPresetSettings(setType);
+        
+        // Display a few key pieces as preview
+        QStringList previewPieces;
+        previewPieces << presetSettings.whiteKingIcon 
+                      << presetSettings.whiteQueenIcon 
+                      << presetSettings.whiteRookIcon
+                      << presetSettings.blackKingIcon 
+                      << presetSettings.blackQueenIcon 
+                      << presetSettings.blackRookIcon;
+        
+        for (const QString& iconPath : previewPieces) {
+            QLabel* iconLabel = new QLabel(frame);
+            QPixmap pixmap(iconPath);
+            if (!pixmap.isNull()) {
+                iconLabel->setPixmap(pixmap.scaled(48, 48, Qt::KeepAspectRatio, Qt::SmoothTransformation));
+            } else {
+                iconLabel->setText("?");
+                iconLabel->setStyleSheet("QLabel { font-size: 24pt; }");
+            }
+            iconLabel->setAlignment(Qt::AlignCenter);
+            iconLabel->setFixedSize(50, 50);
+            previewLayout->addWidget(iconLabel);
+        }
+    }
+    
+    frameLayout->addLayout(previewLayout);
+    layout->addWidget(frame);
+    
+    return widget;
+}
+
+void PieceIconSettingsDialog::onIconSetButtonClicked(int id)
+{
+    IconSetType selectedType = static_cast<IconSetType>(id);
+    m_settings.iconSetType = selectedType;
+    
+    // Update the hidden combo box to stay in sync
+    int comboIndex = m_iconSetComboBox->findData(static_cast<int>(selectedType));
+    if (comboIndex >= 0) {
+        m_iconSetComboBox->setCurrentIndex(comboIndex);
+    }
+    
+    if (selectedType == IconSetType::Custom) {
+        // Enable custom icon editing
+        m_settings.useCustomIcons = true;
+    } else {
+        // Apply preset or Unicode
+        applyPresetIconSet(selectedType);
+    }
+    
+    updateCustomIconsControls();
 }

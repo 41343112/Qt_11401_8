@@ -9,6 +9,8 @@
 #include <QCheckBox>
 #include <QComboBox>
 #include <QMap>
+#include <QButtonGroup>
+#include <QRadioButton>
 #include "chesspiece.h"
 
 class PieceIconSettingsDialog : public QDialog
@@ -52,6 +54,7 @@ public:
 
 private slots:
     void onIconSetTypeChanged(int index);
+    void onIconSetButtonClicked(int id);
     void onBrowseWhiteKing();
     void onBrowseWhiteQueen();
     void onBrowseWhiteRook();
@@ -97,6 +100,7 @@ private:
     
     QComboBox* m_iconSetComboBox;
     QCheckBox* m_useCustomIconsCheckBox;
+    QButtonGroup* m_iconSetButtonGroup;
     
     // White pieces
     QLineEdit* m_whiteKingEdit;
@@ -168,6 +172,7 @@ private:
                        void (PieceIconSettingsDialog::*browseSlot)(),
                        void (PieceIconSettingsDialog::*previewSlot)(),
                        void (PieceIconSettingsDialog::*resetSlot)());
+    QWidget* createIconSetPreviewWidget(IconSetType setType, const QString& label);
     QString browseForIconFile();
     void previewIcon(const QString& iconFile);
     void updateCustomIconsControls();

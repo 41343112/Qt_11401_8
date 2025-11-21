@@ -7,20 +7,18 @@
         <file>resources/sounds/checkmate.wav</file>
         <!-- Chess piece icon sets - uncomment and add files when images are provided -->
         <!-- Set 1 -->
-        <!--
         <file>resources/icons/set1/white_king.png</file>
         <file>resources/icons/set1/white_queen.png</file>
         <file>resources/icons/set1/white_rook.png</file>
-        <file>resources/icons/set1/white_bishop.png</file>
+        <file>resources/icons/set1/white_biship.png</file>
         <file>resources/icons/set1/white_knight.png</file>
         <file>resources/icons/set1/white_pawn.png</file>
         <file>resources/icons/set1/black_king.png</file>
         <file>resources/icons/set1/black_queen.png</file>
         <file>resources/icons/set1/black_rook.png</file>
-        <file>resources/icons/set1/black_bishop.png</file>
+        <file>resources/icons/set1/black_biship.png</file>
         <file>resources/icons/set1/black_knight.png</file>
         <file>resources/icons/set1/black_pawn.png</file>
-        -->
         <!-- Set 2 -->
         <!--
         <file>resources/icons/set2/white_king.png</file>
