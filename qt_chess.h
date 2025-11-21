@@ -47,6 +47,7 @@ private:
     bool m_isDragging;
     QPoint m_dragStartSquare;
     QLabel* m_dragLabel;
+    bool m_wasSelectedBeforeDrag;
     
     QLabel* m_statusLabel;
     QLabel* m_turnLabel;

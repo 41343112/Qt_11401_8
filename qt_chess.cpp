@@ -21,6 +21,7 @@ Qt_Chess::Qt_Chess(QWidget *parent)
     , m_isDragging(false)
     , m_dragStartSquare(-1, -1)
     , m_dragLabel(nullptr)
+    , m_wasSelectedBeforeDrag(false)
     , m_boardWidget(nullptr)
 {
     ui->setupUi(this);
@@ -412,6 +413,9 @@ void Qt_Chess::mousePressEvent(QMouseEvent *event) {
         if (piece.getType() != PieceType::None && 
             piece.getColor() == m_chessBoard.getCurrentPlayer()) {
             
+            // Track if this piece was already selected before the drag
+            m_wasSelectedBeforeDrag = (m_pieceSelected && m_selectedSquare == square);
+            
             m_isDragging = true;
             m_dragStartSquare = square;
             m_selectedSquare = square;
@@ -484,11 +488,19 @@ void Qt_Chess::mouseReleaseEvent(QMouseEvent *event) {
                 updateStatus();
                 clearHighlights();
             } else if (dropSquare == m_dragStartSquare) {
-                // Dropped on same square - deselect
+                // Dropped on same square - toggle selection
                 // Restore the piece to the original square
                 restorePieceToSquare(m_dragStartSquare);
-                m_pieceSelected = false;
-                clearHighlights();
+                
+                if (m_wasSelectedBeforeDrag) {
+                    // Was already selected, so deselect
+                    m_pieceSelected = false;
+                    clearHighlights();
+                } else {
+                    // Was not selected, so keep it selected with highlights
+                    m_pieceSelected = true;
+                    highlightValidMoves();
+                }
             } else {
                 // Invalid move - try to select a different piece
                 const ChessPiece& piece = m_chessBoard.getPiece(dropSquare.y(), dropSquare.x());
