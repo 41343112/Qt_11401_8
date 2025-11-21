@@ -311,3 +311,77 @@ void ChessBoard::promotePawn(const QPoint& pos, PieceType newType) {
     m_board[pos.y()][pos.x()] = ChessPiece(newType, color);
     m_board[pos.y()][pos.x()].setMoved(true);
 }
+
+bool ChessBoard::isInsufficientMaterial() const {
+    // Count pieces on the board
+    int whiteKnights = 0, blackKnights = 0;
+    int whiteBishops = 0, blackBishops = 0;
+    int whiteBishopsOnLight = 0, whiteBishopsOnDark = 0;
+    int blackBishopsOnLight = 0, blackBishopsOnDark = 0;
+    bool hasWhiteKing = false, hasBlackKing = false;
+    bool hasOtherPieces = false;
+    
+    for (int row = 0; row < 8; ++row) {
+        for (int col = 0; col < 8; ++col) {
+            const ChessPiece& piece = m_board[row][col];
+            PieceType type = piece.getType();
+            PieceColor color = piece.getColor();
+            
+            if (type == PieceType::None) continue;
+            
+            if (type == PieceType::King) {
+                if (color == PieceColor::White) hasWhiteKing = true;
+                else hasBlackKing = true;
+            } else if (type == PieceType::Knight) {
+                if (color == PieceColor::White) whiteKnights++;
+                else blackKnights++;
+            } else if (type == PieceType::Bishop) {
+                bool isLightSquare = (row + col) % 2 == 0;
+                if (color == PieceColor::White) {
+                    whiteBishops++;
+                    if (isLightSquare) whiteBishopsOnLight++;
+                    else whiteBishopsOnDark++;
+                } else {
+                    blackBishops++;
+                    if (isLightSquare) blackBishopsOnLight++;
+                    else blackBishopsOnDark++;
+                }
+            } else {
+                // Pawn, Rook, or Queen - sufficient material
+                hasOtherPieces = true;
+            }
+        }
+    }
+    
+    // If there are pawns, rooks, or queens, material is sufficient
+    if (hasOtherPieces) return false;
+    
+    // King vs King
+    if (whiteKnights == 0 && blackKnights == 0 && 
+        whiteBishops == 0 && blackBishops == 0) {
+        return true;
+    }
+    
+    // King and Knight vs King
+    if ((whiteKnights == 1 && blackKnights == 0 && whiteBishops == 0 && blackBishops == 0) ||
+        (blackKnights == 1 && whiteKnights == 0 && whiteBishops == 0 && blackBishops == 0)) {
+        return true;
+    }
+    
+    // King and Bishop vs King
+    if ((whiteBishops == 1 && blackBishops == 0 && whiteKnights == 0 && blackKnights == 0) ||
+        (blackBishops == 1 && whiteBishops == 0 && whiteKnights == 0 && blackKnights == 0)) {
+        return true;
+    }
+    
+    // King and Bishop vs King and Bishop with bishops on same color squares
+    if (whiteBishops == 1 && blackBishops == 1 && whiteKnights == 0 && blackKnights == 0) {
+        // Both bishops must be on the same color squares
+        if ((whiteBishopsOnLight > 0 && blackBishopsOnLight > 0) ||
+            (whiteBishopsOnDark > 0 && blackBishopsOnDark > 0)) {
+            return true;
+        }
+    }
+    
+    return false;
+}

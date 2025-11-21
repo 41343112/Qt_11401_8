@@ -15,7 +15,7 @@ Qt_Chess::Qt_Chess(QWidget *parent)
     , m_pieceSelected(false)
 {
     ui->setupUi(this);
-    setWindowTitle("Chess Game - Player vs Player");
+    setWindowTitle("國際象棋 - 雙人對弈");
     resize(700, 750);
     
     setupUI();
@@ -33,7 +33,7 @@ void Qt_Chess::setupUI() {
     QVBoxLayout* mainLayout = new QVBoxLayout(centralWidget);
     
     // Turn and status labels
-    m_turnLabel = new QLabel("Current Turn: White", this);
+    m_turnLabel = new QLabel("當前回合：白方", this);
     m_turnLabel->setAlignment(Qt::AlignCenter);
     QFont font = m_turnLabel->font();
     font.setPointSize(14);
@@ -41,7 +41,7 @@ void Qt_Chess::setupUI() {
     m_turnLabel->setFont(font);
     mainLayout->addWidget(m_turnLabel);
     
-    m_statusLabel = new QLabel("Game in progress", this);
+    m_statusLabel = new QLabel("對局進行中", this);
     m_statusLabel->setAlignment(Qt::AlignCenter);
     m_statusLabel->setFont(font);
     mainLayout->addWidget(m_statusLabel);
@@ -77,7 +77,7 @@ void Qt_Chess::setupUI() {
     mainLayout->addWidget(boardWidget, 0, Qt::AlignCenter);
     
     // New game button
-    m_newGameButton = new QPushButton("New Game", this);
+    m_newGameButton = new QPushButton("新遊戲", this);
     m_newGameButton->setMinimumHeight(40);
     m_newGameButton->setFont(font);
     connect(m_newGameButton, &QPushButton::clicked, this, &Qt_Chess::onNewGameClicked);
@@ -106,24 +106,28 @@ void Qt_Chess::updateBoard() {
 
 void Qt_Chess::updateStatus() {
     PieceColor currentPlayer = m_chessBoard.getCurrentPlayer();
-    QString playerName = (currentPlayer == PieceColor::White) ? "White" : "Black";
+    QString playerName = (currentPlayer == PieceColor::White) ? "白方" : "黑方";
     
-    m_turnLabel->setText(QString("Current Turn: %1").arg(playerName));
+    m_turnLabel->setText(QString("當前回合：%1").arg(playerName));
     
     if (m_chessBoard.isCheckmate(currentPlayer)) {
-        QString winner = (currentPlayer == PieceColor::White) ? "Black" : "White";
-        m_statusLabel->setText(QString("Checkmate! %1 wins!").arg(winner));
+        QString winner = (currentPlayer == PieceColor::White) ? "黑方" : "白方";
+        m_statusLabel->setText(QString("將死！%1獲勝！").arg(winner));
         m_statusLabel->setStyleSheet("QLabel { color: red; }");
-        QMessageBox::information(this, "Game Over", QString("Checkmate! %1 wins!").arg(winner));
+        QMessageBox::information(this, "遊戲結束", QString("將死！%1獲勝！").arg(winner));
     } else if (m_chessBoard.isStalemate(currentPlayer)) {
-        m_statusLabel->setText("Stalemate! Game is a draw.");
+        m_statusLabel->setText("逼和！對局和棋。");
         m_statusLabel->setStyleSheet("QLabel { color: orange; }");
-        QMessageBox::information(this, "Game Over", "Stalemate! Game is a draw.");
+        QMessageBox::information(this, "遊戲結束", "逼和！對局和棋。");
+    } else if (m_chessBoard.isInsufficientMaterial()) {
+        m_statusLabel->setText("子力不足！對局和棋。");
+        m_statusLabel->setStyleSheet("QLabel { color: orange; }");
+        QMessageBox::information(this, "遊戲結束", "子力不足以將殺！對局和棋。");
     } else if (m_chessBoard.isInCheck(currentPlayer)) {
-        m_statusLabel->setText(QString("%1 is in check!").arg(playerName));
+        m_statusLabel->setText(QString("%1被將軍！").arg(playerName));
         m_statusLabel->setStyleSheet("QLabel { color: red; }");
     } else {
-        m_statusLabel->setText("Game in progress");
+        m_statusLabel->setText("對局進行中");
         m_statusLabel->setStyleSheet("QLabel { color: black; }");
     }
 }
@@ -212,12 +216,12 @@ void Qt_Chess::onNewGameClicked() {
 
 PieceType Qt_Chess::showPromotionDialog(PieceColor color) {
     QDialog dialog(this);
-    dialog.setWindowTitle("Pawn Promotion");
+    dialog.setWindowTitle("兵升變");
     dialog.setModal(true);
     
     QVBoxLayout* layout = new QVBoxLayout(&dialog);
     
-    QLabel* label = new QLabel("Choose a piece to promote to:", &dialog);
+    QLabel* label = new QLabel("選擇升變的棋子：", &dialog);
     QFont font = label->font();
     font.setPointSize(12);
     label->setFont(font);
