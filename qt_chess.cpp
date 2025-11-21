@@ -610,26 +610,27 @@ void Qt_Chess::initializeSounds() {
 }
 
 void Qt_Chess::loadSoundSettings() {
+    SoundSettingsDialog::SoundSettings defaults = SoundSettingsDialog::getDefaultSettings();
     QSettings settings("QtChess", "SoundSettings");
     
-    m_soundSettings.moveSound = settings.value("moveSound", "qrc:/resources/sounds/move.wav").toString();
-    m_soundSettings.captureSound = settings.value("captureSound", "qrc:/resources/sounds/capture.wav").toString();
-    m_soundSettings.castlingSound = settings.value("castlingSound", "qrc:/resources/sounds/castling.wav").toString();
-    m_soundSettings.checkSound = settings.value("checkSound", "qrc:/resources/sounds/check.wav").toString();
-    m_soundSettings.checkmateSound = settings.value("checkmateSound", "qrc:/resources/sounds/checkmate.wav").toString();
+    m_soundSettings.moveSound = settings.value("moveSound", defaults.moveSound).toString();
+    m_soundSettings.captureSound = settings.value("captureSound", defaults.captureSound).toString();
+    m_soundSettings.castlingSound = settings.value("castlingSound", defaults.castlingSound).toString();
+    m_soundSettings.checkSound = settings.value("checkSound", defaults.checkSound).toString();
+    m_soundSettings.checkmateSound = settings.value("checkmateSound", defaults.checkmateSound).toString();
     
-    m_soundSettings.moveVolume = settings.value("moveVolume", 0.5).toDouble();
-    m_soundSettings.captureVolume = settings.value("captureVolume", 0.5).toDouble();
-    m_soundSettings.castlingVolume = settings.value("castlingVolume", 0.5).toDouble();
-    m_soundSettings.checkVolume = settings.value("checkVolume", 0.5).toDouble();
-    m_soundSettings.checkmateVolume = settings.value("checkmateVolume", 0.6).toDouble();
+    m_soundSettings.moveVolume = settings.value("moveVolume", defaults.moveVolume).toDouble();
+    m_soundSettings.captureVolume = settings.value("captureVolume", defaults.captureVolume).toDouble();
+    m_soundSettings.castlingVolume = settings.value("castlingVolume", defaults.castlingVolume).toDouble();
+    m_soundSettings.checkVolume = settings.value("checkVolume", defaults.checkVolume).toDouble();
+    m_soundSettings.checkmateVolume = settings.value("checkmateVolume", defaults.checkmateVolume).toDouble();
     
-    m_soundSettings.moveSoundEnabled = settings.value("moveSoundEnabled", true).toBool();
-    m_soundSettings.captureSoundEnabled = settings.value("captureSoundEnabled", true).toBool();
-    m_soundSettings.castlingSoundEnabled = settings.value("castlingSoundEnabled", true).toBool();
-    m_soundSettings.checkSoundEnabled = settings.value("checkSoundEnabled", true).toBool();
-    m_soundSettings.checkmateSoundEnabled = settings.value("checkmateSoundEnabled", true).toBool();
-    m_soundSettings.allSoundsEnabled = settings.value("allSoundsEnabled", true).toBool();
+    m_soundSettings.moveSoundEnabled = settings.value("moveSoundEnabled", defaults.moveSoundEnabled).toBool();
+    m_soundSettings.captureSoundEnabled = settings.value("captureSoundEnabled", defaults.captureSoundEnabled).toBool();
+    m_soundSettings.castlingSoundEnabled = settings.value("castlingSoundEnabled", defaults.castlingSoundEnabled).toBool();
+    m_soundSettings.checkSoundEnabled = settings.value("checkSoundEnabled", defaults.checkSoundEnabled).toBool();
+    m_soundSettings.checkmateSoundEnabled = settings.value("checkmateSoundEnabled", defaults.checkmateSoundEnabled).toBool();
+    m_soundSettings.allSoundsEnabled = settings.value("allSoundsEnabled", defaults.allSoundsEnabled).toBool();
 }
 
 void Qt_Chess::applySoundSettings() {

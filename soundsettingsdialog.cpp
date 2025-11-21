@@ -17,31 +17,86 @@ SoundSettingsDialog::SoundSettingsDialog(QWidget *parent)
     setupUI();
     
     // Load saved settings or use defaults
+    SoundSettings defaults = getDefaultSettings();
     QSettings settings("QtChess", "SoundSettings");
-    m_settings.moveSound = settings.value("moveSound", "qrc:/resources/sounds/move.wav").toString();
-    m_settings.captureSound = settings.value("captureSound", "qrc:/resources/sounds/capture.wav").toString();
-    m_settings.castlingSound = settings.value("castlingSound", "qrc:/resources/sounds/castling.wav").toString();
-    m_settings.checkSound = settings.value("checkSound", "qrc:/resources/sounds/check.wav").toString();
-    m_settings.checkmateSound = settings.value("checkmateSound", "qrc:/resources/sounds/checkmate.wav").toString();
+    m_settings.moveSound = settings.value("moveSound", defaults.moveSound).toString();
+    m_settings.captureSound = settings.value("captureSound", defaults.captureSound).toString();
+    m_settings.castlingSound = settings.value("castlingSound", defaults.castlingSound).toString();
+    m_settings.checkSound = settings.value("checkSound", defaults.checkSound).toString();
+    m_settings.checkmateSound = settings.value("checkmateSound", defaults.checkmateSound).toString();
     
-    m_settings.moveVolume = settings.value("moveVolume", 0.5).toDouble();
-    m_settings.captureVolume = settings.value("captureVolume", 0.5).toDouble();
-    m_settings.castlingVolume = settings.value("castlingVolume", 0.5).toDouble();
-    m_settings.checkVolume = settings.value("checkVolume", 0.5).toDouble();
-    m_settings.checkmateVolume = settings.value("checkmateVolume", 0.6).toDouble();
+    m_settings.moveVolume = settings.value("moveVolume", defaults.moveVolume).toDouble();
+    m_settings.captureVolume = settings.value("captureVolume", defaults.captureVolume).toDouble();
+    m_settings.castlingVolume = settings.value("castlingVolume", defaults.castlingVolume).toDouble();
+    m_settings.checkVolume = settings.value("checkVolume", defaults.checkVolume).toDouble();
+    m_settings.checkmateVolume = settings.value("checkmateVolume", defaults.checkmateVolume).toDouble();
     
-    m_settings.moveSoundEnabled = settings.value("moveSoundEnabled", true).toBool();
-    m_settings.captureSoundEnabled = settings.value("captureSoundEnabled", true).toBool();
-    m_settings.castlingSoundEnabled = settings.value("castlingSoundEnabled", true).toBool();
-    m_settings.checkSoundEnabled = settings.value("checkSoundEnabled", true).toBool();
-    m_settings.checkmateSoundEnabled = settings.value("checkmateSoundEnabled", true).toBool();
-    m_settings.allSoundsEnabled = settings.value("allSoundsEnabled", true).toBool();
+    m_settings.moveSoundEnabled = settings.value("moveSoundEnabled", defaults.moveSoundEnabled).toBool();
+    m_settings.captureSoundEnabled = settings.value("captureSoundEnabled", defaults.captureSoundEnabled).toBool();
+    m_settings.castlingSoundEnabled = settings.value("castlingSoundEnabled", defaults.castlingSoundEnabled).toBool();
+    m_settings.checkSoundEnabled = settings.value("checkSoundEnabled", defaults.checkSoundEnabled).toBool();
+    m_settings.checkmateSoundEnabled = settings.value("checkmateSoundEnabled", defaults.checkmateSoundEnabled).toBool();
+    m_settings.allSoundsEnabled = settings.value("allSoundsEnabled", defaults.allSoundsEnabled).toBool();
     
     setSettings(m_settings);
 }
 
 SoundSettingsDialog::~SoundSettingsDialog()
 {
+}
+
+void SoundSettingsDialog::createSoundRow(QGridLayout* gridLayout, int& row, const QString& label,
+                                         SoundControlWidgets& widgets,
+                                         void (SoundSettingsDialog::*browseSlot)(),
+                                         void (SoundSettingsDialog::*previewSlot)())
+{
+    // Label
+    QLabel* nameLabel = new QLabel(label, this);
+    gridLayout->addWidget(nameLabel, row, 0);
+    
+    // Enable checkbox
+    *widgets.soundCheckBox = new QCheckBox("啟用", this);
+    (*widgets.soundCheckBox)->setChecked(true);
+    gridLayout->addWidget(*widgets.soundCheckBox, row, 1);
+    
+    // File path edit
+    *widgets.soundEdit = new QLineEdit(this);
+    (*widgets.soundEdit)->setReadOnly(true);
+    gridLayout->addWidget(*widgets.soundEdit, row, 2);
+    
+    // Browse button
+    *widgets.browseButton = new QPushButton("瀏覽...", this);
+    connect(*widgets.browseButton, &QPushButton::clicked, this, browseSlot);
+    gridLayout->addWidget(*widgets.browseButton, row, 3);
+    
+    // Volume label
+    QLabel* volLabel = new QLabel("音量:", this);
+    gridLayout->addWidget(volLabel, row, 4);
+    
+    // Volume slider
+    *widgets.volumeSlider = new QSlider(Qt::Horizontal, this);
+    (*widgets.volumeSlider)->setRange(0, 100);
+    (*widgets.volumeSlider)->setValue(50);
+    (*widgets.volumeSlider)->setFixedWidth(100);
+    gridLayout->addWidget(*widgets.volumeSlider, row, 5);
+    
+    // Volume percentage label
+    *widgets.volumeLabel = new QLabel("50%", this);
+    (*widgets.volumeLabel)->setFixedWidth(40);
+    gridLayout->addWidget(*widgets.volumeLabel, row, 6);
+    
+    // Connect slider to update label
+    QLabel* volumeLabelPtr = *widgets.volumeLabel;
+    connect(*widgets.volumeSlider, &QSlider::valueChanged, [volumeLabelPtr](int value) {
+        volumeLabelPtr->setText(QString("%1%").arg(value));
+    });
+    
+    // Preview button
+    *widgets.previewButton = new QPushButton("預覽", this);
+    connect(*widgets.previewButton, &QPushButton::clicked, this, previewSlot);
+    gridLayout->addWidget(*widgets.previewButton, row, 7);
+    
+    row++;
 }
 
 void SoundSettingsDialog::setupUI()
@@ -60,85 +115,30 @@ void SoundSettingsDialog::setupUI()
     
     int row = 0;
     
-    // Helper lambda to create a row of controls
-    auto createSoundRow = [this, gridLayout, &row](
-        const QString& label,
-        QLineEdit** editPtr,
-        QCheckBox** checkBoxPtr,
-        QSlider** sliderPtr,
-        QLabel** volumeLabelPtr,
-        QPushButton** browsePtr,
-        QPushButton** previewPtr,
-        std::function<void()> browseSlot,
-        std::function<void()> previewSlot
-    ) {
-        // Label
-        QLabel* nameLabel = new QLabel(label, this);
-        gridLayout->addWidget(nameLabel, row, 0);
-        
-        // Enable checkbox
-        *checkBoxPtr = new QCheckBox("啟用", this);
-        (*checkBoxPtr)->setChecked(true);
-        gridLayout->addWidget(*checkBoxPtr, row, 1);
-        
-        // File path edit
-        *editPtr = new QLineEdit(this);
-        (*editPtr)->setReadOnly(true);
-        gridLayout->addWidget(*editPtr, row, 2);
-        
-        // Browse button
-        *browsePtr = new QPushButton("瀏覽...", this);
-        connect(*browsePtr, &QPushButton::clicked, this, browseSlot);
-        gridLayout->addWidget(*browsePtr, row, 3);
-        
-        // Volume label
-        QLabel* volLabel = new QLabel("音量:", this);
-        gridLayout->addWidget(volLabel, row, 4);
-        
-        // Volume slider
-        *sliderPtr = new QSlider(Qt::Horizontal, this);
-        (*sliderPtr)->setRange(0, 100);
-        (*sliderPtr)->setValue(50);
-        (*sliderPtr)->setFixedWidth(100);
-        gridLayout->addWidget(*sliderPtr, row, 5);
-        
-        // Volume percentage label
-        *volumeLabelPtr = new QLabel("50%", this);
-        (*volumeLabelPtr)->setFixedWidth(40);
-        gridLayout->addWidget(*volumeLabelPtr, row, 6);
-        
-        // Connect slider to update label
-        connect(*sliderPtr, &QSlider::valueChanged, [volumeLabelPtr](int value) {
-            (*volumeLabelPtr)->setText(QString("%1%").arg(value));
-        });
-        
-        // Preview button
-        *previewPtr = new QPushButton("預覽", this);
-        connect(*previewPtr, &QPushButton::clicked, this, previewSlot);
-        gridLayout->addWidget(*previewPtr, row, 7);
-        
-        row++;
-    };
-    
     // Create rows for each sound type
-    createSoundRow("移動音效:", &m_moveSoundEdit, &m_moveSoundCheckBox, &m_moveVolumeSlider, 
-                   &m_moveVolumeLabel, &m_moveBrowseButton, &m_movePreviewButton,
+    SoundControlWidgets moveWidgets = {&m_moveSoundEdit, &m_moveSoundCheckBox, &m_moveVolumeSlider, 
+                                       &m_moveVolumeLabel, &m_moveBrowseButton, &m_movePreviewButton};
+    createSoundRow(gridLayout, row, "移動音效:", moveWidgets,
                    &SoundSettingsDialog::onBrowseMove, &SoundSettingsDialog::onPreviewMove);
     
-    createSoundRow("吃子音效:", &m_captureSoundEdit, &m_captureSoundCheckBox, &m_captureVolumeSlider,
-                   &m_captureVolumeLabel, &m_captureBrowseButton, &m_capturePreviewButton,
+    SoundControlWidgets captureWidgets = {&m_captureSoundEdit, &m_captureSoundCheckBox, &m_captureVolumeSlider,
+                                          &m_captureVolumeLabel, &m_captureBrowseButton, &m_capturePreviewButton};
+    createSoundRow(gridLayout, row, "吃子音效:", captureWidgets,
                    &SoundSettingsDialog::onBrowseCapture, &SoundSettingsDialog::onPreviewCapture);
     
-    createSoundRow("王車易位:", &m_castlingSoundEdit, &m_castlingSoundCheckBox, &m_castlingVolumeSlider,
-                   &m_castlingVolumeLabel, &m_castlingBrowseButton, &m_castlingPreviewButton,
+    SoundControlWidgets castlingWidgets = {&m_castlingSoundEdit, &m_castlingSoundCheckBox, &m_castlingVolumeSlider,
+                                           &m_castlingVolumeLabel, &m_castlingBrowseButton, &m_castlingPreviewButton};
+    createSoundRow(gridLayout, row, "王車易位:", castlingWidgets,
                    &SoundSettingsDialog::onBrowseCastling, &SoundSettingsDialog::onPreviewCastling);
     
-    createSoundRow("將軍音效:", &m_checkSoundEdit, &m_checkSoundCheckBox, &m_checkVolumeSlider,
-                   &m_checkVolumeLabel, &m_checkBrowseButton, &m_checkPreviewButton,
+    SoundControlWidgets checkWidgets = {&m_checkSoundEdit, &m_checkSoundCheckBox, &m_checkVolumeSlider,
+                                        &m_checkVolumeLabel, &m_checkBrowseButton, &m_checkPreviewButton};
+    createSoundRow(gridLayout, row, "將軍音效:", checkWidgets,
                    &SoundSettingsDialog::onBrowseCheck, &SoundSettingsDialog::onPreviewCheck);
     
-    createSoundRow("將死音效:", &m_checkmateSoundEdit, &m_checkmateSoundCheckBox, &m_checkmateVolumeSlider,
-                   &m_checkmateVolumeLabel, &m_checkmateBrowseButton, &m_checkmatePreviewButton,
+    SoundControlWidgets checkmateWidgets = {&m_checkmateSoundEdit, &m_checkmateSoundCheckBox, &m_checkmateVolumeSlider,
+                                            &m_checkmateVolumeLabel, &m_checkmateBrowseButton, &m_checkmatePreviewButton};
+    createSoundRow(gridLayout, row, "將死音效:", checkmateWidgets,
                    &SoundSettingsDialog::onBrowseCheckmate, &SoundSettingsDialog::onPreviewCheckmate);
     
     mainLayout->addWidget(soundsGroupBox);
@@ -270,25 +270,7 @@ void SoundSettingsDialog::onAllSoundsToggled(bool enabled)
 
 void SoundSettingsDialog::onResetToDefaults()
 {
-    m_settings.moveSound = "qrc:/resources/sounds/move.wav";
-    m_settings.captureSound = "qrc:/resources/sounds/capture.wav";
-    m_settings.castlingSound = "qrc:/resources/sounds/castling.wav";
-    m_settings.checkSound = "qrc:/resources/sounds/check.wav";
-    m_settings.checkmateSound = "qrc:/resources/sounds/checkmate.wav";
-    
-    m_settings.moveVolume = 0.5;
-    m_settings.captureVolume = 0.5;
-    m_settings.castlingVolume = 0.5;
-    m_settings.checkVolume = 0.5;
-    m_settings.checkmateVolume = 0.6;
-    
-    m_settings.moveSoundEnabled = true;
-    m_settings.captureSoundEnabled = true;
-    m_settings.castlingSoundEnabled = true;
-    m_settings.checkSoundEnabled = true;
-    m_settings.checkmateSoundEnabled = true;
-    m_settings.allSoundsEnabled = true;
-    
+    m_settings = getDefaultSettings();
     setSettings(m_settings);
 }
 
@@ -370,4 +352,30 @@ void SoundSettingsDialog::previewSound(const QString& soundFile, double volume)
     
     m_previewSound.setVolume(volume);
     m_previewSound.play();
+}
+
+SoundSettingsDialog::SoundSettings SoundSettingsDialog::getDefaultSettings()
+{
+    SoundSettings defaults;
+    
+    defaults.moveSound = "qrc:/resources/sounds/move.wav";
+    defaults.captureSound = "qrc:/resources/sounds/capture.wav";
+    defaults.castlingSound = "qrc:/resources/sounds/castling.wav";
+    defaults.checkSound = "qrc:/resources/sounds/check.wav";
+    defaults.checkmateSound = "qrc:/resources/sounds/checkmate.wav";
+    
+    defaults.moveVolume = 0.5;
+    defaults.captureVolume = 0.5;
+    defaults.castlingVolume = 0.5;
+    defaults.checkVolume = 0.5;
+    defaults.checkmateVolume = 0.6;
+    
+    defaults.moveSoundEnabled = true;
+    defaults.captureSoundEnabled = true;
+    defaults.castlingSoundEnabled = true;
+    defaults.checkSoundEnabled = true;
+    defaults.checkmateSoundEnabled = true;
+    defaults.allSoundsEnabled = true;
+    
+    return defaults;
 }

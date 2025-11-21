@@ -38,6 +38,8 @@ public:
 
     SoundSettings getSettings() const;
     void setSettings(const SoundSettings& settings);
+    
+    static SoundSettings getDefaultSettings();
 
 private slots:
     void onBrowseMove();
@@ -96,7 +98,20 @@ private:
     
     QSoundEffect m_previewSound;
     
+    struct SoundControlWidgets {
+        QLineEdit* soundEdit;
+        QCheckBox* soundCheckBox;
+        QSlider* volumeSlider;
+        QLabel* volumeLabel;
+        QPushButton* browseButton;
+        QPushButton* previewButton;
+    };
+    
     void setupUI();
+    void createSoundRow(QGridLayout* gridLayout, int& row, const QString& label,
+                       SoundControlWidgets& widgets,
+                       void (SoundSettingsDialog::*browseSlot)(),
+                       void (SoundSettingsDialog::*previewSlot)());
     void updateAllSoundsCheckBox();
     QString browseForSoundFile();
     void previewSound(const QString& soundFile, double volume);
