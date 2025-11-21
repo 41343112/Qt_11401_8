@@ -38,12 +38,14 @@ make
 ## How to Play
 
 1. **Select a Piece**: Click on one of your pieces (White starts first)
-2. **Valid Moves**: Valid destination squares will be highlighted in orange
-3. **Move**: Click on a highlighted square to move the piece
-4. **Deselect**: Click the selected piece again to deselect it
-5. **Turn Indicator**: The current player's turn is displayed at the top
-6. **Game Status**: Check, checkmate, and stalemate are automatically detected and displayed
-7. **New Game**: Click "New Game" button to reset the board
+2. **Drag and Drop**: Click and drag a piece to move it to a valid square
+3. **Cancel Move**: Right-click at any time during dragging to cancel and return the piece to its original position
+4. **Valid Moves**: Valid destination squares will be highlighted in orange
+5. **Move**: Click on a highlighted square to move the piece, or drag and drop
+6. **Deselect**: Click the selected piece again or right-click to deselect it
+7. **Turn Indicator**: The current player's turn is displayed at the top
+8. **Game Status**: Check, checkmate, and stalemate are automatically detected and displayed
+9. **New Game**: Click "New Game" button to reset the board
 
 ## Game Rules
 

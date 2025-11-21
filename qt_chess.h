@@ -6,6 +6,7 @@
 #include <QLabel>
 #include <QGridLayout>
 #include <QVBoxLayout>
+#include <QMouseEvent>
 #include <vector>
 #include "chessboard.h"
 
@@ -23,6 +24,11 @@ public:
     Qt_Chess(QWidget *parent = nullptr);
     ~Qt_Chess();
 
+protected:
+    void mousePressEvent(QMouseEvent *event) override;
+    void mouseMoveEvent(QMouseEvent *event) override;
+    void mouseReleaseEvent(QMouseEvent *event) override;
+
 private slots:
     void onSquareClicked(int row, int col);
     void onNewGameClicked();
@@ -34,9 +40,15 @@ private:
     QPoint m_selectedSquare;
     bool m_pieceSelected;
     
+    // Drag-and-drop state
+    bool m_isDragging;
+    QPoint m_dragStartSquare;
+    QLabel* m_dragLabel;
+    
     QLabel* m_statusLabel;
     QLabel* m_turnLabel;
     QPushButton* m_newGameButton;
+    QWidget* m_boardWidget;
     
     void setupUI();
     void updateBoard();
@@ -45,5 +57,6 @@ private:
     void highlightValidMoves();
     void clearHighlights();
     PieceType showPromotionDialog(PieceColor color);
+    QPoint getSquareAtPosition(const QPoint& pos) const;
 };
 #endif // QT_CHESS_H

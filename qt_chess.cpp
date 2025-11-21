@@ -13,10 +13,15 @@ Qt_Chess::Qt_Chess(QWidget *parent)
     , ui(new Ui::Qt_Chess)
     , m_selectedSquare(-1, -1)
     , m_pieceSelected(false)
+    , m_isDragging(false)
+    , m_dragStartSquare(-1, -1)
+    , m_dragLabel(nullptr)
+    , m_boardWidget(nullptr)
 {
     ui->setupUi(this);
     setWindowTitle("國際象棋 - 雙人對弈");
     resize(700, 750);
+    setMouseTracking(true);
     
     setupUI();
     updateBoard();
@@ -47,15 +52,16 @@ void Qt_Chess::setupUI() {
     mainLayout->addWidget(m_statusLabel);
     
     // Chess board
-    QWidget* boardWidget = new QWidget(this);
-    QGridLayout* gridLayout = new QGridLayout(boardWidget);
+    m_boardWidget = new QWidget(this);
+    m_boardWidget->setMouseTracking(true);
+    QGridLayout* gridLayout = new QGridLayout(m_boardWidget);
     gridLayout->setSpacing(0);
     
     m_squares.resize(8, std::vector<QPushButton*>(8));
     
     for (int row = 0; row < 8; ++row) {
         for (int col = 0; col < 8; ++col) {
-            QPushButton* square = new QPushButton(boardWidget);
+            QPushButton* square = new QPushButton(m_boardWidget);
             square->setMinimumSize(80, 80);
             square->setMaximumSize(80, 80);
             
@@ -74,7 +80,7 @@ void Qt_Chess::setupUI() {
         }
     }
     
-    mainLayout->addWidget(boardWidget, 0, Qt::AlignCenter);
+    mainLayout->addWidget(m_boardWidget, 0, Qt::AlignCenter);
     
     // New game button
     m_newGameButton = new QPushButton("新遊戲", this);
@@ -264,4 +270,148 @@ PieceType Qt_Chess::showPromotionDialog(PieceColor color) {
     
     dialog.exec();
     return selectedType;
+}
+
+QPoint Qt_Chess::getSquareAtPosition(const QPoint& pos) const {
+    if (!m_boardWidget) return QPoint(-1, -1);
+    
+    QPoint boardPos = m_boardWidget->mapFrom(this, pos);
+    
+    for (int row = 0; row < 8; ++row) {
+        for (int col = 0; col < 8; ++col) {
+            QPushButton* square = m_squares[row][col];
+            if (square->geometry().contains(boardPos)) {
+                return QPoint(col, row);
+            }
+        }
+    }
+    
+    return QPoint(-1, -1);
+}
+
+void Qt_Chess::mousePressEvent(QMouseEvent *event) {
+    QPoint square = getSquareAtPosition(event->pos());
+    
+    // Right click - cancel any current action
+    if (event->button() == Qt::RightButton) {
+        if (m_isDragging) {
+            // Cancel drag and return piece to original position
+            m_isDragging = false;
+            if (m_dragLabel) {
+                m_dragLabel->hide();
+                m_dragLabel->deleteLater();
+                m_dragLabel = nullptr;
+            }
+            m_dragStartSquare = QPoint(-1, -1);
+            clearHighlights();
+        } else if (m_pieceSelected) {
+            // Deselect piece if one is selected
+            m_pieceSelected = false;
+            clearHighlights();
+        }
+        return;
+    }
+    
+    // Left click - start drag
+    if (event->button() == Qt::LeftButton && square.x() >= 0 && square.y() >= 0) {
+        const ChessPiece& piece = m_chessBoard.getPiece(square.y(), square.x());
+        if (piece.getType() != PieceType::None && 
+            piece.getColor() == m_chessBoard.getCurrentPlayer()) {
+            
+            m_isDragging = true;
+            m_dragStartSquare = square;
+            m_selectedSquare = square;
+            m_pieceSelected = true;
+            
+            // Create drag label
+            m_dragLabel = new QLabel(this);
+            m_dragLabel->setText(piece.getSymbol());
+            QFont font;
+            font.setPointSize(36);
+            m_dragLabel->setFont(font);
+            m_dragLabel->setStyleSheet("QLabel { background-color: rgba(127, 201, 127, 180); border: 2px solid #00FF00; padding: 5px; }");
+            m_dragLabel->adjustSize();
+            m_dragLabel->move(event->pos() - QPoint(m_dragLabel->width() / 2, m_dragLabel->height() / 2));
+            m_dragLabel->show();
+            m_dragLabel->raise();
+            
+            highlightValidMoves();
+        }
+    }
+    
+    QMainWindow::mousePressEvent(event);
+}
+
+void Qt_Chess::mouseMoveEvent(QMouseEvent *event) {
+    if (m_isDragging && m_dragLabel) {
+        m_dragLabel->move(event->pos() - QPoint(m_dragLabel->width() / 2, m_dragLabel->height() / 2));
+    }
+    
+    QMainWindow::mouseMoveEvent(event);
+}
+
+void Qt_Chess::mouseReleaseEvent(QMouseEvent *event) {
+    // Right click - already handled in mousePressEvent
+    if (event->button() == Qt::RightButton) {
+        QMainWindow::mouseReleaseEvent(event);
+        return;
+    }
+    
+    // Left click release - complete drag
+    if (event->button() == Qt::LeftButton && m_isDragging) {
+        QPoint dropSquare = getSquareAtPosition(event->pos());
+        
+        // Clean up drag label
+        if (m_dragLabel) {
+            m_dragLabel->hide();
+            m_dragLabel->deleteLater();
+            m_dragLabel = nullptr;
+        }
+        
+        m_isDragging = false;
+        
+        if (dropSquare.x() >= 0 && dropSquare.y() >= 0) {
+            // Try to move the piece
+            if (m_chessBoard.movePiece(m_dragStartSquare, dropSquare)) {
+                m_pieceSelected = false;
+                updateBoard();
+                
+                // Check if pawn promotion is needed
+                if (m_chessBoard.needsPromotion(dropSquare)) {
+                    const ChessPiece& piece = m_chessBoard.getPiece(dropSquare.y(), dropSquare.x());
+                    PieceType promotionType = showPromotionDialog(piece.getColor());
+                    m_chessBoard.promotePawn(dropSquare, promotionType);
+                    updateBoard();
+                }
+                
+                updateStatus();
+                clearHighlights();
+            } else if (dropSquare == m_dragStartSquare) {
+                // Dropped on same square - deselect
+                m_pieceSelected = false;
+                clearHighlights();
+            } else {
+                // Invalid move - try to select a different piece
+                const ChessPiece& piece = m_chessBoard.getPiece(dropSquare.y(), dropSquare.x());
+                if (piece.getType() != PieceType::None && 
+                    piece.getColor() == m_chessBoard.getCurrentPlayer()) {
+                    m_selectedSquare = dropSquare;
+                    m_pieceSelected = true;
+                    highlightValidMoves();
+                } else {
+                    // Invalid move and not selecting another piece
+                    m_pieceSelected = false;
+                    clearHighlights();
+                }
+            }
+        } else {
+            // Dropped outside board - cancel
+            m_pieceSelected = false;
+            clearHighlights();
+        }
+        
+        m_dragStartSquare = QPoint(-1, -1);
+    }
+    
+    QMainWindow::mouseReleaseEvent(event);
 }
