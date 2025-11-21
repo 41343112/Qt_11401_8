@@ -10,10 +10,14 @@ CONFIG += c++17
 
 SOURCES += \
     main.cpp \
-    qt_chess.cpp
+    qt_chess.cpp \
+    chesspiece.cpp \
+    chessboard.cpp
 
 HEADERS += \
-    qt_chess.h
+    qt_chess.h \
+    chesspiece.h \
+    chessboard.h
 
 FORMS += \
     qt_chess.ui
