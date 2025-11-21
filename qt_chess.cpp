@@ -33,6 +33,7 @@ Qt_Chess::Qt_Chess(QWidget *parent)
     
     setMouseTracking(true);
     
+    initializeSounds();
     setupUI();
     updateBoard();
     updateStatus();
@@ -201,6 +202,16 @@ void Qt_Chess::onSquareClicked(int row, int col) {
             highlightValidMoves();
         }
     } else {
+        // Check if destination has an enemy piece (for capture detection)
+        const ChessPiece& destinationPiece = m_chessBoard.getPiece(row, col);
+        bool isCapture = (destinationPiece.getType() != PieceType::None && 
+                         destinationPiece.getColor() != m_chessBoard.getCurrentPlayer());
+        
+        // Check if this is a castling move
+        const ChessPiece& movingPiece = m_chessBoard.getPiece(m_selectedSquare.y(), m_selectedSquare.x());
+        bool isCastling = (movingPiece.getType() == PieceType::King && 
+                          abs(clickedSquare.x() - m_selectedSquare.x()) == 2);
+        
         // Try to move the selected piece
         if (m_chessBoard.movePiece(m_selectedSquare, clickedSquare)) {
             m_pieceSelected = false;
@@ -212,6 +223,23 @@ void Qt_Chess::onSquareClicked(int row, int col) {
                 PieceType promotionType = showPromotionDialog(piece.getColor());
                 m_chessBoard.promotePawn(clickedSquare, promotionType);
                 updateBoard();
+            }
+            
+            // Play appropriate sound effect
+            PieceColor currentPlayer = m_chessBoard.getCurrentPlayer();
+            bool opponentInCheck = m_chessBoard.isInCheck(currentPlayer);
+            bool opponentCheckmate = m_chessBoard.isCheckmate(currentPlayer);
+            
+            if (opponentCheckmate) {
+                m_checkmateSound.play();
+            } else if (opponentInCheck) {
+                m_checkSound.play();
+            } else if (isCastling) {
+                m_castlingSound.play();
+            } else if (isCapture) {
+                m_captureSound.play();
+            } else {
+                m_moveSound.play();
             }
             
             updateStatus();
@@ -453,6 +481,16 @@ void Qt_Chess::mouseReleaseEvent(QMouseEvent *event) {
         m_isDragging = false;
         
         if (dropSquare.x() >= 0 && dropSquare.y() >= 0) {
+            // Check if destination has an enemy piece (for capture detection)
+            const ChessPiece& destinationPiece = m_chessBoard.getPiece(dropSquare.y(), dropSquare.x());
+            bool isCapture = (destinationPiece.getType() != PieceType::None && 
+                             destinationPiece.getColor() != m_chessBoard.getCurrentPlayer());
+            
+            // Check if this is a castling move
+            const ChessPiece& movingPiece = m_chessBoard.getPiece(m_dragStartSquare.y(), m_dragStartSquare.x());
+            bool isCastling = (movingPiece.getType() == PieceType::King && 
+                              abs(dropSquare.x() - m_dragStartSquare.x()) == 2);
+            
             // Try to move the piece
             if (m_chessBoard.movePiece(m_dragStartSquare, dropSquare)) {
                 m_pieceSelected = false;
@@ -464,6 +502,23 @@ void Qt_Chess::mouseReleaseEvent(QMouseEvent *event) {
                     PieceType promotionType = showPromotionDialog(piece.getColor());
                     m_chessBoard.promotePawn(dropSquare, promotionType);
                     updateBoard();
+                }
+                
+                // Play appropriate sound effect
+                PieceColor currentPlayer = m_chessBoard.getCurrentPlayer();
+                bool opponentInCheck = m_chessBoard.isInCheck(currentPlayer);
+                bool opponentCheckmate = m_chessBoard.isCheckmate(currentPlayer);
+                
+                if (opponentCheckmate) {
+                    m_checkmateSound.play();
+                } else if (opponentInCheck) {
+                    m_checkSound.play();
+                } else if (isCastling) {
+                    m_castlingSound.play();
+                } else if (isCapture) {
+                    m_captureSound.play();
+                } else {
+                    m_moveSound.play();
                 }
                 
                 updateStatus();
@@ -561,4 +616,22 @@ void Qt_Chess::updateSquareSizes() {
     // Update the board widget size to fit the squares exactly
     // Add 4 extra pixels (2px on each side) to prevent border clipping when squares are highlighted
     m_boardWidget->setFixedSize(squareSize * 8 + 4, squareSize * 8 + 4);
+}
+
+void Qt_Chess::initializeSounds() {
+    // Initialize sound effects
+    m_moveSound.setSource(QUrl("qrc:/sounds/resources/sounds/move.wav"));
+    m_moveSound.setVolume(0.5);
+    
+    m_captureSound.setSource(QUrl("qrc:/sounds/resources/sounds/capture.wav"));
+    m_captureSound.setVolume(0.5);
+    
+    m_castlingSound.setSource(QUrl("qrc:/sounds/resources/sounds/castling.wav"));
+    m_castlingSound.setVolume(0.5);
+    
+    m_checkSound.setSource(QUrl("qrc:/sounds/resources/sounds/check.wav"));
+    m_checkSound.setVolume(0.5);
+    
+    m_checkmateSound.setSource(QUrl("qrc:/sounds/resources/sounds/checkmate.wav"));
+    m_checkmateSound.setVolume(0.6);
 }
