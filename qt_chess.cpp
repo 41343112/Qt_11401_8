@@ -600,14 +600,40 @@ void Qt_Chess::initializeSounds() {
 bool Qt_Chess::isCaptureMove(const QPoint& from, const QPoint& to) const {
     const ChessPiece& movingPiece = m_chessBoard.getPiece(from.y(), from.x());
     const ChessPiece& destinationPiece = m_chessBoard.getPiece(to.y(), to.x());
-    return (destinationPiece.getType() != PieceType::None && 
-            destinationPiece.getColor() != movingPiece.getColor());
+    
+    // Check for regular capture
+    if (destinationPiece.getType() != PieceType::None && 
+        destinationPiece.getColor() != movingPiece.getColor()) {
+        return true;
+    }
+    
+    // Check for en passant capture
+    if (movingPiece.getType() == PieceType::Pawn && 
+        to == m_chessBoard.getEnPassantTarget() && 
+        m_chessBoard.getEnPassantTarget().x() >= 0) {
+        return true;
+    }
+    
+    return false;
 }
 
 bool Qt_Chess::isCastlingMove(const QPoint& from, const QPoint& to) const {
     const ChessPiece& movingPiece = m_chessBoard.getPiece(from.y(), from.x());
-    return (movingPiece.getType() == PieceType::King && 
-            abs(to.x() - from.x()) == 2);
+    
+    // Check if the moving piece is a king moving 2 squares horizontally
+    if (movingPiece.getType() != PieceType::King || abs(to.x() - from.x()) != 2) {
+        return false;
+    }
+    
+    // Verify the move is on the correct starting rank (row 0 for black, row 7 for white)
+    if (movingPiece.getColor() == PieceColor::White && from.y() == 7 && to.y() == 7) {
+        return true;
+    }
+    if (movingPiece.getColor() == PieceColor::Black && from.y() == 0 && to.y() == 0) {
+        return true;
+    }
+    
+    return false;
 }
 
 void Qt_Chess::playSoundForMove(bool isCapture, bool isCastling) {
