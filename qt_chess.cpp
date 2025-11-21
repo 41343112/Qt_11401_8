@@ -14,10 +14,6 @@ namespace {
     const QString CHECK_HIGHLIGHT_STYLE = "QPushButton { background-color: #FF6B6B; border: 2px solid #FF0000; }";
 }
 
-namespace {
-    const QString CHECK_HIGHLIGHT_STYLE = "QPushButton { background-color: #FF6B6B; border: 2px solid #FF0000; }";
-}
-
 Qt_Chess::Qt_Chess(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::Qt_Chess)

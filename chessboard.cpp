@@ -219,18 +219,18 @@ bool ChessBoard::movePiece(const QPoint& from, const QPoint& to, MoveInfo* moveI
     
     // 檢查移動後是否將軍或將死
     PieceColor opponentColor = m_currentPlayer; // 已切換玩家，所以當前玩家是對手
-    bool isCheck = isInCheck(opponentColor);
-    bool isCheckmate = false;
-    if (isCheck) {
-        isCheckmate = isCheckmate(opponentColor);
+    bool moveResultsInCheck = isInCheck(opponentColor);
+    bool moveResultsInCheckmate = false;
+    if (moveResultsInCheck) {
+        moveResultsInCheckmate = isCheckmate(opponentColor);
     }
     
     // 填充移動資訊
     if (moveInfo) {
         moveInfo->isCapture = isCapture;
         moveInfo->isCastling = isCastling;
-        moveInfo->isCheck = isCheck;
-        moveInfo->isCheckmate = isCheckmate;
+        moveInfo->isCheck = moveResultsInCheck;
+        moveInfo->isCheckmate = moveResultsInCheckmate;
     }
     
     return true;
