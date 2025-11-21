@@ -65,6 +65,33 @@ void PieceIconSettingsDialog::setupUI()
     iconSetLayout->addLayout(previewGrid);
     mainLayout->addWidget(iconSetGroup);
     
+    // Piece Scale Control Group
+    QGroupBox* scaleGroup = new QGroupBox("棋子大小調整", this);
+    QHBoxLayout* scaleLayout = new QHBoxLayout(scaleGroup);
+    
+    QLabel* scaleTextLabel = new QLabel("棋子縮放比例:", this);
+    scaleLayout->addWidget(scaleTextLabel);
+    
+    m_pieceScaleSlider = new QSlider(Qt::Horizontal, this);
+    m_pieceScaleSlider->setMinimum(60);   // 60% minimum size
+    m_pieceScaleSlider->setMaximum(100);  // 100% maximum size
+    m_pieceScaleSlider->setValue(80);     // 80% default size
+    m_pieceScaleSlider->setTickPosition(QSlider::TicksBelow);
+    m_pieceScaleSlider->setTickInterval(10);
+    scaleLayout->addWidget(m_pieceScaleSlider, 1);
+    
+    m_pieceScaleLabel = new QLabel("80%", this);
+    m_pieceScaleLabel->setFixedWidth(50);
+    m_pieceScaleLabel->setAlignment(Qt::AlignCenter);
+    scaleLayout->addWidget(m_pieceScaleLabel);
+    
+    connect(m_pieceScaleSlider, &QSlider::valueChanged, [this](int value) {
+        m_pieceScaleLabel->setText(QString("%1%").arg(value));
+        m_settings.pieceScale = value;
+    });
+    
+    mainLayout->addWidget(scaleGroup);
+    
     // Keep combo box hidden but functional for backward compatibility
     m_iconSetComboBox = new QComboBox(this);
     m_iconSetComboBox->addItem("Unicode 符號 (預設)", static_cast<int>(IconSetType::Unicode));
@@ -501,6 +528,10 @@ void PieceIconSettingsDialog::setSettings(const PieceIconSettings& settings)
     
     m_useCustomIconsCheckBox->setChecked(settings.useCustomIcons);
     
+    // Set piece scale slider
+    m_pieceScaleSlider->setValue(settings.pieceScale);
+    m_pieceScaleLabel->setText(QString("%1%").arg(settings.pieceScale));
+    
     m_whiteKingEdit->setText(settings.whiteKingIcon);
     m_whiteQueenEdit->setText(settings.whiteQueenIcon);
     m_whiteRookEdit->setText(settings.whiteRookIcon);
@@ -535,6 +566,7 @@ PieceIconSettingsDialog::PieceIconSettings PieceIconSettingsDialog::getDefaultSe
     defaults.blackPawnIcon = "";
     defaults.useCustomIcons = false;
     defaults.iconSetType = IconSetType::Unicode;
+    defaults.pieceScale = 80;  // Default 80% scale
     return defaults;
 }
 
