@@ -10,6 +10,16 @@
 #include <QEvent>
 #include <QResizeEvent>
 
+// Constants for responsive board sizing
+namespace {
+    constexpr int BASE_MARGIN = 100;           // Base margin for UI elements
+    constexpr int SIDE_MARGIN = 40;            // Side margin for the board
+    constexpr int MIN_SQUARE_SIZE = 40;        // Minimum square size for usability
+    constexpr int BASE_SQUARE_SIZE = 80;       // Original square size
+    constexpr int BASE_FONT_SIZE = 36;         // Original font size at base square size
+    constexpr int MIN_FONT_SIZE = 12;          // Minimum readable font size
+}
+
 Qt_Chess::Qt_Chess(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::Qt_Chess)
@@ -68,7 +78,7 @@ void Qt_Chess::setupUI() {
             square->setMouseTracking(true);
             
             QFont buttonFont;
-            buttonFont.setPointSize(36);
+            buttonFont.setPointSize(BASE_FONT_SIZE);
             square->setFont(buttonFont);
             
             m_squares[row][col] = square;
@@ -396,7 +406,7 @@ void Qt_Chess::mousePressEvent(QMouseEvent *event) {
             m_dragLabel = new QLabel(this);
             m_dragLabel->setText(piece.getSymbol());
             QFont font;
-            font.setPointSize(36);
+            font.setPointSize(BASE_FONT_SIZE);
             m_dragLabel->setFont(font);
             m_dragLabel->setStyleSheet("QLabel { background-color: transparent; border: none; }");
             m_dragLabel->adjustSize();
@@ -506,20 +516,20 @@ void Qt_Chess::updateSquareSizes() {
     
     // Get available size for the board
     // We need to account for labels and button heights
-    int extraHeight = 100; // Base margin
+    int extraHeight = BASE_MARGIN;
     if (m_turnLabel) extraHeight += m_turnLabel->height();
     if (m_statusLabel) extraHeight += m_statusLabel->height();
     if (m_newGameButton) extraHeight += m_newGameButton->height();
     
     int availableHeight = height() - extraHeight;
-    int availableWidth = width() - 40; // 40 for margins
+    int availableWidth = width() - SIDE_MARGIN;
     
     // Calculate square size - use the smaller dimension to keep squares square
     int boardSize = qMin(availableWidth, availableHeight);
     int squareSize = boardSize / 8;
     
     // Ensure a minimum size for usability
-    squareSize = qMax(squareSize, 40);
+    squareSize = qMax(squareSize, MIN_SQUARE_SIZE);
     
     // Update each square's size
     for (int row = 0; row < 8; ++row) {
@@ -529,8 +539,8 @@ void Qt_Chess::updateSquareSizes() {
             
             // Scale font size proportionally to square size
             QFont font = m_squares[row][col]->font();
-            int fontSize = squareSize * 36 / 80; // Scale from original 36pt at 80px
-            fontSize = qMax(fontSize, 12); // Minimum readable size
+            int fontSize = squareSize * BASE_FONT_SIZE / BASE_SQUARE_SIZE;
+            fontSize = qMax(fontSize, MIN_FONT_SIZE);
             font.setPointSize(fontSize);
             m_squares[row][col]->setFont(font);
         }
