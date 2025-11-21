@@ -361,6 +361,11 @@ void Qt_Chess::mousePressEvent(QMouseEvent *event) {
                 m_dragLabel->deleteLater();
                 m_dragLabel = nullptr;
             }
+            // Restore the piece to the original square
+            if (m_dragStartSquare.x() >= 0 && m_dragStartSquare.y() >= 0) {
+                const ChessPiece& piece = m_chessBoard.getPiece(m_dragStartSquare.y(), m_dragStartSquare.x());
+                m_squares[m_dragStartSquare.y()][m_dragStartSquare.x()]->setText(piece.getSymbol());
+            }
             m_dragStartSquare = QPoint(-1, -1);
             clearHighlights();
         } else if (m_pieceSelected) {
@@ -393,6 +398,9 @@ void Qt_Chess::mousePressEvent(QMouseEvent *event) {
             m_dragLabel->move(event->pos() - QPoint(m_dragLabel->width() / 2, m_dragLabel->height() / 2));
             m_dragLabel->show();
             m_dragLabel->raise();
+            
+            // Hide the piece from the original square during drag
+            m_squares[square.y()][square.x()]->setText("");
             
             highlightValidMoves();
         }
@@ -447,6 +455,9 @@ void Qt_Chess::mouseReleaseEvent(QMouseEvent *event) {
                 clearHighlights();
             } else if (dropSquare == m_dragStartSquare) {
                 // Dropped on same square - deselect
+                // Restore the piece to the original square
+                const ChessPiece& piece = m_chessBoard.getPiece(m_dragStartSquare.y(), m_dragStartSquare.x());
+                m_squares[m_dragStartSquare.y()][m_dragStartSquare.x()]->setText(piece.getSymbol());
                 m_pieceSelected = false;
                 clearHighlights();
             } else {
@@ -454,17 +465,26 @@ void Qt_Chess::mouseReleaseEvent(QMouseEvent *event) {
                 const ChessPiece& piece = m_chessBoard.getPiece(dropSquare.y(), dropSquare.x());
                 if (piece.getType() != PieceType::None && 
                     piece.getColor() == m_chessBoard.getCurrentPlayer()) {
+                    // Restore the piece to the original square first
+                    const ChessPiece& origPiece = m_chessBoard.getPiece(m_dragStartSquare.y(), m_dragStartSquare.x());
+                    m_squares[m_dragStartSquare.y()][m_dragStartSquare.x()]->setText(origPiece.getSymbol());
                     m_selectedSquare = dropSquare;
                     m_pieceSelected = true;
                     highlightValidMoves();
                 } else {
                     // Invalid move and not selecting another piece
+                    // Restore the piece to the original square
+                    const ChessPiece& origPiece = m_chessBoard.getPiece(m_dragStartSquare.y(), m_dragStartSquare.x());
+                    m_squares[m_dragStartSquare.y()][m_dragStartSquare.x()]->setText(origPiece.getSymbol());
                     m_pieceSelected = false;
                     clearHighlights();
                 }
             }
         } else {
             // Dropped outside board - cancel
+            // Restore the piece to the original square
+            const ChessPiece& piece = m_chessBoard.getPiece(m_dragStartSquare.y(), m_dragStartSquare.x());
+            m_squares[m_dragStartSquare.y()][m_dragStartSquare.x()]->setText(piece.getSymbol());
             m_pieceSelected = false;
             clearHighlights();
         }
