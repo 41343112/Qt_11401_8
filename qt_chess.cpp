@@ -8,6 +8,10 @@
 #include <QLabel>
 #include <QPushButton>
 
+namespace {
+    const QString CHECK_HIGHLIGHT_STYLE = "QPushButton { background-color: #FF6B6B; border: 2px solid #FF0000; }";
+}
+
 Qt_Chess::Qt_Chess(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::Qt_Chess)
@@ -104,17 +108,7 @@ void Qt_Chess::updateBoard() {
     }
     
     // Highlight king in red if in check
-    PieceColor currentPlayer = m_chessBoard.getCurrentPlayer();
-    if (m_chessBoard.isInCheck(currentPlayer)) {
-        QPoint kingPos = m_chessBoard.findKing(currentPlayer);
-        if (kingPos.x() >= 0 && kingPos.y() >= 0) {
-            int row = kingPos.y();
-            int col = kingPos.x();
-            m_squares[row][col]->setStyleSheet(
-                "QPushButton { background-color: #FF6B6B; border: 2px solid #FF0000; }"
-            );
-        }
-    }
+    applyCheckHighlight();
 }
 
 void Qt_Chess::updateStatus() {
@@ -145,6 +139,18 @@ void Qt_Chess::updateStatus() {
     }
 }
 
+void Qt_Chess::applyCheckHighlight() {
+    PieceColor currentPlayer = m_chessBoard.getCurrentPlayer();
+    if (m_chessBoard.isInCheck(currentPlayer)) {
+        QPoint kingPos = m_chessBoard.findKing(currentPlayer);
+        if (kingPos.x() >= 0 && kingPos.y() >= 0) {
+            int row = kingPos.y();
+            int col = kingPos.x();
+            m_squares[row][col]->setStyleSheet(CHECK_HIGHLIGHT_STYLE);
+        }
+    }
+}
+
 void Qt_Chess::clearHighlights() {
     for (int row = 0; row < 8; ++row) {
         for (int col = 0; col < 8; ++col) {
@@ -153,17 +159,7 @@ void Qt_Chess::clearHighlights() {
     }
     
     // Re-apply red background to king if in check
-    PieceColor currentPlayer = m_chessBoard.getCurrentPlayer();
-    if (m_chessBoard.isInCheck(currentPlayer)) {
-        QPoint kingPos = m_chessBoard.findKing(currentPlayer);
-        if (kingPos.x() >= 0 && kingPos.y() >= 0) {
-            int row = kingPos.y();
-            int col = kingPos.x();
-            m_squares[row][col]->setStyleSheet(
-                "QPushButton { background-color: #FF6B6B; border: 2px solid #FF0000; }"
-            );
-        }
-    }
+    applyCheckHighlight();
 }
 
 void Qt_Chess::highlightValidMoves() {
@@ -194,11 +190,7 @@ void Qt_Chess::highlightValidMoves() {
     if (m_chessBoard.isInCheck(currentPlayer)) {
         QPoint kingPos = m_chessBoard.findKing(currentPlayer);
         if (kingPos.x() >= 0 && kingPos.y() >= 0 && kingPos != m_selectedSquare) {
-            int row = kingPos.y();
-            int col = kingPos.x();
-            m_squares[row][col]->setStyleSheet(
-                "QPushButton { background-color: #FF6B6B; border: 2px solid #FF0000; }"
-            );
+            m_squares[kingPos.y()][kingPos.x()]->setStyleSheet(CHECK_HIGHLIGHT_STYLE);
         }
     }
 }
