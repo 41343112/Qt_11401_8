@@ -16,6 +16,13 @@ A fully functional player-vs-player chess game built with Qt5.
 - **Visual Highlights**: Selected pieces and valid moves are highlighted
 - **Clean UI**: Classic chessboard with Unicode chess piece symbols
 - **New Game**: Reset the board to start a new game at any time
+- **Sound Effects**: Different sounds for moves, captures, castling, check, and checkmate
+- **Customizable Sound Settings**: 
+  - Configure custom sound files for each event type
+  - Adjust volume levels for each sound independently
+  - Enable/disable individual sounds or all sounds
+  - Preview sounds before applying settings
+  - Settings are saved persistently between sessions
 
 ## Building
 
@@ -46,6 +53,11 @@ make
 7. **Turn Indicator**: The current player's turn is displayed at the top
 8. **Game Status**: Check, checkmate, and stalemate are automatically detected and displayed
 9. **New Game**: Click "New Game" button to reset the board
+10. **Sound Settings**: Click "設定" (Settings) menu > "音效設定" (Sound Settings) to:
+    - Choose custom sound files for each event (move, capture, castling, check, checkmate)
+    - Adjust volume levels using sliders
+    - Enable/disable individual sounds or all sounds
+    - Preview sounds before applying settings
 
 ## Game Rules
 
@@ -71,7 +83,9 @@ make
 - `qt_chess.h/cpp` - Main window and UI logic
 - `chessboard.h/cpp` - Game board logic and rules
 - `chesspiece.h/cpp` - Chess piece definitions and movement validation
+- `soundsettingsdialog.h/cpp` - Sound settings dialog for customizing audio
 - `qt_chess.ui` - Qt UI designer file
+- `resources.qrc` - Qt resource file for embedded sound files
 
 ## License
 
