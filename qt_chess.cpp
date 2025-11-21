@@ -406,9 +406,8 @@ void Qt_Chess::mousePressEvent(QMouseEvent *event) {
             // Create drag label
             m_dragLabel = new QLabel(this);
             m_dragLabel->setText(piece.getSymbol());
-            QFont font;
-            font.setPointSize(BASE_FONT_SIZE);
-            m_dragLabel->setFont(font);
+            // Use the same font as the square for consistent sizing
+            m_dragLabel->setFont(m_squares[square.y()][square.x()]->font());
             m_dragLabel->setStyleSheet("QLabel { background-color: transparent; border: none; }");
             m_dragLabel->adjustSize();
             m_dragLabel->move(event->pos() - QPoint(m_dragLabel->width() / 2, m_dragLabel->height() / 2));
