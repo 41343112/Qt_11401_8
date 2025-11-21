@@ -54,6 +54,7 @@ private:
     bool m_isDragging;
     QPoint m_dragStartSquare;
     QLabel* m_dragLabel;
+    bool m_wasSelectedBeforeDrag;
     
     QPushButton* m_newGameButton;
     QWidget* m_boardWidget;
