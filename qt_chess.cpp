@@ -62,6 +62,7 @@ void Qt_Chess::setupUI() {
     m_boardWidget->setMouseTracking(true);
     QGridLayout* gridLayout = new QGridLayout(m_boardWidget);
     gridLayout->setSpacing(0);
+    gridLayout->setContentsMargins(2, 2, 2, 2);  // Add 2px margin on all sides to prevent border clipping
     
     m_squares.resize(8, std::vector<QPushButton*>(8));
     
@@ -561,5 +562,6 @@ void Qt_Chess::updateSquareSizes() {
     }
     
     // Update the board widget size to fit the squares exactly
-    m_boardWidget->setFixedSize(squareSize * 8, squareSize * 8);
+    // Add 4 extra pixels (2px on each side) to prevent border clipping when squares are highlighted
+    m_boardWidget->setFixedSize(squareSize * 8 + 4, squareSize * 8 + 4);
 }
