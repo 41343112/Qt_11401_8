@@ -5,6 +5,10 @@ A fully functional player-vs-player chess game built with Qt5.
 ## Features
 
 - **Complete Chess Implementation**: All pieces (King, Queen, Rook, Bishop, Knight, Pawn) with proper movement rules
+- **Special Moves**: 
+  - **Castling** (王車易位): King can castle with rook (kingside or queenside) under appropriate conditions
+  - **Pawn Promotion** (兵升變): Pawns are promoted when reaching the opposite end of the board, with a dialog to choose the promotion piece (Queen, Rook, Bishop, or Knight)
+  - **En Passant** (吃過路兵): Special pawn capture when an opponent's pawn moves two squares forward
 - **Turn-based Gameplay**: Alternating turns between White and Black players
 - **Move Validation**: Only legal moves are allowed
 - **Check Detection**: The game detects when a king is in check
@@ -52,6 +56,10 @@ make
   - **Bishop**: Moves diagonally any number of squares
   - **Queen**: Moves horizontally, vertically, or diagonally any number of squares
   - **King**: Moves one square in any direction
+- **Special Moves**:
+  - **Castling**: King and rook can castle if neither piece has moved, there are no pieces between them, the king is not in check, and the king doesn't move through or into check
+  - **Pawn Promotion**: When a pawn reaches the opposite end of the board (row 0 for White, row 7 for Black), it must be promoted to a Queen, Rook, Bishop, or Knight
+  - **En Passant**: If an opponent's pawn moves two squares forward from its starting position and lands beside your pawn, you can capture it "in passing" on your next move
 - You cannot move into check
 - The game ends when checkmate or stalemate is reached
 
