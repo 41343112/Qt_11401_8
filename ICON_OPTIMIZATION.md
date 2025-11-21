@@ -35,15 +35,15 @@ Modified `displayPieceOnSquare()` to:
 - Set icon size as 80% of square size for consistent appearance
 
 ```cpp
-int iconSize = square->width() > 0 ? square->width() : square->minimumWidth();
-square->setIconSize(QSize(iconSize * 0.8, iconSize * 0.8));
+int iconSize = calculateIconSize(square);
+square->setIconSize(QSize(iconSize, iconSize));
 ```
 
 ### 3. Optimized Drag-and-Drop
 
 Updated `mousePressEvent()` to:
 - Use cached pixmaps for drag labels
-- Calculate icon size more reliably
+- Calculate icon size more reliably using `calculateIconSize()` helper
 - Avoid repeated file loading during drag operations
 
 ### 4. Lifecycle Management
@@ -56,9 +56,9 @@ The icon cache is:
 ## Performance Improvements
 
 ### Before Optimization:
-- **File I/O per board update**: 32 operations (4 pieces × 8 squares)
+- **File I/O per board update**: 16-32 operations (one per piece on board)
 - **File I/O during drag**: 2 operations (1 for drag label + 1 for piece restoration)
-- **Total I/O during a move**: ~40-50 operations
+- **Total I/O during a move**: ~20-35 operations (board update + drag + restoration)
 - **Response time**: Noticeable lag (~50-200ms depending on disk speed)
 
 ### After Optimization:

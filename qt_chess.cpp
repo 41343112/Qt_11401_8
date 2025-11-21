@@ -18,6 +18,7 @@
 
 namespace {
     const QString CHECK_HIGHLIGHT_STYLE = "QPushButton { background-color: #FF6B6B; border: 2px solid #FF0000; }";
+    const int DEFAULT_ICON_SIZE = 40; // Default fallback icon size in pixels
 }
 
 Qt_Chess::Qt_Chess(QWidget *parent)
@@ -938,7 +939,7 @@ QPixmap Qt_Chess::getCachedPieceIcon(PieceType type, PieceColor color) const {
 }
 
 int Qt_Chess::calculateIconSize(QPushButton* square) const {
-    if (!square) return 40; // Default fallback size
+    if (!square) return DEFAULT_ICON_SIZE;
     int squareWidth = square->width();
     if (squareWidth <= 0) {
         squareWidth = square->minimumWidth();
