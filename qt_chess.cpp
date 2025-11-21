@@ -538,8 +538,8 @@ void Qt_Chess::updateSquareSizes() {
     int squareSize = qMin(availableWidth, availableHeight) / 8;
     
     // Ensure minimum and reasonable maximum size
-    squareSize = qMax(squareSize, 40);
-    squareSize = qMin(squareSize, 120);  // Cap at a reasonable maximum
+    squareSize = qMax(squareSize, 35);
+    squareSize = qMin(squareSize, 180);  // Cap at a reasonable maximum
     
     // Calculate font size based on square size (approximately 45% of square size)
     int fontSize = squareSize * 9 / 20;  // This gives roughly 36pt for 80px squares
