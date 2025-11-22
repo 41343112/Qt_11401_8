@@ -116,6 +116,7 @@ void Qt_Chess::setupUI() {
     
     // Create horizontal layout for time controls, board, and new game button
     QHBoxLayout* contentLayout = new QHBoxLayout();
+    contentLayout->setSpacing(0);  // Remove spacing between panels to make time control tightly adjacent to board
     
     // Left panel for time controls
     m_timeControlPanel = new QWidget(this);
