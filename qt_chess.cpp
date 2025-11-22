@@ -30,18 +30,18 @@ namespace {
     const QString GAME_ENDED_TEXT = "遊戲結束"; // Text shown when game ends
     
     // Layout constants for window sizing
-    const int LEFT_PANEL_MAX_WIDTH = 800;  // Maximum width of time control panel
+    const int LEFT_PANEL_MAX_WIDTH = 750;  // Maximum width of time control panel
     const int RIGHT_PANEL_MAX_WIDTH = 200; // Maximum width of new game button panel
-    const int PANEL_SPACING = 20;          // Spacing between panels
+    const int PANEL_SPACING = 0;          // Spacing between panels
     const int BASE_MARGINS = 30;           // Base layout margins (excluding board container's 2*BOARD_CONTAINER_MARGIN)
     const int TIME_LABEL_SPACING = 10;     // Spacing around time labels
     const int BOARD_CONTAINER_MARGIN = 5;  // Board container margin on each side (total horizontal: 2*5=10px)
     
     // Scaling constants for UI elements
-    const int MIN_SQUARE_SIZE = 30;        // Minimum size for chess board squares
+    const int MIN_SQUARE_SIZE = 40;        // Minimum size for chess board squares
     const int MAX_SQUARE_SIZE = 180;       // Maximum size for chess board squares
     const int MIN_UI_FONT_SIZE = 10;       // Minimum font size for UI elements
-    const int MAX_UI_FONT_SIZE = 16;       // Maximum font size for UI elements
+    const int MAX_UI_FONT_SIZE = 20;       // Maximum font size for UI elements
     const int UI_FONT_SCALE_DIVISOR = 5;   // Divisor for scaling UI fonts based on square size
     const int MIN_TIME_LABEL_HEIGHT = 30;  // Minimum height for time labels
     const int MAX_TIME_LABEL_HEIGHT = 50;  // Maximum height for time labels

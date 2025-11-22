@@ -73,7 +73,7 @@ void PieceIconSettingsDialog::setupUI()
     scaleLayout->addWidget(scaleTextLabel);
     
     m_pieceScaleSlider = new QSlider(Qt::Horizontal, this);
-    m_pieceScaleSlider->setMinimum(60);   // 60% minimum size
+    m_pieceScaleSlider->setMinimum(50);   // 60% minimum size
     m_pieceScaleSlider->setMaximum(100);  // 100% maximum size
     m_pieceScaleSlider->setValue(80);     // 80% default size
     m_pieceScaleSlider->setTickPosition(QSlider::TicksBelow);
