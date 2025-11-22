@@ -125,10 +125,10 @@ void Qt_Chess::setupUI() {
     setupTimeControlUI(leftPanelLayout);
     contentLayout->addWidget(m_timeControlPanel, 1);  // Less space for control panel
     
-    // Chess board container with time displays on left and right
+    // Chess board container with time displays on top and bottom
     m_boardContainer = new QWidget(this);
     m_boardContainer->setMouseTracking(true);
-    QHBoxLayout* boardContainerLayout = new QHBoxLayout(m_boardContainer);
+    QVBoxLayout* boardContainerLayout = new QVBoxLayout(m_boardContainer);
     boardContainerLayout->setContentsMargins(BOARD_CONTAINER_MARGIN, BOARD_CONTAINER_MARGIN, 
                                              BOARD_CONTAINER_MARGIN, BOARD_CONTAINER_MARGIN);
     boardContainerLayout->setSpacing(TIME_LABEL_SPACING);  // Consistent spacing between elements
@@ -138,7 +138,7 @@ void Qt_Chess::setupUI() {
     timeFont.setPointSize(14);
     timeFont.setBold(true);
     
-    // Black time label (left side - opponent's time) - initially hidden
+    // Black time label (top - opponent's time) - initially hidden
     m_blackTimeLabel = new QLabel("--:--", m_boardContainer);
     m_blackTimeLabel->setFont(timeFont);
     m_blackTimeLabel->setAlignment(Qt::AlignCenter);
@@ -185,11 +185,11 @@ void Qt_Chess::setupUI() {
     }
     
     // Add board to container layout
-    // Stretch factor 1 allows board to expand and fill available horizontal space
+    // Stretch factor 0 allows board to maintain its size
     // while time labels (stretch factor 0) maintain their minimum sizes
-    boardContainerLayout->addWidget(m_boardWidget, 1, Qt::AlignCenter);
+    boardContainerLayout->addWidget(m_boardWidget, 0, Qt::AlignCenter);
     
-    // White time label (right side - player's time) - initially hidden
+    // White time label (bottom - player's time) - initially hidden
     m_whiteTimeLabel = new QLabel("--:--", m_boardContainer);
     m_whiteTimeLabel->setFont(timeFont);
     m_whiteTimeLabel->setAlignment(Qt::AlignCenter);
@@ -916,12 +916,12 @@ void Qt_Chess::updateSquareSizes() {
     // Add base margins for layout spacing (board container margins are part of board widget size)
     reservedWidth += BASE_MARGINS;
     
-    // Account for time labels width if visible, plus spacing (now positioned horizontally)
+    // Account for time labels height if visible, plus spacing (now positioned vertically)
     if (m_whiteTimeLabel && m_whiteTimeLabel->isVisible()) {
-        reservedWidth += m_whiteTimeLabel->minimumWidth() + TIME_LABEL_SPACING;
+        reservedHeight += m_whiteTimeLabel->minimumHeight() + TIME_LABEL_SPACING;
     }
     if (m_blackTimeLabel && m_blackTimeLabel->isVisible()) {
-        reservedWidth += m_blackTimeLabel->minimumWidth() + TIME_LABEL_SPACING;
+        reservedHeight += m_blackTimeLabel->minimumHeight() + TIME_LABEL_SPACING;
     }
     
     // Add some padding for layout margins and spacing
