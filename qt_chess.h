@@ -143,14 +143,11 @@ private:
     int getDisplayCol(int logicalCol) const;
     int getLogicalRow(int displayRow) const;
     int getLogicalCol(int displayCol) const;
-    void setupTimeControlUI(QVBoxLayout* rightPanelLayout);
+    void setupTimeControlUI(QVBoxLayout* timeControlPanelLayout);
     void updateTimeDisplays();
     void onWhiteTimeLimitChanged(int value);
     void onBlackTimeLimitChanged(int value);
     void onIncrementChanged(int value);
-    void hideTimeControlPanel();
-    void showTimeControlPanel();
-    void positionOverlayTimeLabels();
     void onGameTimerTick();
     void startTimer();
     void stopTimer();

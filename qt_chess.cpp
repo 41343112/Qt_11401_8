@@ -27,8 +27,6 @@ namespace {
     const int MAX_TIME_LIMIT_SECONDS = 1800; // Maximum time limit: 30 minutes
     const int MAX_SLIDER_POSITION = 31; // Slider range: 0 (unlimited), 1 (30s), 2-31 (1-30 min)
     const int MAX_MINUTES = 30; // Maximum time limit in minutes
-    const int TIME_LABEL_MARGIN = 10; // Margin for overlay time labels from board edge
-    const int REDUCED_TIME_LABEL_MARGIN = TIME_LABEL_MARGIN / 2; // Reduced margin for closer positioning to board edge
     const QString GAME_ENDED_TEXT = "遊戲結束"; // Text shown when game ends
 }
 
@@ -1263,7 +1261,7 @@ void Qt_Chess::onFlipBoardClicked() {
     updateBoard();
 }
 
-void Qt_Chess::setupTimeControlUI(QVBoxLayout* rightPanelLayout) {
+void Qt_Chess::setupTimeControlUI(QVBoxLayout* timeControlPanelLayout) {
     // Time control group box
     QGroupBox* timeControlGroup = new QGroupBox("時間控制", this);
     QVBoxLayout* timeControlLayout = new QVBoxLayout(timeControlGroup);
@@ -1356,7 +1354,7 @@ void Qt_Chess::setupTimeControlUI(QVBoxLayout* rightPanelLayout) {
     // Add stretch to fill remaining space
     timeControlLayout->addStretch();
     
-    rightPanelLayout->addWidget(timeControlGroup, 1);
+    timeControlPanelLayout->addWidget(timeControlGroup, 1);
     
     // Initialize game timer
     m_gameTimer = new QTimer(this);
@@ -1479,33 +1477,6 @@ void Qt_Chess::onIncrementChanged(int value) {
     m_incrementMs = value * 1000;
     m_incrementLabel->setText(QString("%1秒").arg(value));
     saveTimeControlSettings();
-}
-
-void Qt_Chess::hideTimeControlPanel() {
-    if (m_timeControlPanel) {
-        m_timeControlPanel->hide();
-    }
-}
-
-void Qt_Chess::showTimeControlPanel() {
-    if (m_timeControlPanel) {
-        m_timeControlPanel->show();
-    }
-}
-
-void Qt_Chess::positionOverlayTimeLabels() {
-    if (!m_whiteTimeLabel || !m_blackTimeLabel || !m_boardWidget) return;
-    
-    QRect boardRect = m_boardWidget->geometry();
-    
-    // Black time label - left side, slightly towards top (less margin from top)
-    m_blackTimeLabel->move(boardRect.x() + TIME_LABEL_MARGIN, 
-                          boardRect.y() + REDUCED_TIME_LABEL_MARGIN);
-    
-    // White time label - right side, slightly towards bottom (less margin from bottom)
-    int whiteX = boardRect.right() - m_whiteTimeLabel->width() - TIME_LABEL_MARGIN;
-    int whiteY = boardRect.bottom() - m_whiteTimeLabel->height() - REDUCED_TIME_LABEL_MARGIN;
-    m_whiteTimeLabel->move(whiteX, whiteY);
 }
 
 void Qt_Chess::onGameTimerTick() {
