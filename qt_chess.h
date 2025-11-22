@@ -16,6 +16,7 @@
 #include "chessboard.h"
 #include "soundsettingsdialog.h"
 #include "pieceiconsettingsdialog.h"
+#include "boardcolorsettingsdialog.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui {
@@ -43,6 +44,7 @@ private slots:
     void onNewGameClicked();
     void onSoundSettingsClicked();
     void onPieceIconSettingsClicked();
+    void onBoardColorSettingsClicked();
 
 private:
     Ui::Qt_Chess *ui;
@@ -74,6 +76,9 @@ private:
     PieceIconSettingsDialog::PieceIconSettings m_pieceIconSettings;
     QMap<QString, QPixmap> m_pieceIconCache; // Cache for loaded piece icons
     
+    // Board color settings
+    BoardColorSettingsDialog::BoardColorSettings m_boardColorSettings;
+    
     void setupUI();
     void setupMenuBar();
     void updateBoard();
@@ -102,5 +107,7 @@ private:
     void clearPieceIconCache();
     QPixmap getCachedPieceIcon(PieceType type, PieceColor color) const;
     int calculateIconSize(QPushButton* square) const;
+    void loadBoardColorSettings();
+    void applyBoardColorSettings();
 };
 #endif // QT_CHESS_H
