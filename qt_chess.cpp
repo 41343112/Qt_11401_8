@@ -507,7 +507,7 @@ void Qt_Chess::onGiveUpClicked() {
         // Re-enable start button
         if (m_startButton) {
             m_startButton->setText("開始");
-            m_startButton->setEnabled(m_timeControlEnabled);
+            m_startButton->setEnabled(true);
         }
         
         // Show message about who gave up
@@ -1842,10 +1842,10 @@ void Qt_Chess::showTimeControlAfterTimeout() {
         m_giveUpButton->hide();
     }
     
-    // Re-enable start button based on whether time control is active
+    // Re-enable start button
     if (m_startButton) {
         m_startButton->setText("開始");
-        m_startButton->setEnabled(m_timeControlEnabled);
+        m_startButton->setEnabled(true);
     }
     
     // Hide time displays since game is over
