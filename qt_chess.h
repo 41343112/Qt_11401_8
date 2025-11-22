@@ -13,7 +13,6 @@
 #include <QMenu>
 #include <QAction>
 #include <QTimer>
-#include <QTime>
 #include <vector>
 #include "chessboard.h"
 #include "soundsettingsdialog.h"

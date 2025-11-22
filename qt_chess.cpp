@@ -211,11 +211,14 @@ void Qt_Chess::updateStatus() {
     QString playerName = (currentPlayer == PieceColor::White) ? "白方" : "黑方";
     
     if (m_chessBoard.isCheckmate(currentPlayer)) {
+        m_timerRunning = false;  // Stop timer when game ends
         QString winner = (currentPlayer == PieceColor::White) ? "黑方" : "白方";
         QMessageBox::information(this, "遊戲結束", QString("將死！%1獲勝！").arg(winner));
     } else if (m_chessBoard.isStalemate(currentPlayer)) {
+        m_timerRunning = false;  // Stop timer when game ends
         QMessageBox::information(this, "遊戲結束", "逼和！對局和棋。");
     } else if (m_chessBoard.isInsufficientMaterial()) {
+        m_timerRunning = false;  // Stop timer when game ends
         QMessageBox::information(this, "遊戲結束", "子力不足以將死！對局和棋。");
     }
 }
@@ -335,9 +338,10 @@ void Qt_Chess::onSquareClicked(int row, int col) {
 void Qt_Chess::onNewGameClicked() {
     m_chessBoard.initializeBoard();
     m_pieceSelected = false;
-    // Reset timers
+    // Reset and restart timers
     m_whiteTimeSeconds = 0;
     m_blackTimeSeconds = 0;
+    m_timerRunning = true;
     updateTimerDisplay();
     updateBoard();
     updateStatus();
