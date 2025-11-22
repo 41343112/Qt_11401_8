@@ -187,7 +187,7 @@ void Qt_Chess::setupUI() {
     m_newGameButton->hide();  // Initially hidden
     boardContainerLayout->addWidget(m_newGameButton, 0, Qt::AlignCenter);
     
-    contentLayout->addWidget(m_boardContainer, 1);  // Equal space for board container
+    contentLayout->addWidget(m_boardContainer, 2);  // Give board more space (2:1 ratio)
     contentLayout->setAlignment(m_boardContainer, Qt::AlignCenter);  // Center the board container
     
     mainLayout->addLayout(contentLayout);
