@@ -69,8 +69,9 @@ void Qt_Chess::setupUI() {
     // Create center area widget to hold board and time control side-by-side
     QWidget* centerWidget = new QWidget(this);
     QHBoxLayout* centerLayout = new QHBoxLayout(centerWidget);
-    centerLayout->setSpacing(10);  // Space between board and time control
-    centerLayout->setContentsMargins(0, 0, 0, 0);
+    const int centerSpacing = 10;  // Space between board and time control
+    centerLayout->setSpacing(centerSpacing);
+    centerLayout->setContentsMargins(5, 5, 5, 5);  // Add small margins for visual spacing
     
     // Chess board
     m_boardWidget = new QWidget(centerWidget);
@@ -728,11 +729,13 @@ void Qt_Chess::updateSquareSizes() {
     
     // Subtract time control width from available width when visible
     // This ensures the board squares are sized based on the remaining space
-    int sidePanelWidth = 0;
+    int timeControlWidth = 0;
     if (m_timeControl && m_timeControl->isVisible()) {
-        sidePanelWidth = m_timeControl->width();
+        timeControlWidth = m_timeControl->width();
+        // Also account for the spacing between board and time control (10px from setupUI)
+        const int centerSpacing = 10;
+        availableWidth -= (timeControlWidth + centerSpacing);
     }
-    availableWidth -= sidePanelWidth;
     
     // Clamp availableWidth to be non-negative
     availableWidth = qMax(availableWidth, 0);
