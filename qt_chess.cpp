@@ -51,10 +51,10 @@ Qt_Chess::Qt_Chess(QWidget *parent)
 {
     ui->setupUi(this);
     setWindowTitle("國際象棋 - 雙人對弈");
-    resize(700, 660);
+    resize(900, 660);  // Increased width to accommodate time control panel
     
-    // Set minimum window size: width 320px (8 squares × 40px), height 380px (320px board + ~60px UI elements)
-    setMinimumSize(320, 380);
+    // Set minimum window size: increased width for right panel
+    setMinimumSize(520, 380);
     
     setMouseTracking(true);
     
