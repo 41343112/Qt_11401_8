@@ -27,6 +27,7 @@ namespace {
     const int MAX_TIME_LIMIT_SECONDS = 1800; // Maximum time limit: 30 minutes
     const int MAX_SLIDER_POSITION = 31; // Slider range: 0 (unlimited), 1 (30s), 2-31 (1-30 min)
     const int MAX_MINUTES = 30; // Maximum time limit in minutes
+    const int TIME_LABEL_MARGIN = 10; // Margin for overlay time labels from board edge
 }
 
 Qt_Chess::Qt_Chess(QWidget *parent)
@@ -441,20 +442,7 @@ void Qt_Chess::onStartButtonClicked() {
             m_blackTimeLabel->raise();  // Bring to front
             
             // Position time labels over the board
-            // Black time: upper left
-            // White time: lower right
-            if (m_boardWidget) {
-                QRect boardRect = m_boardWidget->geometry();
-                int margin = 10;
-                
-                // Black time label - upper left
-                m_blackTimeLabel->move(boardRect.x() + margin, boardRect.y() + margin);
-                
-                // White time label - lower right
-                int whiteX = boardRect.right() - m_whiteTimeLabel->width() - margin;
-                int whiteY = boardRect.bottom() - m_whiteTimeLabel->height() - margin;
-                m_whiteTimeLabel->move(whiteX, whiteY);
-            }
+            positionOverlayTimeLabels();
         }
         
         updateTimeDisplays();
@@ -826,17 +814,8 @@ void Qt_Chess::resizeEvent(QResizeEvent *event) {
     
     // Reposition overlaid time labels if they are visible
     if (m_timerStarted && m_whiteTimeLabel && m_blackTimeLabel && 
-        m_whiteTimeLabel->isVisible() && m_blackTimeLabel->isVisible() && m_boardWidget) {
-        QRect boardRect = m_boardWidget->geometry();
-        int margin = 10;
-        
-        // Black time label - upper left
-        m_blackTimeLabel->move(boardRect.x() + margin, boardRect.y() + margin);
-        
-        // White time label - lower right
-        int whiteX = boardRect.right() - m_whiteTimeLabel->width() - margin;
-        int whiteY = boardRect.bottom() - m_whiteTimeLabel->height() - margin;
-        m_whiteTimeLabel->move(whiteX, whiteY);
+        m_whiteTimeLabel->isVisible() && m_blackTimeLabel->isVisible()) {
+        positionOverlayTimeLabels();
     }
     
     // Reapply highlights after resize
@@ -1517,6 +1496,21 @@ void Qt_Chess::showTimeControlPanel() {
     if (m_timeControlPanel) {
         m_timeControlPanel->show();
     }
+}
+
+void Qt_Chess::positionOverlayTimeLabels() {
+    if (!m_whiteTimeLabel || !m_blackTimeLabel || !m_boardWidget) return;
+    
+    QRect boardRect = m_boardWidget->geometry();
+    
+    // Black time label - upper left
+    m_blackTimeLabel->move(boardRect.x() + TIME_LABEL_MARGIN, 
+                          boardRect.y() + TIME_LABEL_MARGIN);
+    
+    // White time label - lower right
+    int whiteX = boardRect.right() - m_whiteTimeLabel->width() - TIME_LABEL_MARGIN;
+    int whiteY = boardRect.bottom() - m_whiteTimeLabel->height() - TIME_LABEL_MARGIN;
+    m_whiteTimeLabel->move(whiteX, whiteY);
 }
 
 void Qt_Chess::onGameTimerTick() {

@@ -150,6 +150,7 @@ private:
     void onIncrementChanged(int value);
     void hideTimeControlPanel();
     void showTimeControlPanel();
+    void positionOverlayTimeLabels();
     void onGameTimerTick();
     void startTimer();
     void stopTimer();
