@@ -138,7 +138,7 @@ void Qt_Chess::setupUI() {
     // Right panel for time controls
     QVBoxLayout* rightPanelLayout = new QVBoxLayout();
     setupTimeControlUI(rightPanelLayout);
-    contentLayout->addLayout(rightPanelLayout, 0);
+    contentLayout->addLayout(rightPanelLayout, 1);
     
     mainLayout->addLayout(contentLayout);
     
@@ -1293,10 +1293,10 @@ void Qt_Chess::setupTimeControlUI(QVBoxLayout* rightPanelLayout) {
     connect(m_startButton, &QPushButton::clicked, this, &Qt_Chess::onStartButtonClicked);
     timeControlLayout->addWidget(m_startButton);
     
-    // Add stretch to push everything to the top
+    // Add stretch to fill remaining space
     timeControlLayout->addStretch();
     
-    rightPanelLayout->addWidget(timeControlGroup);
+    rightPanelLayout->addWidget(timeControlGroup, 1);
     
     // Initialize game timer
     m_gameTimer = new QTimer(this);
