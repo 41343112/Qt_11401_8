@@ -22,7 +22,8 @@ namespace {
         BoardColorSettingsDialog::ColorScheme::GreenWhite,
         BoardColorSettingsDialog::ColorScheme::PurplePink,
         BoardColorSettingsDialog::ColorScheme::WoodDark,
-        BoardColorSettingsDialog::ColorScheme::OceanBlue
+        BoardColorSettingsDialog::ColorScheme::OceanBlue,
+        BoardColorSettingsDialog::ColorScheme::LightTheme
     };
     
     // Helper function to generate settings key prefix for custom slots
@@ -62,6 +63,7 @@ void BoardColorSettingsDialog::setupUI() {
     presetsLayout->addWidget(createPresetPreview(ColorScheme::PurplePink, "紫粉"));
     presetsLayout->addWidget(createPresetPreview(ColorScheme::WoodDark, "木紋深色"));
     presetsLayout->addWidget(createPresetPreview(ColorScheme::OceanBlue, "海洋藍"));
+    presetsLayout->addWidget(createPresetPreview(ColorScheme::LightTheme, "淺色系"));
     presetsLayout->addStretch();
     schemeLayout->addLayout(presetsLayout);
     
@@ -517,6 +519,11 @@ BoardColorSettingsDialog::BoardColorSettings BoardColorSettingsDialog::getPreset
         case ColorScheme::OceanBlue:
             settings.lightSquareColor = QColor("#A8D8EA");  // Light ocean blue
             settings.darkSquareColor = QColor("#2E5B6D");   // Deep ocean blue
+            break;
+            
+        case ColorScheme::LightTheme:
+            settings.lightSquareColor = QColor("#FEFEFE");  // Very light gray (almost white)
+            settings.darkSquareColor = QColor("#E0E0E0");   // Light gray
             break;
             
         case ColorScheme::Custom1:
