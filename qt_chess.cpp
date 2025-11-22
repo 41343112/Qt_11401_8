@@ -120,6 +120,7 @@ void Qt_Chess::setupUI() {
     // Left panel for time controls
     m_timeControlPanel = new QWidget(this);
     m_timeControlPanel->setMaximumWidth(LEFT_PANEL_MAX_WIDTH);  // Limit panel width
+    m_timeControlPanel->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Expanding);  // Expand vertically to fill available height
     QVBoxLayout* leftPanelLayout = new QVBoxLayout(m_timeControlPanel);
     leftPanelLayout->setContentsMargins(0, 0, 0, 0);
     setupTimeControlUI(leftPanelLayout);
@@ -1388,6 +1389,7 @@ void Qt_Chess::onFlipBoardClicked() {
 void Qt_Chess::setupTimeControlUI(QVBoxLayout* timeControlPanelLayout) {
     // Time control group box
     QGroupBox* timeControlGroup = new QGroupBox("時間控制", this);
+    timeControlGroup->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Expanding);  // Allow vertical expansion
     QVBoxLayout* timeControlLayout = new QVBoxLayout(timeControlGroup);
     
     QFont labelFont;
@@ -1454,9 +1456,11 @@ void Qt_Chess::setupTimeControlUI(QVBoxLayout* timeControlPanelLayout) {
     connect(m_incrementSlider, &QSlider::valueChanged, this, &Qt_Chess::onIncrementChanged);
     timeControlLayout->addWidget(m_incrementSlider);
     
-    // Add stretch to fill remaining space in the group box
+    // Add stretch to fill remaining space in the group box, pushing controls to the top
     timeControlLayout->addStretch();
     
+    // Stretch factor 1 allows the group box to expand and fill available vertical space in the panel
+    // Combined with the panel's Expanding size policy, this makes the time control panel fill the full height
     timeControlPanelLayout->addWidget(timeControlGroup, 1);
     
     // Start button - placed at the bottom of the time control panel, outside the group box
