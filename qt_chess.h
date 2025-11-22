@@ -157,5 +157,6 @@ private:
     void applyIncrement();
     void loadTimeControlSettings();
     void saveTimeControlSettings();
+    void handleGameEnd();  // Helper to handle game end state
 };
 #endif // QT_CHESS_H

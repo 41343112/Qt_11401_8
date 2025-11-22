@@ -28,6 +28,8 @@ namespace {
     const int MAX_SLIDER_POSITION = 31; // Slider range: 0 (unlimited), 1 (30s), 2-31 (1-30 min)
     const int MAX_MINUTES = 30; // Maximum time limit in minutes
     const int TIME_LABEL_MARGIN = 10; // Margin for overlay time labels from board edge
+    const int REDUCED_TIME_LABEL_MARGIN = TIME_LABEL_MARGIN / 2; // Reduced margin for closer positioning to board edge
+    const QString GAME_ENDED_TEXT = "遊戲結束"; // Text shown when game ends
 }
 
 Qt_Chess::Qt_Chess(QWidget *parent)
@@ -162,14 +164,15 @@ void Qt_Chess::setupUI() {
     
     // Add board to container layout, centered
     boardContainerLayout->addWidget(m_boardWidget, 0, Qt::AlignCenter);
-    contentLayout->addWidget(m_boardContainer, 1);
+    contentLayout->addWidget(m_boardContainer, 2);  // Give board more space (2:1 ratio)
     
     // Right panel for time controls (wrapped in a widget for easy show/hide)
     m_timeControlPanel = new QWidget(this);
+    m_timeControlPanel->setMaximumWidth(300);  // Limit panel width
     QVBoxLayout* rightPanelLayout = new QVBoxLayout(m_timeControlPanel);
     rightPanelLayout->setContentsMargins(0, 0, 0, 0);
     setupTimeControlUI(rightPanelLayout);
-    contentLayout->addWidget(m_timeControlPanel, 1);
+    contentLayout->addWidget(m_timeControlPanel, 1);  // Less space for control panel
     
     mainLayout->addLayout(contentLayout);
     
@@ -240,11 +243,14 @@ void Qt_Chess::updateStatus() {
     QString playerName = (currentPlayer == PieceColor::White) ? "白方" : "黑方";
     
     if (m_chessBoard.isCheckmate(currentPlayer)) {
+        handleGameEnd();
         QString winner = (currentPlayer == PieceColor::White) ? "黑方" : "白方";
         QMessageBox::information(this, "遊戲結束", QString("將死！%1獲勝！").arg(winner));
     } else if (m_chessBoard.isStalemate(currentPlayer)) {
+        handleGameEnd();
         QMessageBox::information(this, "遊戲結束", "逼和！對局和棋。");
     } else if (m_chessBoard.isInsufficientMaterial()) {
+        handleGameEnd();
         QMessageBox::information(this, "遊戲結束", "子力不足以將死！對局和棋。");
     }
 }
@@ -1507,13 +1513,13 @@ void Qt_Chess::positionOverlayTimeLabels() {
     
     QRect boardRect = m_boardWidget->geometry();
     
-    // Black time label - upper left
+    // Black time label - left side, slightly towards top (less margin from top)
     m_blackTimeLabel->move(boardRect.x() + TIME_LABEL_MARGIN, 
-                          boardRect.y() + TIME_LABEL_MARGIN);
+                          boardRect.y() + REDUCED_TIME_LABEL_MARGIN);
     
-    // White time label - lower right
+    // White time label - right side, slightly towards bottom (less margin from bottom)
     int whiteX = boardRect.right() - m_whiteTimeLabel->width() - TIME_LABEL_MARGIN;
-    int whiteY = boardRect.bottom() - m_whiteTimeLabel->height() - TIME_LABEL_MARGIN;
+    int whiteY = boardRect.bottom() - m_whiteTimeLabel->height() - REDUCED_TIME_LABEL_MARGIN;
     m_whiteTimeLabel->move(whiteX, whiteY);
 }
 
@@ -1591,6 +1597,16 @@ void Qt_Chess::applyIncrement() {
         m_whiteTimeMs += m_incrementMs;
     } else {
         m_blackTimeMs += m_incrementMs;
+    }
+}
+
+void Qt_Chess::handleGameEnd() {
+    // Stop timer when game ends
+    stopTimer();
+    m_timerStarted = false;
+    if (m_startButton) {
+        m_startButton->setText(GAME_ENDED_TEXT);
+        m_startButton->setEnabled(false);
     }
 }
 
