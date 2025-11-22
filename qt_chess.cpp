@@ -2,6 +2,7 @@
 #include "ui_qt_chess.h"
 #include "soundsettingsdialog.h"
 #include "pieceiconsettingsdialog.h"
+#include "boardcolorsettingsdialog.h"
 #include <QMessageBox>
 #include <QFont>
 #include <QDialog>
@@ -45,6 +46,7 @@ Qt_Chess::Qt_Chess(QWidget *parent)
     loadSoundSettings();
     initializeSounds();
     loadPieceIconSettings();
+    loadBoardColorSettings();
     loadPieceIconsToCache(); // Load icons to cache after loading settings
     setupMenuBar();
     setupUI();
@@ -128,13 +130,18 @@ void Qt_Chess::setupMenuBar() {
     QAction* pieceIconSettingsAction = new QAction("棋子圖標設定", this);
     connect(pieceIconSettingsAction, &QAction::triggered, this, &Qt_Chess::onPieceIconSettingsClicked);
     settingsMenu->addAction(pieceIconSettingsAction);
+    
+    // Board color settings action
+    QAction* boardColorSettingsAction = new QAction("棋盤顏色設定", this);
+    connect(boardColorSettingsAction, &QAction::triggered, this, &Qt_Chess::onBoardColorSettingsClicked);
+    settingsMenu->addAction(boardColorSettingsAction);
 }
 
 void Qt_Chess::updateSquareColor(int row, int col) {
     bool isLight = (row + col) % 2 == 0;
-    QString color = isLight ? "#F0D9B5" : "#B58863";
+    QColor color = isLight ? m_boardColorSettings.lightSquareColor : m_boardColorSettings.darkSquareColor;
     m_squares[row][col]->setStyleSheet(
-        QString("QPushButton { background-color: %1; border: 1px solid #333; }").arg(color)
+        QString("QPushButton { background-color: %1; border: 1px solid #333; }").arg(color.name())
     );
 }
 
@@ -305,6 +312,16 @@ void Qt_Chess::onPieceIconSettingsClicked() {
     if (dialog.exec() == QDialog::Accepted) {
         m_pieceIconSettings = dialog.getSettings();
         applyPieceIconSettings();
+    }
+}
+
+void Qt_Chess::onBoardColorSettingsClicked() {
+    BoardColorSettingsDialog dialog(this);
+    dialog.setSettings(m_boardColorSettings);
+    
+    if (dialog.exec() == QDialog::Accepted) {
+        m_boardColorSettings = dialog.getSettings();
+        applyBoardColorSettings();
     }
 }
 
@@ -976,4 +993,61 @@ int Qt_Chess::calculateIconSize(QPushButton* square) const {
     // Ensure scale is within valid range (60-100)
     int scale = qBound(60, m_pieceIconSettings.pieceScale, 100);
     return static_cast<int>(squareWidth * scale / 100.0);
+}
+
+void Qt_Chess::loadBoardColorSettings() {
+    QSettings settings("Qt_Chess", "BoardColorSettings");
+    
+    // Load color scheme type with validation
+    int schemeInt = settings.value("colorScheme", static_cast<int>(BoardColorSettingsDialog::ColorScheme::Classic)).toInt();
+    
+    // Validate scheme is within valid range
+    if (schemeInt < static_cast<int>(BoardColorSettingsDialog::ColorScheme::Classic) ||
+        schemeInt > static_cast<int>(BoardColorSettingsDialog::ColorScheme::Custom)) {
+        schemeInt = static_cast<int>(BoardColorSettingsDialog::ColorScheme::Classic);
+    }
+    
+    BoardColorSettingsDialog::ColorScheme scheme = static_cast<BoardColorSettingsDialog::ColorScheme>(schemeInt);
+    
+    // Load colors
+    QString lightColorStr = settings.value("lightSquareColor", "#F0D9B5").toString();
+    QString darkColorStr = settings.value("darkSquareColor", "#B58863").toString();
+    
+    m_boardColorSettings.scheme = scheme;
+    m_boardColorSettings.lightSquareColor = QColor(lightColorStr);
+    m_boardColorSettings.darkSquareColor = QColor(darkColorStr);
+    
+    // Validate colors
+    if (!m_boardColorSettings.lightSquareColor.isValid()) {
+        m_boardColorSettings.lightSquareColor = QColor("#F0D9B5");
+    }
+    if (!m_boardColorSettings.darkSquareColor.isValid()) {
+        m_boardColorSettings.darkSquareColor = QColor("#B58863");
+    }
+}
+
+void Qt_Chess::applyBoardColorSettings() {
+    // Save settings
+    QSettings settings("Qt_Chess", "BoardColorSettings");
+    settings.setValue("colorScheme", static_cast<int>(m_boardColorSettings.scheme));
+    settings.setValue("lightSquareColor", m_boardColorSettings.lightSquareColor.name());
+    settings.setValue("darkSquareColor", m_boardColorSettings.darkSquareColor.name());
+    
+    // Update all squares on the board
+    for (int row = 0; row < 8; ++row) {
+        for (int col = 0; col < 8; ++col) {
+            updateSquareColor(row, col);
+        }
+    }
+    
+    // Re-apply highlights if needed
+    if (m_pieceSelected) {
+        highlightValidMoves();
+    }
+    
+    // Re-apply check highlight if in check
+    PieceColor currentPlayer = m_chessBoard.getCurrentPlayer();
+    if (m_chessBoard.isInCheck(currentPlayer)) {
+        applyCheckHighlight();
+    }
 }
