@@ -122,6 +122,7 @@ void Qt_Chess::setupUI() {
     m_blackTimeLabel->setMinimumSize(100, 40);
     m_blackTimeLabel->hide();  // Initially hidden
     boardContainerLayout->addWidget(m_blackTimeLabel, 0, Qt::AlignCenter);
+    boardContainerLayout->addSpacing(10);  // Add spacing between time label and board
     
     // Chess board
     m_boardWidget = new QWidget(m_boardContainer);
@@ -163,6 +164,8 @@ void Qt_Chess::setupUI() {
     // Add board to container layout, centered
     boardContainerLayout->addWidget(m_boardWidget, 0, Qt::AlignCenter);
     
+    boardContainerLayout->addSpacing(10);  // Add spacing between board and time label
+    
     // White time label (below board) - initially hidden
     m_whiteTimeLabel = new QLabel("--:--", m_boardContainer);
     m_whiteTimeLabel->setFont(timeFont);
@@ -172,7 +175,20 @@ void Qt_Chess::setupUI() {
     m_whiteTimeLabel->hide();  // Initially hidden
     boardContainerLayout->addWidget(m_whiteTimeLabel, 0, Qt::AlignCenter);
     
-    contentLayout->addWidget(m_boardContainer, 2);  // Give board more space (2:1 ratio)
+    // New game button (below white time label) - initially hidden
+    m_newGameButton = new QPushButton("新遊戲", m_boardContainer);
+    m_newGameButton->setMinimumHeight(40);
+    m_newGameButton->setMaximumWidth(200);
+    QFont newGameButtonFont;
+    newGameButtonFont.setPointSize(14);
+    newGameButtonFont.setBold(true);
+    m_newGameButton->setFont(newGameButtonFont);
+    connect(m_newGameButton, &QPushButton::clicked, this, &Qt_Chess::onNewGameClicked);
+    m_newGameButton->hide();  // Initially hidden
+    boardContainerLayout->addWidget(m_newGameButton, 0, Qt::AlignCenter);
+    
+    contentLayout->addWidget(m_boardContainer, 1);  // Equal space for board container
+    contentLayout->setAlignment(m_boardContainer, Qt::AlignCenter);  // Center the board container
     
     mainLayout->addLayout(contentLayout);
     
@@ -392,9 +408,17 @@ void Qt_Chess::onNewGameClicked() {
     stopTimer();
     m_timerStarted = false;
     
+    // Show time control panel
+    if (m_timeControlPanel) {
+        m_timeControlPanel->show();
+    }
+    
     // Hide time displays
     if (m_whiteTimeLabel) m_whiteTimeLabel->hide();
     if (m_blackTimeLabel) m_blackTimeLabel->hide();
+    
+    // Hide new game button
+    if (m_newGameButton) m_newGameButton->hide();
     
     // Reset times based on slider values
     if (m_whiteTimeLimitSlider) {
@@ -438,10 +462,20 @@ void Qt_Chess::onStartButtonClicked() {
         m_timerStarted = true;
         startTimer();
         
+        // Hide time control panel
+        if (m_timeControlPanel) {
+            m_timeControlPanel->hide();
+        }
+        
         // Show time displays above and below the board
         if (m_whiteTimeLabel && m_blackTimeLabel) {
             m_whiteTimeLabel->show();
             m_blackTimeLabel->show();
+        }
+        
+        // Show new game button
+        if (m_newGameButton) {
+            m_newGameButton->show();
         }
         
         updateTimeDisplays();
@@ -1341,16 +1375,6 @@ void Qt_Chess::setupTimeControlUI(QVBoxLayout* timeControlPanelLayout) {
     connect(m_startButton, &QPushButton::clicked, this, &Qt_Chess::onStartButtonClicked);
     timeControlLayout->addWidget(m_startButton);
     
-    // New game button - moved to time control panel
-    m_newGameButton = new QPushButton("新遊戲", this);
-    m_newGameButton->setMinimumHeight(40);
-    QFont newGameButtonFont;
-    newGameButtonFont.setPointSize(14);
-    newGameButtonFont.setBold(true);
-    m_newGameButton->setFont(newGameButtonFont);
-    connect(m_newGameButton, &QPushButton::clicked, this, &Qt_Chess::onNewGameClicked);
-    timeControlLayout->addWidget(m_newGameButton);
-    
     // Add stretch to fill remaining space
     timeControlLayout->addStretch();
     
@@ -1493,6 +1517,13 @@ void Qt_Chess::onGameTimerTick() {
                 updateTimeDisplays();
                 stopTimer();
                 m_timerStarted = false;  // Reset timer state
+                
+                // Show time control panel
+                if (m_timeControlPanel) m_timeControlPanel->show();
+                
+                // Show new game button
+                if (m_newGameButton) m_newGameButton->show();
+                
                 if (m_startButton) {
                     m_startButton->setText("開始");
                     m_startButton->setEnabled(true);
@@ -1512,6 +1543,13 @@ void Qt_Chess::onGameTimerTick() {
                 updateTimeDisplays();
                 stopTimer();
                 m_timerStarted = false;  // Reset timer state
+                
+                // Show time control panel
+                if (m_timeControlPanel) m_timeControlPanel->show();
+                
+                // Show new game button
+                if (m_newGameButton) m_newGameButton->show();
+                
                 if (m_startButton) {
                     m_startButton->setText("開始");
                     m_startButton->setEnabled(true);
@@ -1558,6 +1596,12 @@ void Qt_Chess::handleGameEnd() {
     // Stop timer when game ends
     stopTimer();
     m_timerStarted = false;
+    
+    // Show new game button if timer was running
+    if (m_newGameButton && !m_newGameButton->isVisible()) {
+        m_newGameButton->show();
+    }
+    
     if (m_startButton) {
         m_startButton->setText(GAME_ENDED_TEXT);
         m_startButton->setEnabled(false);
