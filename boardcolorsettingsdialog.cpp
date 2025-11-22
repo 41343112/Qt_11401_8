@@ -5,6 +5,19 @@
 #include <QColorDialog>
 #include <QFrame>
 
+// UI Style Constants
+namespace {
+    const QString HOVER_BORDER_COLOR = "#4A90E2";
+    const QString HOVER_BACKGROUND_COLOR = "#F0F0F0";
+    const QString PRESSED_BACKGROUND_COLOR = "#E0E0E0";
+    
+    // Custom preview gradient colors
+    const QColor CUSTOM_COLOR_TOP_LEFT = QColor("#FF6B6B");     // Red
+    const QColor CUSTOM_COLOR_TOP_RIGHT = QColor("#4ECDC4");    // Cyan
+    const QColor CUSTOM_COLOR_BOTTOM_LEFT = QColor("#95E1D3");  // Light green
+    const QColor CUSTOM_COLOR_BOTTOM_RIGHT = QColor("#FFE66D"); // Yellow
+}
+
 BoardColorSettingsDialog::BoardColorSettingsDialog(QWidget *parent)
     : QDialog(parent)
 {
@@ -123,7 +136,7 @@ QPushButton* BoardColorSettingsDialog::createPresetPreview(ColorScheme scheme, c
     QPushButton* button = new QPushButton(this);
     button->setFlat(true);
     button->setCursor(Qt::PointingHandCursor);
-    button->setFixedSize(80, 95);  // Width for 2x2 grid + label
+    button->setFixedSize(PREVIEW_BUTTON_WIDTH, PREVIEW_BUTTON_HEIGHT);
     
     // Create content widget
     QWidget* contentWidget = new QWidget(button);
@@ -145,17 +158,17 @@ QPushButton* BoardColorSettingsDialog::createPresetPreview(ColorScheme scheme, c
         for (int row = 0; row < 2; ++row) {
             for (int col = 0; col < 2; ++col) {
                 QLabel* square = new QLabel(contentWidget);
-                square->setMinimumSize(30, 30);
-                square->setMaximumSize(30, 30);
+                square->setMinimumSize(PREVIEW_SQUARE_SIZE, PREVIEW_SQUARE_SIZE);
+                square->setMaximumSize(PREVIEW_SQUARE_SIZE, PREVIEW_SQUARE_SIZE);
                 square->setFrameStyle(QFrame::Box);
                 square->setLineWidth(1);
                 
                 // Create a colorful pattern for custom option
                 QColor color;
-                if (row == 0 && col == 0) color = QColor("#FF6B6B");  // Red
-                else if (row == 0 && col == 1) color = QColor("#4ECDC4");  // Cyan
-                else if (row == 1 && col == 0) color = QColor("#95E1D3");  // Light green
-                else color = QColor("#FFE66D");  // Yellow
+                if (row == 0 && col == 0) color = CUSTOM_COLOR_TOP_LEFT;
+                else if (row == 0 && col == 1) color = CUSTOM_COLOR_TOP_RIGHT;
+                else if (row == 1 && col == 0) color = CUSTOM_COLOR_BOTTOM_LEFT;
+                else color = CUSTOM_COLOR_BOTTOM_RIGHT;
                 
                 square->setStyleSheet(QString("QLabel { background-color: %1; }").arg(color.name()));
                 grid->addWidget(square, row, col);
@@ -166,8 +179,8 @@ QPushButton* BoardColorSettingsDialog::createPresetPreview(ColorScheme scheme, c
         for (int row = 0; row < 2; ++row) {
             for (int col = 0; col < 2; ++col) {
                 QLabel* square = new QLabel(contentWidget);
-                square->setMinimumSize(30, 30);
-                square->setMaximumSize(30, 30);
+                square->setMinimumSize(PREVIEW_SQUARE_SIZE, PREVIEW_SQUARE_SIZE);
+                square->setMaximumSize(PREVIEW_SQUARE_SIZE, PREVIEW_SQUARE_SIZE);
                 square->setFrameStyle(QFrame::Box);
                 square->setLineWidth(1);
                 
@@ -187,13 +200,14 @@ QPushButton* BoardColorSettingsDialog::createPresetPreview(ColorScheme scheme, c
     layout->addWidget(nameLabel);
     
     // Set content widget geometry to fill button
-    contentWidget->setGeometry(0, 0, 80, 95);
+    contentWidget->setGeometry(0, 0, PREVIEW_BUTTON_WIDTH, PREVIEW_BUTTON_HEIGHT);
     
     // Add hover effect
     button->setStyleSheet(
-        "QPushButton { border: 2px solid transparent; border-radius: 5px; background-color: transparent; }"
-        "QPushButton:hover { border: 2px solid #4A90E2; background-color: #F0F0F0; }"
-        "QPushButton:pressed { background-color: #E0E0E0; }"
+        QString("QPushButton { border: 2px solid transparent; border-radius: 5px; background-color: transparent; }"
+                "QPushButton:hover { border: 2px solid %1; background-color: %2; }"
+                "QPushButton:pressed { background-color: %3; }")
+        .arg(HOVER_BORDER_COLOR, HOVER_BACKGROUND_COLOR, PRESSED_BACKGROUND_COLOR)
     );
     
     // Connect click event
@@ -304,18 +318,19 @@ void BoardColorSettingsDialog::onPresetPreviewClicked(ColorScheme scheme) {
         // When custom preview is clicked, show color picker for light square first
         QColor lightColor = QColorDialog::getColor(m_settings.lightSquareColor, this, "選擇淺色方格顏色");
         if (lightColor.isValid()) {
-            m_settings.lightSquareColor = lightColor;
-            
             // Then show color picker for dark square
             QColor darkColor = QColorDialog::getColor(m_settings.darkSquareColor, this, "選擇深色方格顏色");
             if (darkColor.isValid()) {
+                // Only apply changes if both colors were selected
+                m_settings.lightSquareColor = lightColor;
                 m_settings.darkSquareColor = darkColor;
+                m_settings.scheme = ColorScheme::Custom;
+                
+                setComboBoxScheme(ColorScheme::Custom);
+                updateColorButtons();
+                updatePreview();
             }
-            
-            m_settings.scheme = ColorScheme::Custom;
-            setComboBoxScheme(ColorScheme::Custom);
-            updateColorButtons();
-            updatePreview();
+            // If user cancels dark color selection, don't apply any changes
         }
     } else {
         // Apply the preset color scheme

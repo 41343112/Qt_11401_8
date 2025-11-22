@@ -14,6 +14,11 @@ class BoardColorSettingsDialog : public QDialog
 {
     Q_OBJECT
 
+    // UI Constants
+    static constexpr int PREVIEW_BUTTON_WIDTH = 80;
+    static constexpr int PREVIEW_BUTTON_HEIGHT = 95;
+    static constexpr int PREVIEW_SQUARE_SIZE = 30;
+    
 public:
     explicit BoardColorSettingsDialog(QWidget *parent = nullptr);
     ~BoardColorSettingsDialog();
