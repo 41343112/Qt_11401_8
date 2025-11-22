@@ -65,9 +65,9 @@ Qt_Chess::Qt_Chess(QWidget *parent)
     resize(900, 660);  // Increased width to accommodate time control panel
     
     // Set minimum window size to ensure all content fits without clipping
-    // Calculation: left panel (300) + min board (8*35+4=284) + right panel (200) + spacing (60) = 844
-    // Height: board (284) + time labels (80) + spacing (50) = 414
-    setMinimumSize(680, 420);
+    // Calculation: left panel (300) + min board (8*30+4=244) + right panel (200) + spacing/margins (80) = 824
+    // Height: board (244) + time labels (80) + spacing (60) = 384, increased to 420 for better usability
+    setMinimumSize(820, 420);
     
     setMouseTracking(true);
     
@@ -138,7 +138,7 @@ void Qt_Chess::setupUI() {
     for (int row = 0; row < 8; ++row) {
         for (int col = 0; col < 8; ++col) {
             QPushButton* square = new QPushButton(m_boardWidget);
-            square->setMinimumSize(40, 40);  // Set a reasonable minimum size
+            square->setMinimumSize(30, 30);  // Set minimum size to match updateSquareSizes()
             square->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
             square->setMouseTracking(true);
             
@@ -880,15 +880,19 @@ void Qt_Chess::updateSquareSizes() {
     
     // Account for left panel width if visible
     if (m_timeControlPanel && m_timeControlPanel->isVisible()) {
-        reservedWidth += qMin(300, m_timeControlPanel->width());
+        reservedWidth += 300;  // Reserve full width for time control panel
+        reservedWidth += 20;   // Spacing after left panel
     }
     
     // Account for right panel width (where new game button is)
-    // Always reserve space for it even if button is hidden
-    reservedWidth += 200;
+    // Reserve space only if new game button is visible or could be visible
+    if (m_newGameButton) {
+        reservedWidth += 200;  // Right panel space
+        reservedWidth += 20;   // Spacing before right panel
+    }
     
-    // Add spacing between panels (estimate ~40px total for margins and spacing)
-    reservedWidth += 40;
+    // Add base margins (including board container margins)
+    reservedWidth += 30;  // Base margins plus board container margins (5px each side)
     
     // Account for time labels height if visible, plus spacing
     if (m_whiteTimeLabel && m_whiteTimeLabel->isVisible()) {
@@ -908,7 +912,7 @@ void Qt_Chess::updateSquareSizes() {
     int squareSize = qMin(availableWidth, availableHeight) / 8;
     
     // Ensure minimum and reasonable maximum size
-    squareSize = qMax(squareSize, 35);
+    squareSize = qMax(squareSize, 30);  // Reduced from 35 to 30 for better small window support
     squareSize = qMin(squareSize, 180);  // Cap at a reasonable maximum
     
     // Calculate font size based on square size (approximately 45% of square size)
