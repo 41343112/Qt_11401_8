@@ -12,6 +12,10 @@
 #include <QMenuBar>
 #include <QMenu>
 #include <QAction>
+#include <QComboBox>
+#include <QSlider>
+#include <QTimer>
+#include <QGroupBox>
 #include <vector>
 #include "chessboard.h"
 #include "soundsettingsdialog.h"
@@ -83,6 +87,18 @@ private:
     // Board flip state
     bool m_isBoardFlipped;
     
+    // Time control
+    QComboBox* m_timeLimitCombo;
+    QSlider* m_incrementSlider;
+    QLabel* m_incrementLabel;
+    QLabel* m_whiteTimeLabel;
+    QLabel* m_blackTimeLabel;
+    QTimer* m_gameTimer;
+    int m_whiteTimeMs;  // White's remaining time in milliseconds
+    int m_blackTimeMs;  // Black's remaining time in milliseconds
+    int m_incrementMs;  // Increment per move in milliseconds
+    bool m_timeControlEnabled;
+    
     void setupUI();
     void setupMenuBar();
     void updateBoard();
@@ -119,5 +135,15 @@ private:
     int getDisplayCol(int logicalCol) const;
     int getLogicalRow(int displayRow) const;
     int getLogicalCol(int displayCol) const;
+    void setupTimeControlUI(QVBoxLayout* rightPanelLayout);
+    void updateTimeDisplays();
+    void onTimeLimitChanged(int index);
+    void onIncrementChanged(int value);
+    void onGameTimerTick();
+    void startTimer();
+    void stopTimer();
+    void applyIncrement();
+    void loadTimeControlSettings();
+    void saveTimeControlSettings();
 };
 #endif // QT_CHESS_H

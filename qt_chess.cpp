@@ -16,6 +16,10 @@
 #include <QIcon>
 #include <QPixmap>
 #include <QFile>
+#include <QComboBox>
+#include <QSlider>
+#include <QTimer>
+#include <QGroupBox>
 
 namespace {
     const QString CHECK_HIGHLIGHT_STYLE = "QPushButton { background-color: #FF6B6B; border: 2px solid #FF0000; }";
@@ -34,13 +38,23 @@ Qt_Chess::Qt_Chess(QWidget *parent)
     , m_boardWidget(nullptr)
     , m_menuBar(nullptr)
     , m_isBoardFlipped(false)
+    , m_timeLimitCombo(nullptr)
+    , m_incrementSlider(nullptr)
+    , m_incrementLabel(nullptr)
+    , m_whiteTimeLabel(nullptr)
+    , m_blackTimeLabel(nullptr)
+    , m_gameTimer(nullptr)
+    , m_whiteTimeMs(0)
+    , m_blackTimeMs(0)
+    , m_incrementMs(0)
+    , m_timeControlEnabled(false)
 {
     ui->setupUi(this);
     setWindowTitle("國際象棋 - 雙人對弈");
-    resize(700, 660);
+    resize(900, 660);  // Increased width to accommodate time control panel
     
-    // Set minimum window size: width 320px (8 squares × 40px), height 380px (320px board + ~60px UI elements)
-    setMinimumSize(320, 380);
+    // Set minimum window size: increased width for right panel
+    setMinimumSize(520, 380);
     
     setMouseTracking(true);
     
@@ -52,8 +66,10 @@ Qt_Chess::Qt_Chess(QWidget *parent)
     loadPieceIconsToCache(); // Load icons to cache after loading settings
     setupMenuBar();
     setupUI();
+    loadTimeControlSettings();  // Load after setupUI() to ensure widgets exist
     updateBoard();
     updateStatus();
+    updateTimeDisplays();
 }
 
 Qt_Chess::~Qt_Chess()
@@ -64,6 +80,12 @@ Qt_Chess::~Qt_Chess()
 void Qt_Chess::setupUI() {
     QWidget* centralWidget = new QWidget(this);
     QVBoxLayout* mainLayout = new QVBoxLayout(centralWidget);
+    
+    // Create horizontal layout for board and time controls
+    QHBoxLayout* contentLayout = new QHBoxLayout();
+    
+    // Chess board container
+    QVBoxLayout* boardLayout = new QVBoxLayout();
     
     // Chess board
     m_boardWidget = new QWidget(this);
@@ -102,7 +124,15 @@ void Qt_Chess::setupUI() {
         }
     }
     
-    mainLayout->addWidget(m_boardWidget, 0, Qt::AlignCenter);
+    boardLayout->addWidget(m_boardWidget, 0, Qt::AlignCenter);
+    contentLayout->addLayout(boardLayout, 1);
+    
+    // Right panel for time controls
+    QVBoxLayout* rightPanelLayout = new QVBoxLayout();
+    setupTimeControlUI(rightPanelLayout);
+    contentLayout->addLayout(rightPanelLayout, 0);
+    
+    mainLayout->addLayout(contentLayout);
     
     // New game button
     m_newGameButton = new QPushButton("新遊戲", this);
@@ -282,6 +312,10 @@ void Qt_Chess::onSquareClicked(int displayRow, int displayCol) {
         // Try to move the selected piece
         if (m_chessBoard.movePiece(m_selectedSquare, clickedSquare)) {
             m_pieceSelected = false;
+            
+            // Apply time increment for the player who just moved
+            applyIncrement();
+            
             updateBoard();
             
             // Check if pawn promotion is needed
@@ -294,6 +328,10 @@ void Qt_Chess::onSquareClicked(int displayRow, int displayCol) {
             
             // Play appropriate sound effect
             playSoundForMove(isCapture, isCastling);
+            
+            // Update time displays and restart timer
+            updateTimeDisplays();
+            startTimer();
             
             updateStatus();
         } else if (clickedSquare == m_selectedSquare) {
@@ -315,8 +353,22 @@ void Qt_Chess::onSquareClicked(int displayRow, int displayCol) {
 void Qt_Chess::onNewGameClicked() {
     m_chessBoard.initializeBoard();
     m_pieceSelected = false;
+    
+    // Reset time control
+    stopTimer();
+    if (m_timeControlEnabled && m_timeLimitCombo) {
+        int index = m_timeLimitCombo->currentIndex();
+        int seconds = m_timeLimitCombo->itemData(index).toInt();
+        if (seconds > 0) {
+            m_whiteTimeMs = seconds * 1000;
+            m_blackTimeMs = seconds * 1000;
+        }
+    }
+    
     updateBoard();
     updateStatus();
+    updateTimeDisplays();
+}
 }
 
 void Qt_Chess::onSoundSettingsClicked() {
@@ -604,6 +656,10 @@ void Qt_Chess::mouseReleaseEvent(QMouseEvent *event) {
             // Try to move the piece
             if (m_chessBoard.movePiece(m_dragStartSquare, logicalDropSquare)) {
                 m_pieceSelected = false;
+                
+                // Apply time increment for the player who just moved
+                applyIncrement();
+                
                 updateBoard();
                 
                 // Check if pawn promotion is needed
@@ -616,6 +672,10 @@ void Qt_Chess::mouseReleaseEvent(QMouseEvent *event) {
                 
                 // Play appropriate sound effect
                 playSoundForMove(isCapture, isCastling);
+                
+                // Update time displays and restart timer
+                updateTimeDisplays();
+                startTimer();
                 
                 updateStatus();
                 clearHighlights();
@@ -1118,4 +1178,245 @@ void Qt_Chess::onFlipBoardClicked() {
     m_isBoardFlipped = !m_isBoardFlipped;
     saveBoardFlipSettings();
     updateBoard();
+}
+
+void Qt_Chess::setupTimeControlUI(QVBoxLayout* rightPanelLayout) {
+    // Time control group box
+    QGroupBox* timeControlGroup = new QGroupBox("時間控制", this);
+    QVBoxLayout* timeControlLayout = new QVBoxLayout(timeControlGroup);
+    
+    // Time limit label and combo box
+    QLabel* timeLimitLabel = new QLabel("總時間:", this);
+    QFont labelFont;
+    labelFont.setPointSize(10);
+    timeLimitLabel->setFont(labelFont);
+    timeControlLayout->addWidget(timeLimitLabel);
+    
+    m_timeLimitCombo = new QComboBox(this);
+    m_timeLimitCombo->addItem("無限制", -1);
+    m_timeLimitCombo->addItem("30秒", 30);
+    m_timeLimitCombo->addItem("1分鐘", 60);
+    m_timeLimitCombo->addItem("3分鐘", 180);
+    m_timeLimitCombo->addItem("5分鐘", 300);
+    m_timeLimitCombo->addItem("10分鐘", 600);
+    m_timeLimitCombo->addItem("15分鐘", 900);
+    m_timeLimitCombo->addItem("30分鐘", 1800);
+    m_timeLimitCombo->addItem("60分鐘", 3600);
+    connect(m_timeLimitCombo, QOverload<int>::of(&QComboBox::currentIndexChanged), 
+            this, &Qt_Chess::onTimeLimitChanged);
+    timeControlLayout->addWidget(m_timeLimitCombo);
+    
+    // Increment label and slider
+    QLabel* incrementTitleLabel = new QLabel("每著加秒:", this);
+    incrementTitleLabel->setFont(labelFont);
+    timeControlLayout->addWidget(incrementTitleLabel);
+    
+    m_incrementLabel = new QLabel("0秒", this);
+    m_incrementLabel->setFont(labelFont);
+    m_incrementLabel->setAlignment(Qt::AlignCenter);
+    timeControlLayout->addWidget(m_incrementLabel);
+    
+    m_incrementSlider = new QSlider(Qt::Horizontal, this);
+    m_incrementSlider->setMinimum(0);
+    m_incrementSlider->setMaximum(60);
+    m_incrementSlider->setValue(0);
+    m_incrementSlider->setTickPosition(QSlider::TicksBelow);
+    m_incrementSlider->setTickInterval(5);
+    connect(m_incrementSlider, &QSlider::valueChanged, this, &Qt_Chess::onIncrementChanged);
+    timeControlLayout->addWidget(m_incrementSlider);
+    
+    timeControlLayout->addSpacing(20);
+    
+    // Player time displays
+    QLabel* blackPlayerLabel = new QLabel("黑方時間:", this);
+    blackPlayerLabel->setFont(labelFont);
+    timeControlLayout->addWidget(blackPlayerLabel);
+    
+    m_blackTimeLabel = new QLabel("--:--", this);
+    QFont timeFont;
+    timeFont.setPointSize(16);
+    timeFont.setBold(true);
+    m_blackTimeLabel->setFont(timeFont);
+    m_blackTimeLabel->setAlignment(Qt::AlignCenter);
+    m_blackTimeLabel->setStyleSheet("QLabel { background-color: #333; color: #FFF; padding: 10px; border-radius: 5px; }");
+    timeControlLayout->addWidget(m_blackTimeLabel);
+    
+    timeControlLayout->addSpacing(10);
+    
+    QLabel* whitePlayerLabel = new QLabel("白方時間:", this);
+    whitePlayerLabel->setFont(labelFont);
+    timeControlLayout->addWidget(whitePlayerLabel);
+    
+    m_whiteTimeLabel = new QLabel("--:--", this);
+    m_whiteTimeLabel->setFont(timeFont);
+    m_whiteTimeLabel->setAlignment(Qt::AlignCenter);
+    m_whiteTimeLabel->setStyleSheet("QLabel { background-color: #333; color: #FFF; padding: 10px; border-radius: 5px; }");
+    timeControlLayout->addWidget(m_whiteTimeLabel);
+    
+    timeControlLayout->addStretch();
+    
+    rightPanelLayout->addWidget(timeControlGroup);
+    rightPanelLayout->addStretch();
+    
+    // Initialize game timer
+    m_gameTimer = new QTimer(this);
+    connect(m_gameTimer, &QTimer::timeout, this, &Qt_Chess::onGameTimerTick);
+}
+
+void Qt_Chess::updateTimeDisplays() {
+    if (!m_timeControlEnabled) {
+        m_whiteTimeLabel->setText("--:--");
+        m_blackTimeLabel->setText("--:--");
+        return;
+    }
+    
+    // Convert milliseconds to minutes:seconds
+    auto formatTime = [](int ms) -> QString {
+        int totalSeconds = ms / 1000;
+        int minutes = totalSeconds / 60;
+        int seconds = totalSeconds % 60;
+        return QString("%1:%2").arg(minutes, 2, 10, QChar('0')).arg(seconds, 2, 10, QChar('0'));
+    };
+    
+    m_whiteTimeLabel->setText(formatTime(m_whiteTimeMs));
+    m_blackTimeLabel->setText(formatTime(m_blackTimeMs));
+    
+    // Highlight the active player's timer
+    PieceColor currentPlayer = m_chessBoard.getCurrentPlayer();
+    if (currentPlayer == PieceColor::White) {
+        m_whiteTimeLabel->setStyleSheet("QLabel { background-color: #4CAF50; color: #FFF; padding: 10px; border-radius: 5px; }");
+        m_blackTimeLabel->setStyleSheet("QLabel { background-color: #333; color: #FFF; padding: 10px; border-radius: 5px; }");
+    } else {
+        m_blackTimeLabel->setStyleSheet("QLabel { background-color: #4CAF50; color: #FFF; padding: 10px; border-radius: 5px; }");
+        m_whiteTimeLabel->setStyleSheet("QLabel { background-color: #333; color: #FFF; padding: 10px; border-radius: 5px; }");
+    }
+}
+
+void Qt_Chess::onTimeLimitChanged(int index) {
+    if (!m_timeLimitCombo) return;
+    
+    int seconds = m_timeLimitCombo->itemData(index).toInt();
+    
+    if (seconds < 0) {
+        // Unlimited time
+        m_timeControlEnabled = false;
+        stopTimer();
+    } else {
+        // Set time limit
+        m_timeControlEnabled = true;
+        m_whiteTimeMs = seconds * 1000;
+        m_blackTimeMs = seconds * 1000;
+    }
+    
+    updateTimeDisplays();
+    saveTimeControlSettings();
+}
+
+void Qt_Chess::onIncrementChanged(int value) {
+    m_incrementMs = value * 1000;
+    m_incrementLabel->setText(QString("%1秒").arg(value));
+    saveTimeControlSettings();
+}
+
+void Qt_Chess::onGameTimerTick() {
+    if (!m_timeControlEnabled) return;
+    
+    // Decrease time for current player
+    PieceColor currentPlayer = m_chessBoard.getCurrentPlayer();
+    if (currentPlayer == PieceColor::White) {
+        m_whiteTimeMs -= 100; // Decrease by 100ms (timer ticks every 100ms)
+        if (m_whiteTimeMs <= 0) {
+            m_whiteTimeMs = 0;
+            updateTimeDisplays();
+            stopTimer();
+            QMessageBox::information(this, "時間到", "白方超時！黑方獲勝！");
+            return;
+        }
+    } else {
+        m_blackTimeMs -= 100;
+        if (m_blackTimeMs <= 0) {
+            m_blackTimeMs = 0;
+            updateTimeDisplays();
+            stopTimer();
+            QMessageBox::information(this, "時間到", "黑方超時！白方獲勝！");
+            return;
+        }
+    }
+    
+    updateTimeDisplays();
+}
+
+void Qt_Chess::startTimer() {
+    if (m_timeControlEnabled && m_gameTimer && !m_gameTimer->isActive()) {
+        m_gameTimer->start(100); // Tick every 100ms for smooth countdown
+    }
+}
+
+void Qt_Chess::stopTimer() {
+    if (m_gameTimer && m_gameTimer->isActive()) {
+        m_gameTimer->stop();
+    }
+}
+
+void Qt_Chess::applyIncrement() {
+    if (!m_timeControlEnabled || m_incrementMs <= 0) return;
+    
+    // Add increment to the player who just moved
+    // Note: getCurrentPlayer() returns the opponent after the move
+    PieceColor playerWhoMoved = (m_chessBoard.getCurrentPlayer() == PieceColor::White) 
+                                 ? PieceColor::Black : PieceColor::White;
+    
+    if (playerWhoMoved == PieceColor::White) {
+        m_whiteTimeMs += m_incrementMs;
+    } else {
+        m_blackTimeMs += m_incrementMs;
+    }
+}
+
+void Qt_Chess::loadTimeControlSettings() {
+    QSettings settings("Qt_Chess", "TimeControl");
+    
+    int timeLimitSeconds = settings.value("timeLimitSeconds", -1).toInt();
+    int incrementSeconds = settings.value("incrementSeconds", 0).toInt();
+    
+    // Find and set the time limit in combo box
+    if (m_timeLimitCombo) {
+        for (int i = 0; i < m_timeLimitCombo->count(); ++i) {
+            if (m_timeLimitCombo->itemData(i).toInt() == timeLimitSeconds) {
+                m_timeLimitCombo->setCurrentIndex(i);
+                break;
+            }
+        }
+    }
+    
+    // Set increment
+    if (m_incrementSlider) {
+        m_incrementSlider->setValue(incrementSeconds);
+    }
+    
+    m_incrementMs = incrementSeconds * 1000;
+    
+    if (timeLimitSeconds < 0) {
+        m_timeControlEnabled = false;
+    } else {
+        m_timeControlEnabled = true;
+        m_whiteTimeMs = timeLimitSeconds * 1000;
+        m_blackTimeMs = timeLimitSeconds * 1000;
+    }
+}
+
+void Qt_Chess::saveTimeControlSettings() {
+    QSettings settings("Qt_Chess", "TimeControl");
+    
+    if (m_timeLimitCombo) {
+        int index = m_timeLimitCombo->currentIndex();
+        int seconds = m_timeLimitCombo->itemData(index).toInt();
+        settings.setValue("timeLimitSeconds", seconds);
+    }
+    
+    if (m_incrementSlider) {
+        settings.setValue("incrementSeconds", m_incrementSlider->value());
+    }
+    
+    settings.sync();
 }
