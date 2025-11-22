@@ -1468,7 +1468,7 @@ void Qt_Chess::setupTimeControlUI(QVBoxLayout* timeControlPanelLayout) {
     m_startButton->setFont(startButtonFont);
     m_startButton->setEnabled(false);  // Initially disabled
     connect(m_startButton, &QPushButton::clicked, this, &Qt_Chess::onStartButtonClicked);
-    timeControlPanelLayout->addWidget(m_startButton);
+    timeControlPanelLayout->addWidget(m_startButton, 0);  // Stretch factor 0 to maintain button height
     
     // Initialize game timer
     m_gameTimer = new QTimer(this);
