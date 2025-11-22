@@ -45,6 +45,7 @@ namespace {
     const int UI_FONT_SCALE_DIVISOR = 5;   // Divisor for scaling UI fonts based on square size
     const int MIN_TIME_LABEL_HEIGHT = 30;  // Minimum height for time labels
     const int MAX_TIME_LABEL_HEIGHT = 50;  // Maximum height for time labels
+    const int MIN_TIME_LABEL_WIDTH = 100;  // Minimum width for time labels (horizontal positioning)
 }
 
 Qt_Chess::Qt_Chess(QWidget *parent)
@@ -183,7 +184,9 @@ void Qt_Chess::setupUI() {
         }
     }
     
-    // Add board to container layout, centered
+    // Add board to container layout
+    // Stretch factor 1 allows board to expand and fill available horizontal space
+    // while time labels (stretch factor 0) maintain their minimum sizes
     boardContainerLayout->addWidget(m_boardWidget, 1, Qt::AlignCenter);
     
     // White time label (right side - player's time) - initially hidden
@@ -978,7 +981,7 @@ void Qt_Chess::updateSquareSizes() {
         m_blackTimeLabel->setMinimumHeight(timeLabelHeight);
         
         // Set minimum width for horizontal positioning (ensure time text fits)
-        int timeLabelWidth = qMax(100, squareSize);  // At least 100px or square size
+        int timeLabelWidth = qMax(MIN_TIME_LABEL_WIDTH, squareSize);  // At least MIN_TIME_LABEL_WIDTH or square size
         m_whiteTimeLabel->setMinimumWidth(timeLabelWidth);
         m_blackTimeLabel->setMinimumWidth(timeLabelWidth);
     }
