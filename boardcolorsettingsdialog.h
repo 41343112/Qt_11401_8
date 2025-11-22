@@ -26,17 +26,20 @@ public:
         Classic,      // Classic brown/beige (default)
         BlueGray,     // Blue and gray
         GreenWhite,   // Green and white
-        Wooden,       // Wooden brown
-        DarkMode,     // Dark mode
         Custom1,      // Custom user-selected colors slot 1
         Custom2,      // Custom user-selected colors slot 2
-        Custom3       // Custom user-selected colors slot 3
+        Custom3,      // Custom user-selected colors slot 3
+        Custom4,      // Custom user-selected colors slot 4
+        Custom5,      // Custom user-selected colors slot 5
+        Custom6,      // Custom user-selected colors slot 6
+        Custom7       // Custom user-selected colors slot 7
     };
 
     struct BoardColorSettings {
         QColor lightSquareColor;
         QColor darkSquareColor;
         ColorScheme scheme;
+        QString customName;  // Name for custom color schemes
     };
 
     BoardColorSettings getSettings() const;
@@ -59,9 +62,10 @@ private:
     QPushButton* m_darkColorButton;
     QWidget* m_previewWidget;
     QLabel* m_previewSquares[2][2];  // 2x2 preview grid
+    QWidget* m_customColorWidget;  // Widget containing custom color controls
     
     // Custom color slots storage
-    BoardColorSettings m_customSlots[3];
+    BoardColorSettings m_customSlots[7];
     
     void setupUI();
     void updatePreview();

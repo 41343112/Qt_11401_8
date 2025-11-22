@@ -5,21 +5,20 @@
 #include <QColorDialog>
 #include <QFrame>
 #include <QVector>
-
+#include<QSettings>
+#include <QLineEdit>
 // Constants
 namespace {
     const QString HOVER_BORDER_COLOR = "#4A90E2";
     const QString HOVER_BACKGROUND_COLOR = "#F0F0F0";
     const QString PRESSED_BACKGROUND_COLOR = "#E0E0E0";
-    const int MAX_CUSTOM_SLOTS = 3;
+    const int MAX_CUSTOM_SLOTS = 7;
     
     // Preset color schemes (not including custom slots)
     const QVector<BoardColorSettingsDialog::ColorScheme> PRESET_SCHEMES = {
         BoardColorSettingsDialog::ColorScheme::Classic,
         BoardColorSettingsDialog::ColorScheme::BlueGray,
-        BoardColorSettingsDialog::ColorScheme::GreenWhite,
-        BoardColorSettingsDialog::ColorScheme::Wooden,
-        BoardColorSettingsDialog::ColorScheme::DarkMode
+        BoardColorSettingsDialog::ColorScheme::GreenWhite
     };
     
     // Helper function to generate settings key prefix for custom slots
@@ -51,31 +50,40 @@ void BoardColorSettingsDialog::setupUI() {
     QGroupBox* schemeGroup = new QGroupBox("預設配色方案", this);
     QVBoxLayout* schemeLayout = new QVBoxLayout(schemeGroup);
     
-    // Preset previews layout - first row with 5 default presets
+    // Preset previews layout - first row with 3 presets
     QHBoxLayout* presetsLayout = new QHBoxLayout();
     presetsLayout->addWidget(createPresetPreview(ColorScheme::Classic, "經典"));
     presetsLayout->addWidget(createPresetPreview(ColorScheme::BlueGray, "藍灰"));
     presetsLayout->addWidget(createPresetPreview(ColorScheme::GreenWhite, "綠白"));
-    presetsLayout->addWidget(createPresetPreview(ColorScheme::Wooden, "木質"));
-    presetsLayout->addWidget(createPresetPreview(ColorScheme::DarkMode, "暗色"));
     presetsLayout->addStretch();
     schemeLayout->addLayout(presetsLayout);
     
-    // Custom color slots - second row with 3 custom slots
-    QHBoxLayout* customSlotsLayout = new QHBoxLayout();
-    customSlotsLayout->addWidget(createPresetPreview(ColorScheme::Custom1, "自訂1"));
-    customSlotsLayout->addWidget(createPresetPreview(ColorScheme::Custom2, "自訂2"));
-    customSlotsLayout->addWidget(createPresetPreview(ColorScheme::Custom3, "自訂3"));
-    customSlotsLayout->addStretch();
-    schemeLayout->addLayout(customSlotsLayout);
-    
     mainLayout->addWidget(schemeGroup);
     
-    // Custom color selection
-    QGroupBox* customGroup = new QGroupBox("自訂顏色（使用色盤創建新配色）", this);
+    // Custom color slots - multiple rows with 7 custom slots
+    QGroupBox* customSlotsGroup = new QGroupBox("自訂配色方案", this);
+    QVBoxLayout* customSlotsLayout = new QVBoxLayout(customSlotsGroup);
+    
+    // First row: Custom 1-4
+    QHBoxLayout* customRow1 = new QHBoxLayout();
+    customRow1->addWidget(createPresetPreview(ColorScheme::Custom1, "自訂1"));
+    customRow1->addWidget(createPresetPreview(ColorScheme::Custom2, "自訂2"));
+    customRow1->addWidget(createPresetPreview(ColorScheme::Custom3, "自訂3"));
+    customRow1->addWidget(createPresetPreview(ColorScheme::Custom4, "自訂4"));
+    customRow1->addStretch();
+    customSlotsLayout->addLayout(customRow1);
+    
+    // Second row: Custom 5-7
+
+    
+    mainLayout->addWidget(customSlotsGroup);
+    
+    // Custom color selection (initially hidden)
+    m_customColorWidget = new QWidget(this);
+    QGroupBox* customGroup = new QGroupBox("自訂顏色", m_customColorWidget);
     QVBoxLayout* customLayout = new QVBoxLayout(customGroup);
     
-    QLabel* instructionLabel = new QLabel("使用下方按鈕選擇顏色，然後點擊確定時選擇儲存到哪個自訂槽位", this);
+    QLabel* instructionLabel = new QLabel("使用下方按鈕選擇顏色", this);
     instructionLabel->setWordWrap(true);
     instructionLabel->setStyleSheet("QLabel { color: #666; font-size: 11px; }");
     customLayout->addWidget(instructionLabel);
@@ -98,7 +106,12 @@ void BoardColorSettingsDialog::setupUI() {
     darkColorLayout->addStretch();
     customLayout->addLayout(darkColorLayout);
     
-    mainLayout->addWidget(customGroup);
+    QVBoxLayout* customWidgetLayout = new QVBoxLayout(m_customColorWidget);
+    customWidgetLayout->setContentsMargins(0, 0, 0, 0);
+    customWidgetLayout->addWidget(customGroup);
+    
+    m_customColorWidget->setVisible(false);  // Initially hidden
+    mainLayout->addWidget(m_customColorWidget);
     
     // Preview section
     QGroupBox* previewGroup = new QGroupBox("預覽 (2×2)", this);
@@ -162,9 +175,14 @@ QPushButton* BoardColorSettingsDialog::createPresetPreview(ColorScheme scheme, c
     
     // Get preset colors or use custom slot colors
     BoardColorSettings presetSettings;
+    QString displayLabel = label;
     if (isCustomSlot(scheme)) {
         int slotIndex = static_cast<int>(scheme) - static_cast<int>(ColorScheme::Custom1);
         presetSettings = m_customSlots[slotIndex];
+        // Use custom name if set, otherwise use default label
+        if (!presetSettings.customName.isEmpty()) {
+            displayLabel = presetSettings.customName;
+        }
     } else {
         presetSettings = getPresetSettings(scheme);
     }
@@ -194,8 +212,9 @@ QPushButton* BoardColorSettingsDialog::createPresetPreview(ColorScheme scheme, c
     
     layout->addWidget(previewWidget, 0, Qt::AlignCenter);
     
-    QLabel* nameLabel = new QLabel(label, contentWidget);
+    QLabel* nameLabel = new QLabel(displayLabel, contentWidget);
     nameLabel->setAlignment(Qt::AlignCenter);
+    nameLabel->setWordWrap(true);  // Allow text wrapping for longer names
     layout->addWidget(nameLabel);
     
     // Set content widget geometry to fill button
@@ -304,13 +323,56 @@ void BoardColorSettingsDialog::onAccept() {
                 m_settings.darkSquareColor == m_customSlots[i].darkSquareColor) {
                 matchesExistingScheme = true;
                 m_settings.scheme = static_cast<ColorScheme>(static_cast<int>(ColorScheme::Custom1) + i);
+                m_settings.customName = m_customSlots[i].customName;
                 break;
             }
         }
     }
     
-    // If colors don't match any existing scheme, ask user which custom slot to save to
-    if (!matchesExistingScheme) {
+    // If we already selected a custom slot, save directly to it
+    if (isCustomSlot(m_settings.scheme)) {
+        int slotIndex = static_cast<int>(m_settings.scheme) - static_cast<int>(ColorScheme::Custom1);
+        
+        // Ask for a name for this custom slot
+        QDialog nameDialog(this);
+        nameDialog.setWindowTitle("命名自訂配色");
+        nameDialog.setModal(true);
+        
+        QVBoxLayout* layout = new QVBoxLayout(&nameDialog);
+        
+        QLabel* label = new QLabel("為這個自訂配色命名（選填）：", &nameDialog);
+        layout->addWidget(label);
+        
+        QLineEdit* nameEdit = new QLineEdit(&nameDialog);
+        nameEdit->setPlaceholderText("例如：我的最愛、夜間模式等");
+        nameEdit->setText(m_customSlots[slotIndex].customName);
+        nameEdit->setMaxLength(20);
+        layout->addWidget(nameEdit);
+        
+        QHBoxLayout* buttonLayout = new QHBoxLayout();
+        QPushButton* okButton = new QPushButton("確定", &nameDialog);
+        QPushButton* cancelButton = new QPushButton("取消", &nameDialog);
+        
+        connect(okButton, &QPushButton::clicked, &nameDialog, &QDialog::accept);
+        connect(cancelButton, &QPushButton::clicked, &nameDialog, &QDialog::reject);
+        
+        buttonLayout->addWidget(okButton);
+        buttonLayout->addWidget(cancelButton);
+        layout->addLayout(buttonLayout);
+        
+        if (nameDialog.exec() == QDialog::Accepted) {
+            // Save to the selected custom slot
+            m_settings.customName = nameEdit->text().trimmed();
+            m_customSlots[slotIndex] = m_settings;
+            
+            saveCustomSlots();
+        } else {
+            // User cancelled, don't save
+            return;
+        }
+    }
+    // If colors don't match any existing scheme and we're not in a custom slot already, ask which slot to save to
+    else if (!matchesExistingScheme) {
         QDialog saveDialog(this);
         saveDialog.setWindowTitle("儲存自訂顏色");
         saveDialog.setModal(true);
@@ -320,14 +382,24 @@ void BoardColorSettingsDialog::onAccept() {
         QLabel* label = new QLabel("選擇要儲存到哪個自訂槽位：", &saveDialog);
         layout->addWidget(label);
         
-        QRadioButton* slot1Radio = new QRadioButton("自訂1", &saveDialog);
-        QRadioButton* slot2Radio = new QRadioButton("自訂2", &saveDialog);
-        QRadioButton* slot3Radio = new QRadioButton("自訂3", &saveDialog);
-        slot1Radio->setChecked(true);
+        QVector<QRadioButton*> slotRadios(MAX_CUSTOM_SLOTS);
+        for (int i = 0; i < MAX_CUSTOM_SLOTS; ++i) {
+            QString slotLabel = QString("自訂%1").arg(i + 1);
+            if (!m_customSlots[i].customName.isEmpty()) {
+                slotLabel += QString(" (%1)").arg(m_customSlots[i].customName);
+            }
+            slotRadios[i] = new QRadioButton(slotLabel, &saveDialog);
+            if (i == 0) slotRadios[i]->setChecked(true);
+            layout->addWidget(slotRadios[i]);
+        }
         
-        layout->addWidget(slot1Radio);
-        layout->addWidget(slot2Radio);
-        layout->addWidget(slot3Radio);
+        QLabel* nameLabel = new QLabel("為這個配色命名（選填）：", &saveDialog);
+        layout->addWidget(nameLabel);
+        
+        QLineEdit* nameEdit = new QLineEdit(&saveDialog);
+        nameEdit->setPlaceholderText("例如：我的最愛、夜間模式等");
+        nameEdit->setMaxLength(20);
+        layout->addWidget(nameEdit);
         
         QHBoxLayout* buttonLayout = new QHBoxLayout();
         QPushButton* okButton = new QPushButton("確定", &saveDialog);
@@ -342,13 +414,17 @@ void BoardColorSettingsDialog::onAccept() {
         
         if (saveDialog.exec() == QDialog::Accepted) {
             int slotIndex = 0;
-            if (slot2Radio->isChecked()) slotIndex = 1;
-            else if (slot3Radio->isChecked()) slotIndex = 2;
+            for (int i = 0; i < MAX_CUSTOM_SLOTS; ++i) {
+                if (slotRadios[i]->isChecked()) {
+                    slotIndex = i;
+                    break;
+                }
+            }
             
             // Save to the selected custom slot
+            m_settings.scheme = static_cast<ColorScheme>(static_cast<int>(ColorScheme::Custom1) + slotIndex);
+            m_settings.customName = nameEdit->text().trimmed();
             m_customSlots[slotIndex] = m_settings;
-            m_customSlots[slotIndex].scheme = static_cast<ColorScheme>(static_cast<int>(ColorScheme::Custom1) + slotIndex);
-            m_settings.scheme = m_customSlots[slotIndex].scheme;
             
             saveCustomSlots();
         } else {
@@ -366,9 +442,15 @@ void BoardColorSettingsDialog::onPresetPreviewClicked(ColorScheme scheme) {
         int slotIndex = static_cast<int>(scheme) - static_cast<int>(ColorScheme::Custom1);
         m_settings = m_customSlots[slotIndex];
         m_settings.scheme = scheme;
+        
+        // Show custom color widget for editing
+        m_customColorWidget->setVisible(true);
     } else {
         // Apply the preset color scheme
         applyPresetColorScheme(scheme);
+        
+        // Hide custom color widget
+        m_customColorWidget->setVisible(false);
     }
     
     updateColorButtons();
@@ -413,19 +495,13 @@ BoardColorSettingsDialog::BoardColorSettings BoardColorSettingsDialog::getPreset
             settings.darkSquareColor = QColor("#86A666");   // Forest green
             break;
             
-        case ColorScheme::Wooden:
-            settings.lightSquareColor = QColor("#F0DCC8");  // Light wood
-            settings.darkSquareColor = QColor("#A8865B");   // Dark wood
-            break;
-            
-        case ColorScheme::DarkMode:
-            settings.lightSquareColor = QColor("#4A4A4A");  // Dark gray
-            settings.darkSquareColor = QColor("#2C2C2C");   // Darker gray
-            break;
-            
         case ColorScheme::Custom1:
         case ColorScheme::Custom2:
         case ColorScheme::Custom3:
+        case ColorScheme::Custom4:
+        case ColorScheme::Custom5:
+        case ColorScheme::Custom6:
+        case ColorScheme::Custom7:
             // For Custom slots, return default colors as placeholder
             settings.lightSquareColor = QColor("#F0D9B5");
             settings.darkSquareColor = QColor("#B58863");
@@ -444,9 +520,11 @@ void BoardColorSettingsDialog::loadCustomSlots() {
         
         QString lightColorStr = settings.value(prefix + "lightColor", "#F0D9B5").toString();
         QString darkColorStr = settings.value(prefix + "darkColor", "#B58863").toString();
+        QString name = settings.value(prefix + "name", "").toString();
         
         m_customSlots[i].lightSquareColor = QColor(lightColorStr);
         m_customSlots[i].darkSquareColor = QColor(darkColorStr);
+        m_customSlots[i].customName = name;
         
         // Validate colors
         if (!m_customSlots[i].lightSquareColor.isValid()) {
@@ -468,11 +546,16 @@ void BoardColorSettingsDialog::saveCustomSlots() {
         
         settings.setValue(prefix + "lightColor", m_customSlots[i].lightSquareColor.name());
         settings.setValue(prefix + "darkColor", m_customSlots[i].darkSquareColor.name());
+        settings.setValue(prefix + "name", m_customSlots[i].customName);
     }
 }
 
 bool BoardColorSettingsDialog::isCustomSlot(ColorScheme scheme) const {
     return scheme == ColorScheme::Custom1 || 
            scheme == ColorScheme::Custom2 || 
-           scheme == ColorScheme::Custom3;
+           scheme == ColorScheme::Custom3 ||
+           scheme == ColorScheme::Custom4 ||
+           scheme == ColorScheme::Custom5 ||
+           scheme == ColorScheme::Custom6 ||
+           scheme == ColorScheme::Custom7;
 }
