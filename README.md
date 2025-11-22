@@ -16,6 +16,13 @@ A fully functional player-vs-player chess game built with Qt5.
 - **Visual Highlights**: Selected pieces and valid moves are highlighted (orange for normal moves, red for capture moves)
 - **Clean UI**: Classic chessboard with Unicode chess piece symbols
 - **New Game**: Reset the board to start a new game at any time
+- **Preset Board Layouts** (棋盤佈局):
+  - Choose from three preset chess board configurations:
+    - **標準開局 (Standard)**: Classic starting position with all pieces in their initial positions
+    - **中局練習 (Mid-game)**: Tactical mid-game position perfect for practicing middle-game strategy
+    - **殘局練習 (Endgame)**: King and pawn endgame position ideal for practicing endgame techniques and pawn promotion
+  - Access via "遊戲" (Game) menu > "選擇棋盤佈局" (Choose Board Layout)
+  - Great for training specific game phases or starting games from interesting positions
 - **Sound Effects**: Different sounds for moves, captures, castling, check, and checkmate
 - **Customizable Sound Settings**: 
   - Configure custom sound files for each event type
@@ -79,7 +86,13 @@ make
 7. **Turn Indicator**: The current player's turn is displayed at the top
 8. **Game Status**: Check, checkmate, and stalemate are automatically detected and displayed
 9. **New Game**: Click "New Game" button to reset the board
-10. **Sound Settings**: Click "設定" (Settings) menu > "音效設定" (Sound Settings) to:
+10. **Choose Board Layout**: Click "遊戲" (Game) menu > "選擇棋盤佈局" (Choose Board Layout) to:
+    - Select from three preset board configurations:
+      - **標準開局 (Standard)**: Start with the classic chess opening position
+      - **中局練習 (Mid-game)**: Practice tactical mid-game positions
+      - **殘局練習 (Endgame)**: Train with king and pawn endgame scenarios
+    - Perfect for focused practice on specific game phases
+11. **Sound Settings**: Click "設定" (Settings) menu > "音效設定" (Sound Settings) to:
     - Choose custom sound files for each event (move, capture, castling, check, checkmate)
     - Adjust volume levels using sliders
     - Enable/disable individual sounds or all sounds
@@ -88,7 +101,7 @@ make
     - Preview sounds before applying settings
     - **Supported audio formats**: WAV (recommended), MP3, OGG
       - WAV format is recommended for best compatibility across all platforms
-11. **Piece Icon Settings**: Click "設定" (Settings) menu > "棋子圖標設定" (Piece Icon Settings) to:
+12. **Piece Icon Settings**: Click "設定" (Settings) menu > "棋子圖標設定" (Piece Icon Settings) to:
     - Choose from multiple icon set options:
       - Default Unicode chess symbols (♔, ♕, ♖, etc.)
       - Three preset icon sets (when available)
@@ -100,7 +113,7 @@ make
     - Reset all piece icons at once using the "重設為預設值" (Reset to Defaults) button
     - **Supported image formats**: PNG, JPG, SVG, BMP
       - PNG format with transparent background is recommended for best appearance
-12. **Board Color Settings**: Click "設定" (Settings) menu > "棋盤顏色設定" (Board Color Settings) to:
+13. **Board Color Settings**: Click "設定" (Settings) menu > "棋盤顏色設定" (Board Color Settings) to:
     - Choose from three preset color schemes:
       - 經典棕褐色 (Classic) - Traditional brown and beige colors
       - 藍灰配色 (Blue/Gray) - Modern blue and gray tones
@@ -138,6 +151,7 @@ make
 - `soundsettingsdialog.h/cpp` - Sound settings dialog for customizing audio
 - `pieceiconsettingsdialog.h/cpp` - Piece icon settings dialog for customizing piece graphics
 - `boardcolorsettingsdialog.h/cpp` - Board color settings dialog for customizing board colors
+- `boardpresetdialog.h/cpp` - Board preset selection dialog for choosing initial board layouts
 - `qt_chess.ui` - Qt UI designer file
 - `resources.qrc` - Qt resource file for embedded sound files
 

@@ -39,7 +39,6 @@ void ChessBoard::clearBoard() {
 }
 
 void ChessBoard::initializeStandardBoard() {
-void ChessBoard::initializeStandardBoard() {
     // Setup black pieces (row 0 and 1)
     m_board[0][0] = ChessPiece(PieceType::Rook, PieceColor::Black);
     m_board[0][1] = ChessPiece(PieceType::Knight, PieceColor::Black);
@@ -138,7 +137,6 @@ void ChessBoard::initializeEndGameBoard() {
             }
         }
     }
-}
 }
 
 const ChessPiece& ChessBoard::getPiece(int row, int col) const {
