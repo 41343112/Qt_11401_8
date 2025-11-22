@@ -50,6 +50,7 @@ private slots:
     void onPieceIconSettingsClicked();
     void onBoardColorSettingsClicked();
     void onFlipBoardClicked();
+    void onStartButtonClicked();
 
 private:
     Ui::Qt_Chess *ui;
@@ -93,11 +94,14 @@ private:
     QLabel* m_incrementLabel;
     QLabel* m_whiteTimeLabel;
     QLabel* m_blackTimeLabel;
+    QPushButton* m_startButton;
     QTimer* m_gameTimer;
     int m_whiteTimeMs;  // White's remaining time in milliseconds
     int m_blackTimeMs;  // Black's remaining time in milliseconds
     int m_incrementMs;  // Increment per move in milliseconds
     bool m_timeControlEnabled;
+    bool m_timerStarted;  // Track if timer has been manually started
+    QWidget* m_boardContainer;  // Container for board with overlaid time displays
     
     void setupUI();
     void setupMenuBar();
@@ -145,5 +149,6 @@ private:
     void applyIncrement();
     void loadTimeControlSettings();
     void saveTimeControlSettings();
+    void positionTimeDisplaysOnBoard();
 };
 #endif // QT_CHESS_H

@@ -24,6 +24,8 @@
 namespace {
     const QString CHECK_HIGHLIGHT_STYLE = "QPushButton { background-color: #FF6B6B; border: 2px solid #FF0000; }";
     const int DEFAULT_ICON_SIZE = 40; // Default fallback icon size in pixels
+    const int TIME_DISPLAY_MARGIN = 10; // Margin from board edges for time displays
+    const int TIME_DISPLAY_FALLBACK_OFFSET = 120; // Offset for white time fallback position
 }
 
 Qt_Chess::Qt_Chess(QWidget *parent)
@@ -43,11 +45,14 @@ Qt_Chess::Qt_Chess(QWidget *parent)
     , m_incrementLabel(nullptr)
     , m_whiteTimeLabel(nullptr)
     , m_blackTimeLabel(nullptr)
+    , m_startButton(nullptr)
     , m_gameTimer(nullptr)
     , m_whiteTimeMs(0)
     , m_blackTimeMs(0)
     , m_incrementMs(0)
     , m_timeControlEnabled(false)
+    , m_timerStarted(false)
+    , m_boardContainer(nullptr)
 {
     ui->setupUi(this);
     setWindowTitle("國際象棋 - 雙人對弈");
@@ -84,11 +89,14 @@ void Qt_Chess::setupUI() {
     // Create horizontal layout for board and time controls
     QHBoxLayout* contentLayout = new QHBoxLayout();
     
-    // Chess board container
-    QVBoxLayout* boardLayout = new QVBoxLayout();
+    // Chess board container with overlaid time displays
+    m_boardContainer = new QWidget(this);
+    m_boardContainer->setMouseTracking(true);
+    QVBoxLayout* boardContainerLayout = new QVBoxLayout(m_boardContainer);
+    boardContainerLayout->setContentsMargins(0, 0, 0, 0);
     
     // Chess board
-    m_boardWidget = new QWidget(this);
+    m_boardWidget = new QWidget(m_boardContainer);
     m_boardWidget->setMouseTracking(true);
     QGridLayout* gridLayout = new QGridLayout(m_boardWidget);
     gridLayout->setSpacing(0);
@@ -124,8 +132,8 @@ void Qt_Chess::setupUI() {
         }
     }
     
-    boardLayout->addWidget(m_boardWidget, 0, Qt::AlignCenter);
-    contentLayout->addLayout(boardLayout, 1);
+    boardContainerLayout->addWidget(m_boardWidget, 0, Qt::AlignCenter);
+    contentLayout->addWidget(m_boardContainer, 1);
     
     // Right panel for time controls
     QVBoxLayout* rightPanelLayout = new QVBoxLayout();
@@ -329,9 +337,8 @@ void Qt_Chess::onSquareClicked(int displayRow, int displayCol) {
             // Play appropriate sound effect
             playSoundForMove(isCapture, isCastling);
             
-            // Update time displays and restart timer
+            // Update time displays (timer only runs if already started)
             updateTimeDisplays();
-            startTimer();
             
             updateStatus();
         } else if (clickedSquare == m_selectedSquare) {
@@ -356,6 +363,8 @@ void Qt_Chess::onNewGameClicked() {
     
     // Reset time control
     stopTimer();
+    m_timerStarted = false;
+    
     if (m_timeControlEnabled && m_timeLimitCombo) {
         int index = m_timeLimitCombo->currentIndex();
         int seconds = m_timeLimitCombo->itemData(index).toInt();
@@ -363,12 +372,33 @@ void Qt_Chess::onNewGameClicked() {
             m_whiteTimeMs = seconds * 1000;
             m_blackTimeMs = seconds * 1000;
         }
+        // Enable start button when time control is active
+        if (m_startButton) {
+            m_startButton->setEnabled(true);
+            m_startButton->setText("開始");
+        }
+    } else {
+        // Disable start button when time control is not active
+        if (m_startButton) {
+            m_startButton->setEnabled(false);
+            m_startButton->setText("開始");
+        }
     }
     
     updateBoard();
     updateStatus();
     updateTimeDisplays();
 }
+
+void Qt_Chess::onStartButtonClicked() {
+    if (m_timeControlEnabled && !m_timerStarted) {
+        m_timerStarted = true;
+        startTimer();
+        if (m_startButton) {
+            m_startButton->setEnabled(false);
+            m_startButton->setText("進行中");
+        }
+    }
 }
 
 void Qt_Chess::onSoundSettingsClicked() {
@@ -673,9 +703,8 @@ void Qt_Chess::mouseReleaseEvent(QMouseEvent *event) {
                 // Play appropriate sound effect
                 playSoundForMove(isCapture, isCastling);
                 
-                // Update time displays and restart timer
+                // Update time displays (timer only runs if already started)
                 updateTimeDisplays();
-                startTimer();
                 
                 updateStatus();
                 clearHighlights();
@@ -729,6 +758,9 @@ void Qt_Chess::mouseReleaseEvent(QMouseEvent *event) {
 void Qt_Chess::resizeEvent(QResizeEvent *event) {
     QMainWindow::resizeEvent(event);
     updateSquareSizes();
+    
+    // Reposition time displays on board
+    positionTimeDisplaysOnBoard();
     
     // Reapply highlights after resize
     if (m_pieceSelected) {
@@ -1216,51 +1248,79 @@ void Qt_Chess::setupTimeControlUI(QVBoxLayout* rightPanelLayout) {
     m_incrementLabel->setAlignment(Qt::AlignCenter);
     timeControlLayout->addWidget(m_incrementLabel);
     
-    m_incrementSlider = new QSlider(Qt::Horizontal, this);
+    m_incrementSlider = new QSlider(Qt::Vertical, this);  // Changed to vertical
     m_incrementSlider->setMinimum(0);
     m_incrementSlider->setMaximum(60);
     m_incrementSlider->setValue(0);
-    m_incrementSlider->setTickPosition(QSlider::TicksBelow);
+    m_incrementSlider->setTickPosition(QSlider::TicksLeft);
     m_incrementSlider->setTickInterval(5);
     connect(m_incrementSlider, &QSlider::valueChanged, this, &Qt_Chess::onIncrementChanged);
-    timeControlLayout->addWidget(m_incrementSlider);
+    timeControlLayout->addWidget(m_incrementSlider, 1);  // Give it stretch factor to fill height
     
-    timeControlLayout->addSpacing(20);
+    // Start button
+    m_startButton = new QPushButton("開始", this);
+    m_startButton->setMinimumHeight(40);
+    QFont startButtonFont;
+    startButtonFont.setPointSize(12);
+    startButtonFont.setBold(true);
+    m_startButton->setFont(startButtonFont);
+    m_startButton->setEnabled(false);  // Initially disabled
+    connect(m_startButton, &QPushButton::clicked, this, &Qt_Chess::onStartButtonClicked);
+    timeControlLayout->addWidget(m_startButton);
     
-    // Player time displays
-    QLabel* blackPlayerLabel = new QLabel("黑方時間:", this);
-    blackPlayerLabel->setFont(labelFont);
-    timeControlLayout->addWidget(blackPlayerLabel);
+    rightPanelLayout->addWidget(timeControlGroup);
     
-    m_blackTimeLabel = new QLabel("--:--", this);
+    // Create time displays as overlays on the board (will be positioned later)
+    // Black time display (top-left of board)
+    m_blackTimeLabel = new QLabel("--:--", m_boardContainer);
     QFont timeFont;
-    timeFont.setPointSize(16);
+    timeFont.setPointSize(14);
     timeFont.setBold(true);
     m_blackTimeLabel->setFont(timeFont);
     m_blackTimeLabel->setAlignment(Qt::AlignCenter);
-    m_blackTimeLabel->setStyleSheet("QLabel { background-color: #333; color: #FFF; padding: 10px; border-radius: 5px; }");
-    timeControlLayout->addWidget(m_blackTimeLabel);
+    m_blackTimeLabel->setStyleSheet("QLabel { background-color: rgba(51, 51, 51, 200); color: #FFF; padding: 8px; border-radius: 5px; }");
+    m_blackTimeLabel->setFixedSize(100, 40);
     
-    timeControlLayout->addSpacing(10);
-    
-    QLabel* whitePlayerLabel = new QLabel("白方時間:", this);
-    whitePlayerLabel->setFont(labelFont);
-    timeControlLayout->addWidget(whitePlayerLabel);
-    
-    m_whiteTimeLabel = new QLabel("--:--", this);
+    // White time display (bottom-right of board)
+    m_whiteTimeLabel = new QLabel("--:--", m_boardContainer);
     m_whiteTimeLabel->setFont(timeFont);
     m_whiteTimeLabel->setAlignment(Qt::AlignCenter);
-    m_whiteTimeLabel->setStyleSheet("QLabel { background-color: #333; color: #FFF; padding: 10px; border-radius: 5px; }");
-    timeControlLayout->addWidget(m_whiteTimeLabel);
+    m_whiteTimeLabel->setStyleSheet("QLabel { background-color: rgba(51, 51, 51, 200); color: #FFF; padding: 8px; border-radius: 5px; }");
+    m_whiteTimeLabel->setFixedSize(100, 40);
     
-    timeControlLayout->addStretch();
+    // Show the labels
+    m_blackTimeLabel->show();
+    m_whiteTimeLabel->show();
     
-    rightPanelLayout->addWidget(timeControlGroup);
-    rightPanelLayout->addStretch();
+    // Position the time displays (will be called after board is sized)
+    positionTimeDisplaysOnBoard();
     
     // Initialize game timer
     m_gameTimer = new QTimer(this);
     connect(m_gameTimer, &QTimer::timeout, this, &Qt_Chess::onGameTimerTick);
+}
+
+void Qt_Chess::positionTimeDisplaysOnBoard() {
+    if (!m_boardWidget || !m_blackTimeLabel || !m_whiteTimeLabel) return;
+    
+    // Get the board widget's position within the container
+    QPoint boardPos = m_boardWidget->pos();
+    int boardWidth = m_boardWidget->width();
+    int boardHeight = m_boardWidget->height();
+    
+    // Position black time at top-left of board (offset from board position)
+    m_blackTimeLabel->move(boardPos.x() + TIME_DISPLAY_MARGIN, boardPos.y() + TIME_DISPLAY_MARGIN);
+    m_blackTimeLabel->raise();  // Ensure it's on top
+    
+    // Position white time at bottom-right of board
+    if (boardHeight > 0 && boardWidth > 0) {
+        m_whiteTimeLabel->move(boardPos.x() + boardWidth - m_whiteTimeLabel->width() - TIME_DISPLAY_MARGIN, 
+                               boardPos.y() + boardHeight - m_whiteTimeLabel->height() - TIME_DISPLAY_MARGIN);
+    } else {
+        // Default position if board isn't sized yet (offset to avoid overlap with black label)
+        m_whiteTimeLabel->move(boardPos.x() + TIME_DISPLAY_FALLBACK_OFFSET, boardPos.y() + TIME_DISPLAY_MARGIN);
+    }
+    m_whiteTimeLabel->raise();  // Ensure it's on top
 }
 
 void Qt_Chess::updateTimeDisplays() {
@@ -1284,11 +1344,11 @@ void Qt_Chess::updateTimeDisplays() {
     // Highlight the active player's timer
     PieceColor currentPlayer = m_chessBoard.getCurrentPlayer();
     if (currentPlayer == PieceColor::White) {
-        m_whiteTimeLabel->setStyleSheet("QLabel { background-color: #4CAF50; color: #FFF; padding: 10px; border-radius: 5px; }");
-        m_blackTimeLabel->setStyleSheet("QLabel { background-color: #333; color: #FFF; padding: 10px; border-radius: 5px; }");
+        m_whiteTimeLabel->setStyleSheet("QLabel { background-color: rgba(76, 175, 80, 200); color: #FFF; padding: 8px; border-radius: 5px; }");
+        m_blackTimeLabel->setStyleSheet("QLabel { background-color: rgba(51, 51, 51, 200); color: #FFF; padding: 8px; border-radius: 5px; }");
     } else {
-        m_blackTimeLabel->setStyleSheet("QLabel { background-color: #4CAF50; color: #FFF; padding: 10px; border-radius: 5px; }");
-        m_whiteTimeLabel->setStyleSheet("QLabel { background-color: #333; color: #FFF; padding: 10px; border-radius: 5px; }");
+        m_blackTimeLabel->setStyleSheet("QLabel { background-color: rgba(76, 175, 80, 200); color: #FFF; padding: 8px; border-radius: 5px; }");
+        m_whiteTimeLabel->setStyleSheet("QLabel { background-color: rgba(51, 51, 51, 200); color: #FFF; padding: 8px; border-radius: 5px; }");
     }
 }
 
@@ -1301,11 +1361,21 @@ void Qt_Chess::onTimeLimitChanged(int index) {
         // Unlimited time
         m_timeControlEnabled = false;
         stopTimer();
+        m_timerStarted = false;
+        if (m_startButton) {
+            m_startButton->setEnabled(false);
+            m_startButton->setText("開始");
+        }
     } else {
         // Set time limit
         m_timeControlEnabled = true;
         m_whiteTimeMs = seconds * 1000;
         m_blackTimeMs = seconds * 1000;
+        m_timerStarted = false;
+        if (m_startButton) {
+            m_startButton->setEnabled(true);
+            m_startButton->setText("開始");
+        }
     }
     
     updateTimeDisplays();
@@ -1329,6 +1399,11 @@ void Qt_Chess::onGameTimerTick() {
             m_whiteTimeMs = 0;
             updateTimeDisplays();
             stopTimer();
+            m_timerStarted = false;  // Reset timer state
+            if (m_startButton) {
+                m_startButton->setText("開始");
+                m_startButton->setEnabled(true);
+            }
             QMessageBox::information(this, "時間到", "白方超時！黑方獲勝！");
             return;
         }
@@ -1338,6 +1413,11 @@ void Qt_Chess::onGameTimerTick() {
             m_blackTimeMs = 0;
             updateTimeDisplays();
             stopTimer();
+            m_timerStarted = false;  // Reset timer state
+            if (m_startButton) {
+                m_startButton->setText("開始");
+                m_startButton->setEnabled(true);
+            }
             QMessageBox::information(this, "時間到", "黑方超時！白方獲勝！");
             return;
         }
@@ -1347,7 +1427,7 @@ void Qt_Chess::onGameTimerTick() {
 }
 
 void Qt_Chess::startTimer() {
-    if (m_timeControlEnabled && m_gameTimer && !m_gameTimer->isActive()) {
+    if (m_timeControlEnabled && m_timerStarted && m_gameTimer && !m_gameTimer->isActive()) {
         m_gameTimer->start(100); // Tick every 100ms for smooth countdown
     }
 }
