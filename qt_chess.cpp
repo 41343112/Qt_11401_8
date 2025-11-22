@@ -28,6 +28,19 @@ namespace {
     const int MAX_SLIDER_POSITION = 31; // Slider range: 0 (unlimited), 1 (30s), 2-31 (1-30 min)
     const int MAX_MINUTES = 30; // Maximum time limit in minutes
     const QString GAME_ENDED_TEXT = "遊戲結束"; // Text shown when game ends
+    
+    // Layout constants for window sizing
+    const int LEFT_PANEL_MAX_WIDTH = 300;  // Maximum width of time control panel
+    const int RIGHT_PANEL_MAX_WIDTH = 200; // Maximum width of new game button panel
+    const int PANEL_SPACING = 20;          // Spacing between panels
+    const int BASE_MARGINS = 30;           // Base margins including board container margins
+    
+    // Scaling constants for UI elements
+    const int MIN_SQUARE_SIZE = 30;        // Minimum size for chess board squares
+    const int MAX_SQUARE_SIZE = 180;       // Maximum size for chess board squares
+    const int MIN_UI_FONT_SIZE = 10;       // Minimum font size for UI elements
+    const int MAX_UI_FONT_SIZE = 16;       // Maximum font size for UI elements
+    const int UI_FONT_SCALE_DIVISOR = 5;   // Divisor for scaling UI fonts based on square size
 }
 
 Qt_Chess::Qt_Chess(QWidget *parent)
@@ -67,6 +80,7 @@ Qt_Chess::Qt_Chess(QWidget *parent)
     // Set minimum window size to ensure all content fits without clipping
     // Calculation: left panel (300) + min board (8*30+4=244) + right panel (200) + spacing/margins (80) = 824
     // Height: board (244) + time labels (80) + spacing (60) = 384, increased to 420 for better usability
+    // Using constants: LEFT_PANEL_MAX_WIDTH + (8*MIN_SQUARE_SIZE+4) + RIGHT_PANEL_MAX_WIDTH + spacing
     setMinimumSize(820, 420);
     
     setMouseTracking(true);
@@ -99,7 +113,7 @@ void Qt_Chess::setupUI() {
     
     // Left panel for time controls
     m_timeControlPanel = new QWidget(this);
-    m_timeControlPanel->setMaximumWidth(300);  // Limit panel width
+    m_timeControlPanel->setMaximumWidth(LEFT_PANEL_MAX_WIDTH);  // Limit panel width
     QVBoxLayout* leftPanelLayout = new QVBoxLayout(m_timeControlPanel);
     leftPanelLayout->setContentsMargins(0, 0, 0, 0);
     setupTimeControlUI(leftPanelLayout);
@@ -138,7 +152,7 @@ void Qt_Chess::setupUI() {
     for (int row = 0; row < 8; ++row) {
         for (int col = 0; col < 8; ++col) {
             QPushButton* square = new QPushButton(m_boardWidget);
-            square->setMinimumSize(30, 30);  // Set minimum size to match updateSquareSizes()
+            square->setMinimumSize(MIN_SQUARE_SIZE, MIN_SQUARE_SIZE);  // Set minimum size to match updateSquareSizes()
             square->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
             square->setMouseTracking(true);
             
@@ -180,7 +194,7 @@ void Qt_Chess::setupUI() {
     
     // Right panel for new game button - positioned in the middle
     QWidget* rightPanel = new QWidget(this);
-    rightPanel->setMaximumWidth(200);  // Limit panel width
+    rightPanel->setMaximumWidth(RIGHT_PANEL_MAX_WIDTH);  // Limit panel width
     QVBoxLayout* rightPanelLayout = new QVBoxLayout(rightPanel);
     rightPanelLayout->setContentsMargins(0, 0, 0, 0);
     
@@ -873,33 +887,32 @@ void Qt_Chess::updateSquareSizes() {
     if (!central) return;
     
     // Calculate available space for the board
-    // Account for the horizontal layout with left panel (max 300px), right panel (max 200px)
-    // and spacing between panels
+    // Account for the horizontal layout with left panel, right panel, and spacing between panels
     int reservedWidth = 0;
     int reservedHeight = 0;
     
     // Account for left panel width if visible
     if (m_timeControlPanel && m_timeControlPanel->isVisible()) {
-        reservedWidth += 300;  // Reserve full width for time control panel
-        reservedWidth += 20;   // Spacing after left panel
+        reservedWidth += LEFT_PANEL_MAX_WIDTH;  // Reserve full width for time control panel
+        reservedWidth += PANEL_SPACING;         // Spacing after left panel
     }
     
     // Account for right panel width (where new game button is)
     // Reserve space only if new game button is visible or could be visible
     if (m_newGameButton) {
-        reservedWidth += 200;  // Right panel space
-        reservedWidth += 20;   // Spacing before right panel
+        reservedWidth += RIGHT_PANEL_MAX_WIDTH;  // Right panel space
+        reservedWidth += PANEL_SPACING;          // Spacing before right panel
     }
     
     // Add base margins (including board container margins)
-    reservedWidth += 30;  // Base margins plus board container margins (5px each side)
+    reservedWidth += BASE_MARGINS;
     
     // Account for time labels height if visible, plus spacing
     if (m_whiteTimeLabel && m_whiteTimeLabel->isVisible()) {
-        reservedHeight += m_whiteTimeLabel->minimumHeight() + 10;  // 40 + 10 spacing
+        reservedHeight += m_whiteTimeLabel->minimumHeight() + 10;  // Current height + spacing
     }
     if (m_blackTimeLabel && m_blackTimeLabel->isVisible()) {
-        reservedHeight += m_blackTimeLabel->minimumHeight() + 10;  // 40 + 10 spacing
+        reservedHeight += m_blackTimeLabel->minimumHeight() + 10;  // Current height + spacing
     }
     
     // Add some padding for layout margins and spacing
@@ -912,8 +925,8 @@ void Qt_Chess::updateSquareSizes() {
     int squareSize = qMin(availableWidth, availableHeight) / 8;
     
     // Ensure minimum and reasonable maximum size
-    squareSize = qMax(squareSize, 30);  // Reduced from 35 to 30 for better small window support
-    squareSize = qMin(squareSize, 180);  // Cap at a reasonable maximum
+    squareSize = qMax(squareSize, MIN_SQUARE_SIZE);  // Use constant for minimum size
+    squareSize = qMin(squareSize, MAX_SQUARE_SIZE);  // Cap at a reasonable maximum
     
     // Calculate font size based on square size (approximately 45% of square size)
     int fontSize = squareSize * 9 / 20;  // This gives roughly 36pt for 80px squares
@@ -946,7 +959,7 @@ void Qt_Chess::updateSquareSizes() {
     
     // Update time label font sizes to scale with board size
     if (m_whiteTimeLabel && m_blackTimeLabel) {
-        int timeFontSize = qMax(10, qMin(16, squareSize / 5));  // Scale between 10-16pt
+        int timeFontSize = qMax(MIN_UI_FONT_SIZE, qMin(MAX_UI_FONT_SIZE, squareSize / UI_FONT_SCALE_DIVISOR));
         QFont timeFont = m_whiteTimeLabel->font();
         timeFont.setPointSize(timeFontSize);
         timeFont.setBold(true);
@@ -961,7 +974,7 @@ void Qt_Chess::updateSquareSizes() {
     
     // Update new game button font size to scale with board
     if (m_newGameButton) {
-        int buttonFontSize = qMax(10, qMin(16, squareSize / 5));
+        int buttonFontSize = qMax(MIN_UI_FONT_SIZE, qMin(MAX_UI_FONT_SIZE, squareSize / UI_FONT_SCALE_DIVISOR));
         QFont buttonFont = m_newGameButton->font();
         buttonFont.setPointSize(buttonFontSize);
         buttonFont.setBold(true);
