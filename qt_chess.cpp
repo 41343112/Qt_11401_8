@@ -1517,7 +1517,7 @@ void Qt_Chess::onGameTimerTick() {
                 updateTimeDisplays();
                 stopTimer();
                 m_timerStarted = false;  // Reset timer state
-                resetToConfigurationState();
+                showTimeControlAfterTimeout();
                 QMessageBox::information(this, "時間到", "白方超時！黑方獲勝！");
                 return;
             }
@@ -1531,7 +1531,7 @@ void Qt_Chess::onGameTimerTick() {
                 updateTimeDisplays();
                 stopTimer();
                 m_timerStarted = false;  // Reset timer state
-                resetToConfigurationState();
+                showTimeControlAfterTimeout();
                 QMessageBox::information(this, "時間到", "黑方超時！白方獲勝！");
                 return;
             }
@@ -1687,24 +1687,24 @@ void Qt_Chess::saveTimeControlSettings() {
     settings.sync();
 }
 
-void Qt_Chess::resetToConfigurationState() {
-    // Show time control panel
+void Qt_Chess::showTimeControlAfterTimeout() {
+    // Show time control panel so user can adjust settings
     if (m_timeControlPanel) {
         m_timeControlPanel->show();
     }
     
-    // Show new game button
+    // Show new game button so user can quickly start a new game
     if (m_newGameButton) {
         m_newGameButton->show();
     }
     
-    // Re-enable start button if time control is active
+    // Re-enable start button based on whether time control is active
     if (m_startButton) {
         m_startButton->setText("開始");
         m_startButton->setEnabled(m_timeControlEnabled);
     }
     
-    // Hide time displays
+    // Hide time displays since game is over
     if (m_whiteTimeLabel) m_whiteTimeLabel->hide();
     if (m_blackTimeLabel) m_blackTimeLabel->hide();
 }

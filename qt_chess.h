@@ -155,6 +155,6 @@ private:
     void loadTimeControlSettings();
     void saveTimeControlSettings();
     void handleGameEnd();  // Helper to handle game end state
-    void resetToConfigurationState();  // Helper to show time control panel and hide game UI
+    void showTimeControlAfterTimeout();  // Helper to show time control panel after time expires
 };
 #endif // QT_CHESS_H
