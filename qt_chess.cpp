@@ -24,6 +24,7 @@
 namespace {
     const QString CHECK_HIGHLIGHT_STYLE = "QPushButton { background-color: #FF6B6B; border: 2px solid #FF0000; }";
     const int DEFAULT_ICON_SIZE = 40; // Default fallback icon size in pixels
+    const int MAX_TIME_LIMIT_SECONDS = 3600; // Maximum time limit: 60 minutes
 }
 
 Qt_Chess::Qt_Chess(QWidget *parent)
@@ -1226,7 +1227,7 @@ void Qt_Chess::setupTimeControlUI(QVBoxLayout* rightPanelLayout) {
     
     m_timeLimitSlider = new QSlider(Qt::Horizontal, this);
     m_timeLimitSlider->setMinimum(0);  // 0 = unlimited
-    m_timeLimitSlider->setMaximum(3600);  // Max 60 minutes = 3600 seconds
+    m_timeLimitSlider->setMaximum(MAX_TIME_LIMIT_SECONDS);  // Max 60 minutes
     m_timeLimitSlider->setValue(0);
     m_timeLimitSlider->setTickPosition(QSlider::TicksBelow);
     m_timeLimitSlider->setTickInterval(300);  // Tick every 5 minutes
@@ -1450,10 +1451,15 @@ void Qt_Chess::loadTimeControlSettings() {
     int timeLimitSeconds = settings.value("timeLimitSeconds", 0).toInt();
     int incrementSeconds = settings.value("incrementSeconds", 0).toInt();
     
+    // Validate and normalize time limit (convert legacy -1 to 0 for unlimited)
+    if (timeLimitSeconds < 0) {
+        timeLimitSeconds = 0;  // Normalize legacy unlimited setting
+    }
+    // Clamp to valid range [0, MAX_TIME_LIMIT_SECONDS]
+    timeLimitSeconds = qBound(0, timeLimitSeconds, MAX_TIME_LIMIT_SECONDS);
+    
     // Set the time limit slider
     if (m_timeLimitSlider) {
-        // Clamp to valid range
-        timeLimitSeconds = qBound(0, timeLimitSeconds, 3600);
         m_timeLimitSlider->setValue(timeLimitSeconds);
     }
     
