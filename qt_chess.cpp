@@ -33,8 +33,9 @@ namespace {
     const int LEFT_PANEL_MAX_WIDTH = 300;  // Maximum width of time control panel
     const int RIGHT_PANEL_MAX_WIDTH = 200; // Maximum width of new game button panel
     const int PANEL_SPACING = 20;          // Spacing between panels
-    const int BASE_MARGINS = 30;           // Base layout margins (not including board container's 5px*2=10px)
+    const int BASE_MARGINS = 30;           // Base layout margins (excluding board container's 2*BOARD_CONTAINER_MARGIN)
     const int TIME_LABEL_SPACING = 10;     // Spacing around time labels
+    const int BOARD_CONTAINER_MARGIN = 5;  // Board container margin on each side (total horizontal: 2*5=10px)
     
     // Scaling constants for UI elements
     const int MIN_SQUARE_SIZE = 30;        // Minimum size for chess board squares
@@ -42,6 +43,8 @@ namespace {
     const int MIN_UI_FONT_SIZE = 10;       // Minimum font size for UI elements
     const int MAX_UI_FONT_SIZE = 16;       // Maximum font size for UI elements
     const int UI_FONT_SCALE_DIVISOR = 5;   // Divisor for scaling UI fonts based on square size
+    const int MIN_TIME_LABEL_HEIGHT = 30;  // Minimum height for time labels
+    const int MAX_TIME_LABEL_HEIGHT = 50;  // Maximum height for time labels
 }
 
 Qt_Chess::Qt_Chess(QWidget *parent)
@@ -80,7 +83,8 @@ Qt_Chess::Qt_Chess(QWidget *parent)
     
     // Set minimum window size to ensure all content fits without clipping
     // Calculation: LEFT_PANEL_MAX_WIDTH (300) + min board (8*MIN_SQUARE_SIZE+4=244) + 
-    //              RIGHT_PANEL_MAX_WIDTH (200) + 2*PANEL_SPACING (40) + BASE_MARGINS (30) + board margins (10) = 824
+    //              RIGHT_PANEL_MAX_WIDTH (200) + 2*PANEL_SPACING (40) + BASE_MARGINS (30) + 
+    //              board container margins (2*BOARD_CONTAINER_MARGIN=10) = 824
     // Height: board (244) + time labels (~80) + spacing (~60) = ~384, using 420 for comfortable sizing
     setMinimumSize(824, 420);
     
@@ -124,7 +128,8 @@ void Qt_Chess::setupUI() {
     m_boardContainer = new QWidget(this);
     m_boardContainer->setMouseTracking(true);
     QVBoxLayout* boardContainerLayout = new QVBoxLayout(m_boardContainer);
-    boardContainerLayout->setContentsMargins(5, 5, 5, 5);  // Add margins to prevent clipping
+    boardContainerLayout->setContentsMargins(BOARD_CONTAINER_MARGIN, BOARD_CONTAINER_MARGIN, 
+                                             BOARD_CONTAINER_MARGIN, BOARD_CONTAINER_MARGIN);
     boardContainerLayout->setSpacing(TIME_LABEL_SPACING);  // Consistent spacing between elements
     
     // Time display font
@@ -968,7 +973,7 @@ void Qt_Chess::updateSquareSizes() {
         m_blackTimeLabel->setFont(timeFont);
         
         // Update time label minimum heights proportionally
-        int timeLabelHeight = qMax(30, qMin(50, squareSize / 2));
+        int timeLabelHeight = qMax(MIN_TIME_LABEL_HEIGHT, qMin(MAX_TIME_LABEL_HEIGHT, squareSize / 2));
         m_whiteTimeLabel->setMinimumHeight(timeLabelHeight);
         m_blackTimeLabel->setMinimumHeight(timeLabelHeight);
     }
