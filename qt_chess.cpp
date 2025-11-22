@@ -33,7 +33,7 @@ namespace {
     const int LEFT_PANEL_MAX_WIDTH = 300;  // Maximum width of time control panel
     const int RIGHT_PANEL_MAX_WIDTH = 200; // Maximum width of new game button panel
     const int PANEL_SPACING = 20;          // Spacing between panels
-    const int BASE_MARGINS = 30;           // Base margins including board container margins
+    const int BASE_MARGINS = 30;           // Base layout margins (not including board container's 5px*2=10px)
     
     // Scaling constants for UI elements
     const int MIN_SQUARE_SIZE = 30;        // Minimum size for chess board squares
@@ -78,9 +78,10 @@ Qt_Chess::Qt_Chess(QWidget *parent)
     resize(900, 660);  // Increased width to accommodate time control panel
     
     // Set minimum window size to ensure all content fits without clipping
-    // Calculation: left panel (300) + min board (8*30+4=244) + right panel (200) + spacing/margins (80) = 824
+    // Calculation: LEFT_PANEL_MAX_WIDTH (300) + min board (8*MIN_SQUARE_SIZE+4=244) + 
+    //              RIGHT_PANEL_MAX_WIDTH (200) + 2*PANEL_SPACING (40) + BASE_MARGINS (30) + board margins (10) = 824
+    // Using 820 as a round number close to the calculated minimum
     // Height: board (244) + time labels (80) + spacing (60) = 384, increased to 420 for better usability
-    // Using constants: LEFT_PANEL_MAX_WIDTH + (8*MIN_SQUARE_SIZE+4) + RIGHT_PANEL_MAX_WIDTH + spacing
     setMinimumSize(820, 420);
     
     setMouseTracking(true);
@@ -904,7 +905,7 @@ void Qt_Chess::updateSquareSizes() {
         reservedWidth += PANEL_SPACING;          // Spacing before right panel
     }
     
-    // Add base margins (including board container margins)
+    // Add base margins (not including board container's 10px horizontal margins already in board size)
     reservedWidth += BASE_MARGINS;
     
     // Account for time labels height if visible, plus spacing
