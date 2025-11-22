@@ -30,7 +30,7 @@ namespace {
     const QString GAME_ENDED_TEXT = "遊戲結束"; // Text shown when game ends
     
     // Layout constants for window sizing
-    const int LEFT_PANEL_MAX_WIDTH = 300;  // Maximum width of time control panel
+    const int LEFT_PANEL_MAX_WIDTH = 800;  // Maximum width of time control panel
     const int RIGHT_PANEL_MAX_WIDTH = 200; // Maximum width of new game button panel
     const int PANEL_SPACING = 20;          // Spacing between panels
     const int BASE_MARGINS = 30;           // Base layout margins (excluding board container's 2*BOARD_CONTAINER_MARGIN)
