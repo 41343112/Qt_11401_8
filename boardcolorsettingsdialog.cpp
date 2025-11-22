@@ -367,10 +367,8 @@ void BoardColorSettingsDialog::onAccept() {
         
         if (nameDialog.exec() == QDialog::Accepted) {
             // Save to the selected custom slot
-            QString customName = nameEdit->text().trimmed();
+            m_settings.customName = nameEdit->text().trimmed();
             m_customSlots[slotIndex] = m_settings;
-            m_customSlots[slotIndex].customName = customName;
-            m_settings.customName = customName;
             
             saveCustomSlots();
         } else {
@@ -429,10 +427,9 @@ void BoardColorSettingsDialog::onAccept() {
             }
             
             // Save to the selected custom slot
+            m_settings.scheme = static_cast<ColorScheme>(static_cast<int>(ColorScheme::Custom1) + slotIndex);
+            m_settings.customName = nameEdit->text().trimmed();
             m_customSlots[slotIndex] = m_settings;
-            m_customSlots[slotIndex].scheme = static_cast<ColorScheme>(static_cast<int>(ColorScheme::Custom1) + slotIndex);
-            m_customSlots[slotIndex].customName = nameEdit->text().trimmed();
-            m_settings = m_customSlots[slotIndex];
             
             saveCustomSlots();
         } else {
