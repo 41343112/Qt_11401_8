@@ -1,167 +1,167 @@
 # Qt_Chess
 
-A fully functional player-vs-player chess game built with Qt5.
+使用 Qt5 開發的功能完整的雙人對戰西洋棋遊戲。
 
-## Features
+## 功能特色
 
-- **Complete Chess Implementation**: All pieces (King, Queen, Rook, Bishop, Knight, Pawn) with proper movement rules
-- **Special Moves**: 
-  - **Castling** (王車易位): King can castle with rook (kingside or queenside) under appropriate conditions
-  - **Pawn Promotion** (兵升變): Pawns are promoted when reaching the opposite end of the board, with a dialog to choose the promotion piece (Queen, Rook, Bishop, or Knight)
-  - **En Passant** (吃過路兵): Special pawn capture when an opponent's pawn moves two squares forward
-- **Turn-based Gameplay**: Alternating turns between White and Black players
-- **Move Validation**: Only legal moves are allowed
-- **Check Detection**: The game detects when a king is in check
-- **Checkmate & Stalemate Detection**: Game automatically detects end conditions
-- **Visual Highlights**: Selected pieces and valid moves are highlighted (orange for normal moves, red for capture moves)
-- **Clean UI**: Classic chessboard with Unicode chess piece symbols
-- **New Game**: Reset the board to start a new game at any time
-- **Sound Effects**: Different sounds for moves, captures, castling, check, and checkmate
-- **Customizable Sound Settings**: 
-  - Configure custom sound files for each event type
-  - Adjust volume levels for each sound independently
-  - Enable/disable individual sounds or all sounds
-  - Reset individual sound effects to default values independently
-  - Preview sounds before applying settings
-  - Settings are saved persistently between sessions
-- **Customizable Piece Icons**:
-  - Choose from multiple icon set options:
-    - Default Unicode chess symbols
-    - Three preset icon sets (when images are provided)
-    - Fully custom user-selected icons
-  - **Adjustable Piece Size**: Scale piece icons from 60% to 100% of square size using a convenient slider
-  - Configure custom icons for each of the 12 piece types (6 white + 6 black)
-  - Support for common image formats (PNG, JPG, SVG, BMP)
-  - Preview icons before applying
-  - Easy switching between different icon sets
-  - Reset to default Unicode symbols at any time
-  - Settings are saved persistently between sessions
-  - See [ADDING_ICON_SETS.md](ADDING_ICON_SETS.md) for instructions on adding preset icon images
-- **Customizable Board Colors**:
-  - Choose from multiple color scheme options:
-    - Classic brown/beige (經典棕褐色) - Traditional chess board appearance
-    - Blue/gray scheme (藍灰配色) - Modern cool-toned look
-    - Green/white scheme (綠白配色) - Fresh natural appearance
-    - Purple/pink scheme (紫粉配色) - Elegant purple and pink tones
-    - Wood/dark scheme (木紋深色) - Rich wooden brown with dark contrast
-    - Ocean/blue scheme (海洋藍配色) - Deep ocean blue with light blue contrast
-    - Light theme (淺色系) - Very light pastel colors for a soft, minimal look
-    - Fully custom colors using color picker
-  - **2×2 Preview Grid**: See exactly how your board will look before applying
-  - **Preset Thumbnails**: Visual previews of all seven preset color schemes
-  - Pick any custom colors for light and dark squares
-  - Reset to default colors at any time
-  - Settings are saved persistently between sessions
-  - See [BOARD_COLOR_QUICK_START.md](BOARD_COLOR_QUICK_START.md) for user guide
-- **Board Flip Feature** (反轉棋盤):
-  - Flip the board 180 degrees to view from either player's perspective
-  - Perfect for two-player games where players sit on opposite sides
-  - Accessible via Settings menu → "反轉棋盤" (Flip Board)
-  - All interactions (click, drag-and-drop, highlights) work correctly when flipped
-  - Board flip state persists between sessions
-  - See [BOARD_FLIP_FEATURE.md](BOARD_FLIP_FEATURE.md) for technical details
+- **完整的西洋棋實現**：所有棋子（國王、皇后、城堡、主教、騎士、兵）都具有正確的移動規則
+- **特殊走法**：
+  - **王車易位**：在符合條件的情況下，國王可以與城堡進行易位（王翼或后翼）
+  - **兵升變**：兵到達棋盤對面終點時會升變，可透過對話框選擇升變為皇后、城堡、主教或騎士
+  - **吃過路兵**：當對手的兵從起始位置前進兩格並停在您的兵旁邊時，可以進行特殊吃子
+- **回合制遊戲**：白棋和黑棋輪流下棋
+- **走法驗證**：只允許合法的走法
+- **將軍偵測**：遊戲會偵測國王是否被將軍
+- **將死和僵局偵測**：遊戲會自動偵測結束條件
+- **視覺化提示**：選中的棋子和有效移動位置會被標示（橙色表示普通移動，紅色表示吃子移動）
+- **簡潔的使用者介面**：經典棋盤配合 Unicode 棋子符號
+- **新遊戲**：隨時重置棋盤開始新遊戲
+- **音效**：移動、吃子、王車易位、將軍和將死都有不同的音效
+- **可自訂的音效設定**：
+  - 為每種事件類型設定自訂的音效檔案
+  - 獨立調整每種音效的音量
+  - 啟用/停用個別音效或所有音效
+  - 獨立重設個別音效為預設值
+  - 在套用設定前預覽音效
+  - 設定會在程式關閉後持續保存
+- **可自訂的棋子圖標**：
+  - 從多種圖標集選項中選擇：
+    - 預設的 Unicode 棋子符號
+    - 三組預設圖標集（需要提供圖片）
+    - 完全自訂的使用者選擇圖標
+  - **可調整棋子大小**：使用方便的滑桿將棋子圖標從 60% 縮放到 100% 的方格大小
+  - 為 12 種棋子類型（6 種白棋 + 6 種黑棋）設定自訂圖標
+  - 支援常見的圖片格式（PNG、JPG、SVG、BMP）
+  - 在套用前預覽圖標
+  - 輕鬆切換不同的圖標集
+  - 隨時重設為預設的 Unicode 符號
+  - 設定會在程式關閉後持續保存
+  - 參閱 [ADDING_ICON_SETS.md](ADDING_ICON_SETS.md) 以了解如何新增預設圖標圖片
+- **可自訂的棋盤顏色**：
+  - 從多種配色方案選項中選擇：
+    - 經典棕褐色 - 傳統的棋盤外觀
+    - 藍灰配色 - 現代冷色調風格
+    - 綠白配色 - 清新自然的外觀
+    - 紫粉配色 - 優雅的紫色和粉紅色調
+    - 木紋深色 - 豐富的木質棕色與深色對比
+    - 海洋藍配色 - 深海洋藍與淺藍對比
+    - 淺色系 - 非常淺的粉彩色，營造柔和簡約的外觀
+    - 使用顏色選擇器完全自訂顏色
+  - **2×2 預覽網格**：在套用前準確看到棋盤的外觀
+  - **預設縮圖**：所有七種預設配色方案的視覺預覽
+  - 為淺色和深色方格挑選任何自訂顏色
+  - 隨時重設為預設顏色
+  - 設定會在程式關閉後持續保存
+  - 參閱 [BOARD_COLOR_QUICK_START.md](BOARD_COLOR_QUICK_START.md) 以獲得使用指南
+- **棋盤反轉功能**：
+  - 將棋盤旋轉 180 度，從任一玩家的視角觀看
+  - 非常適合玩家坐在對面的雙人遊戲
+  - 透過設定選單 → "反轉棋盤" 存取
+  - 反轉時所有互動（點擊、拖放、標示）都能正常運作
+  - 棋盤反轉狀態會在程式關閉後持續保存
+  - 參閱 [BOARD_FLIP_FEATURE.md](BOARD_FLIP_FEATURE.md) 以獲得技術細節
 
-## Building
+## 建置方式
 
-### Requirements
-- Qt5 (qt5-qtbase-devel or qtbase5-dev)
-- C++17 compatible compiler
+### 需求條件
+- Qt5（qt5-qtbase-devel 或 qtbase5-dev）
+- 支援 C++17 的編譯器
 - qmake
 
-### Build Instructions
+### 建置指令
 ```bash
 qmake Qt_Chess.pro
 make
 ```
 
-### Run
+### 執行
 ```bash
 ./Qt_Chess
 ```
 
-## How to Play
+## 如何遊玩
 
-1. **Select a Piece**: Click on one of your pieces (White starts first)
-2. **Drag and Drop**: Click and drag a piece to move it to a valid square
-3. **Cancel Move**: Right-click at any time during dragging to cancel and return the piece to its original position
-4. **Valid Moves**: Valid destination squares will be highlighted (orange for normal moves, red for capture moves)
-5. **Move**: Click on a highlighted square to move the piece, or drag and drop
-6. **Deselect**: Click the selected piece again or right-click to deselect it
-7. **Turn Indicator**: The current player's turn is displayed at the top
-8. **Game Status**: Check, checkmate, and stalemate are automatically detected and displayed
-9. **New Game**: Click "New Game" button to reset the board
-10. **Sound Settings**: Click "設定" (Settings) menu > "音效設定" (Sound Settings) to:
-    - Choose custom sound files for each event (move, capture, castling, check, checkmate)
-    - Adjust volume levels using sliders
-    - Enable/disable individual sounds or all sounds
-    - Reset individual sound effects to their default values using the "重設" (Reset) button next to each sound
-    - Reset all sound effects at once using the "重設為預設值" (Reset to Defaults) button
-    - Preview sounds before applying settings
-    - **Supported audio formats**: WAV (recommended), MP3, OGG
-      - WAV format is recommended for best compatibility across all platforms
-11. **Piece Icon Settings**: Click "設定" (Settings) menu > "棋子圖標設定" (Piece Icon Settings) to:
-    - Choose from multiple icon set options:
-      - Default Unicode chess symbols (♔, ♕, ♖, etc.)
-      - Three preset icon sets (when available)
-      - Custom user-selected icons
-    - **Adjust piece size**: Use the slider to scale pieces from 60% to 100% of square size (default 80%)
-    - Upload custom image files for each piece type (white and black)
-    - Preview icons before applying
-    - Reset individual piece icons to default Unicode symbols using the "重設" (Reset) button
-    - Reset all piece icons at once using the "重設為預設值" (Reset to Defaults) button
-    - **Supported image formats**: PNG, JPG, SVG, BMP
-      - PNG format with transparent background is recommended for best appearance
-12. **Board Color Settings**: Click "設定" (Settings) menu > "棋盤顏色設定" (Board Color Settings) to:
-    - Choose from seven preset color schemes:
-      - 經典棕褐色 (Classic) - Traditional brown and beige colors
-      - 藍灰配色 (Blue/Gray) - Modern blue and gray tones
-      - 綠白配色 (Green/White) - Fresh green and white combination
-      - 紫粉配色 (Purple/Pink) - Elegant purple and pink tones
-      - 木紋深色 (Wood/Dark) - Rich wooden brown with dark contrast
-      - 海洋藍配色 (Ocean/Blue) - Deep ocean blue with light blue contrast
-      - 淺色系 (Light Theme) - Very light pastel colors for a soft, minimal look
-    - Create custom color schemes using the color picker
-    - See a 2×2 preview grid showing exactly how your board will look
-    - View thumbnail previews of all preset color schemes
-    - Reset to default colors at any time
-    - All color settings are saved automatically
-13. **Board Flip**: Click "設定" (Settings) menu > "反轉棋盤" (Flip Board) to:
-    - Rotate the board 180 degrees to view from either player's perspective
-    - Ideal for two-player games where players sit on opposite sides
-    - Click again to restore the original orientation
-    - All game interactions (clicking, dragging, highlights) work correctly when flipped
-    - Board orientation is saved and restored between sessions
+1. **選擇棋子**：點擊您的其中一個棋子（白棋先走）
+2. **拖放**：點擊並拖曳棋子到有效的方格
+3. **取消移動**：在拖曳過程中隨時按右鍵取消並將棋子放回原位
+4. **有效移動**：有效的目標方格會被標示（橙色表示普通移動，紅色表示吃子移動）
+5. **移動**：點擊標示的方格來移動棋子，或者拖放
+6. **取消選擇**：再次點擊選中的棋子或按右鍵取消選擇
+7. **回合指示**：目前玩家的回合會顯示在頂部
+8. **遊戲狀態**：將軍、將死和僵局會自動偵測並顯示
+9. **新遊戲**：點擊「新遊戲」按鈕重置棋盤
+10. **音效設定**：點擊「設定」選單 >「音效設定」以進行：
+    - 為每個事件（移動、吃子、王車易位、將軍、將死）選擇自訂音效檔案
+    - 使用滑桿調整音量
+    - 啟用/停用個別音效或所有音效
+    - 使用每個音效旁邊的「重設」按鈕將個別音效重設為預設值
+    - 使用「重設為預設值」按鈕一次重設所有音效
+    - 在套用設定前預覽音效
+    - **支援的音訊格式**：WAV（建議）、MP3、OGG
+      - 建議使用 WAV 格式以獲得所有平台的最佳相容性
+11. **棋子圖標設定**：點擊「設定」選單 >「棋子圖標設定」以進行：
+    - 從多種圖標集選項中選擇：
+      - 預設的 Unicode 棋子符號（♔、♕、♖ 等）
+      - 三組預設圖標集（如果可用）
+      - 自訂使用者選擇的圖標
+    - **調整棋子大小**：使用滑桿將棋子從 60% 縮放到 100% 的方格大小（預設 80%）
+    - 為每種棋子類型（白棋和黑棋）上傳自訂圖片檔案
+    - 在套用前預覽圖標
+    - 使用「重設」按鈕將個別棋子圖標重設為預設的 Unicode 符號
+    - 使用「重設為預設值」按鈕一次重設所有棋子圖標
+    - **支援的圖片格式**：PNG、JPG、SVG、BMP
+      - 建議使用透明背景的 PNG 格式以獲得最佳外觀
+12. **棋盤顏色設定**：點擊「設定」選單 >「棋盤顏色設定」以進行：
+    - 從七種預設配色方案中選擇：
+      - 經典棕褐色 - 傳統的棕色和米色
+      - 藍灰配色 - 現代的藍色和灰色調
+      - 綠白配色 - 清新的綠色和白色組合
+      - 紫粉配色 - 優雅的紫色和粉紅色調
+      - 木紋深色 - 豐富的木質棕色與深色對比
+      - 海洋藍配色 - 深海洋藍與淺藍對比
+      - 淺色系 - 非常淺的粉彩色，營造柔和簡約的外觀
+    - 使用顏色選擇器建立自訂配色方案
+    - 查看 2×2 預覽網格，準確了解您的棋盤外觀
+    - 查看所有預設配色方案的縮圖預覽
+    - 隨時重設為預設顏色
+    - 所有顏色設定會自動儲存
+13. **棋盤反轉**：點擊「設定」選單 >「反轉棋盤」以進行：
+    - 將棋盤旋轉 180 度，從任一玩家的視角觀看
+    - 非常適合玩家坐在對面的雙人遊戲
+    - 再次點擊以恢復原始方向
+    - 反轉時所有遊戲互動（點擊、拖曳、標示）都能正常運作
+    - 棋盤方向會在程式關閉後儲存並恢復
 
-## Game Rules
+## 遊戲規則
 
-- White always moves first
-- Players alternate turns
-- Each piece moves according to standard chess rules:
-  - **Pawn**: Moves forward one square (two squares on first move), captures diagonally
-  - **Rook**: Moves horizontally or vertically any number of squares
-  - **Knight**: Moves in an "L" shape (2 squares in one direction, 1 square perpendicular)
-  - **Bishop**: Moves diagonally any number of squares
-  - **Queen**: Moves horizontally, vertically, or diagonally any number of squares
-  - **King**: Moves one square in any direction
-- **Special Moves**:
-  - **Castling**: King and rook can castle if neither piece has moved, there are no pieces between them, the king is not in check, and the king doesn't move through or into check
-  - **Pawn Promotion**: When a pawn reaches the opposite end of the board (row 0 for White, row 7 for Black), it must be promoted to a Queen, Rook, Bishop, or Knight
-  - **En Passant**: If an opponent's pawn moves two squares forward from its starting position and lands beside your pawn, you can capture it "in passing" on your next move
-- You cannot move into check
-- The game ends when checkmate or stalemate is reached
+- 白棋總是先走
+- 玩家輪流下棋
+- 每個棋子根據標準西洋棋規則移動：
+  - **兵**：向前移動一格（首次移動可走兩格），斜向吃子
+  - **城堡**：水平或垂直移動任意格數
+  - **騎士**：以「L」形移動（一個方向移動 2 格，垂直方向移動 1 格）
+  - **主教**：斜向移動任意格數
+  - **皇后**：水平、垂直或斜向移動任意格數
+  - **國王**：向任何方向移動一格
+- **特殊走法**：
+  - **王車易位**：如果國王和城堡都沒有移動過、它們之間沒有棋子、國王不在被將軍狀態、且國王不會經過或進入被將軍的位置，則國王和城堡可以進行易位
+  - **兵升變**：當兵到達棋盤對面終點（白棋為第 0 列，黑棋為第 7 列）時，必須升變為皇后、城堡、主教或騎士
+  - **吃過路兵**：如果對手的兵從起始位置前進兩格並停在您的兵旁邊，您可以在下一步「順道」吃掉它
+- 您不能走入被將軍的位置
+- 遊戲在將死或僵局時結束
 
-## Project Structure
+## 專案結構
 
-- `main.cpp` - Application entry point
-- `qt_chess.h/cpp` - Main window and UI logic
-- `chessboard.h/cpp` - Game board logic and rules
-- `chesspiece.h/cpp` - Chess piece definitions and movement validation
-- `soundsettingsdialog.h/cpp` - Sound settings dialog for customizing audio
-- `pieceiconsettingsdialog.h/cpp` - Piece icon settings dialog for customizing piece graphics
-- `boardcolorsettingsdialog.h/cpp` - Board color settings dialog for customizing board colors
-- `qt_chess.ui` - Qt UI designer file
-- `resources.qrc` - Qt resource file for embedded sound files
+- `main.cpp` - 應用程式進入點
+- `qt_chess.h/cpp` - 主視窗和 UI 邏輯
+- `chessboard.h/cpp` - 遊戲棋盤邏輯和規則
+- `chesspiece.h/cpp` - 棋子定義和移動驗證
+- `soundsettingsdialog.h/cpp` - 自訂音訊的音效設定對話框
+- `pieceiconsettingsdialog.h/cpp` - 自訂棋子圖形的圖標設定對話框
+- `boardcolorsettingsdialog.h/cpp` - 自訂棋盤顏色的顏色設定對話框
+- `qt_chess.ui` - Qt UI 設計檔案
+- `resources.qrc` - 嵌入音效檔案的 Qt 資源檔案
 
-## License
+## 授權條款
 
-This is an educational project for learning Qt and game development.
+這是一個用於學習 Qt 和遊戲開發的教育專案。
