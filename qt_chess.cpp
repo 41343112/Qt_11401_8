@@ -1299,20 +1299,22 @@ void Qt_Chess::setupTimeControlUI(QVBoxLayout* rightPanelLayout) {
 void Qt_Chess::positionTimeDisplaysOnBoard() {
     if (!m_boardWidget || !m_blackTimeLabel || !m_whiteTimeLabel) return;
     
-    // Position black time at top-left of board
-    m_blackTimeLabel->move(10, 10);
+    // Get the board widget's position within the container
+    QPoint boardPos = m_boardWidget->pos();
+    int boardWidth = m_boardWidget->width();
+    int boardHeight = m_boardWidget->height();
+    
+    // Position black time at top-left of board (offset from board position)
+    m_blackTimeLabel->move(boardPos.x() + 10, boardPos.y() + 10);
     m_blackTimeLabel->raise();  // Ensure it's on top
     
     // Position white time at bottom-right of board
-    // We'll calculate the exact position in resizeEvent when we know the board size
-    int boardHeight = m_boardWidget->height();
-    if (boardHeight > 0) {
-        int boardWidth = m_boardWidget->width();
-        m_whiteTimeLabel->move(boardWidth - m_whiteTimeLabel->width() - 10, 
-                               boardHeight - m_whiteTimeLabel->height() - 10);
+    if (boardHeight > 0 && boardWidth > 0) {
+        m_whiteTimeLabel->move(boardPos.x() + boardWidth - m_whiteTimeLabel->width() - 10, 
+                               boardPos.y() + boardHeight - m_whiteTimeLabel->height() - 10);
     } else {
         // Default position if board isn't sized yet
-        m_whiteTimeLabel->move(10, 10);
+        m_whiteTimeLabel->move(boardPos.x() + 10, boardPos.y() + 10);
     }
     m_whiteTimeLabel->raise();  // Ensure it's on top
 }
