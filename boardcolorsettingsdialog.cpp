@@ -5,7 +5,7 @@
 #include <QColorDialog>
 #include <QFrame>
 #include <QVector>
-
+#include<QSettings>
 // Constants
 namespace {
     const QString HOVER_BORDER_COLOR = "#4A90E2";
