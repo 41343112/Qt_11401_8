@@ -33,6 +33,12 @@ Qt_Chess::Qt_Chess(QWidget *parent)
     , m_wasSelectedBeforeDrag(false)
     , m_boardWidget(nullptr)
     , m_menuBar(nullptr)
+    , m_gameTimer(nullptr)
+    , m_whiteTimeLabel(nullptr)
+    , m_blackTimeLabel(nullptr)
+    , m_whiteTimeSeconds(0)
+    , m_blackTimeSeconds(0)
+    , m_timerRunning(false)
 {
     ui->setupUi(this);
     setWindowTitle("國際象棋 - 雙人對弈");
@@ -61,9 +67,20 @@ Qt_Chess::~Qt_Chess()
 
 void Qt_Chess::setupUI() {
     QWidget* centralWidget = new QWidget(this);
-    QVBoxLayout* mainLayout = new QVBoxLayout(centralWidget);
+    QHBoxLayout* mainLayout = new QHBoxLayout(centralWidget);
     
-    // Chess board
+    // Left side - White player timer
+    m_whiteTimeLabel = new QLabel("白方\n00:00", this);
+    m_whiteTimeLabel->setAlignment(Qt::AlignCenter);
+    m_whiteTimeLabel->setStyleSheet("QLabel { background-color: #F0F0F0; border: 2px solid #333; border-radius: 5px; padding: 10px; font-size: 18px; font-weight: bold; }");
+    m_whiteTimeLabel->setMinimumWidth(80);
+    m_whiteTimeLabel->setMinimumHeight(100);
+    mainLayout->addWidget(m_whiteTimeLabel);
+    
+    // Center - Chess board
+    QWidget* centerWidget = new QWidget(this);
+    QVBoxLayout* centerLayout = new QVBoxLayout(centerWidget);
+    
     m_boardWidget = new QWidget(this);
     m_boardWidget->setMouseTracking(true);
     QGridLayout* gridLayout = new QGridLayout(m_boardWidget);
@@ -100,17 +117,44 @@ void Qt_Chess::setupUI() {
         }
     }
     
-    mainLayout->addWidget(m_boardWidget, 0, Qt::AlignCenter);
+    centerLayout->addWidget(m_boardWidget, 0, Qt::AlignCenter);
+    mainLayout->addWidget(centerWidget);
+    
+    // Right side - Black player timer and New Game button
+    QWidget* rightWidget = new QWidget(this);
+    QVBoxLayout* rightLayout = new QVBoxLayout(rightWidget);
+    
+    m_blackTimeLabel = new QLabel("黑方\n00:00", this);
+    m_blackTimeLabel->setAlignment(Qt::AlignCenter);
+    m_blackTimeLabel->setStyleSheet("QLabel { background-color: #F0F0F0; border: 2px solid #333; border-radius: 5px; padding: 10px; font-size: 18px; font-weight: bold; }");
+    m_blackTimeLabel->setMinimumWidth(80);
+    m_blackTimeLabel->setMinimumHeight(100);
+    rightLayout->addWidget(m_blackTimeLabel);
+    
+    // Add stretch to center the New Game button vertically
+    rightLayout->addStretch();
     
     // New game button
     m_newGameButton = new QPushButton("新遊戲", this);
     m_newGameButton->setMinimumHeight(40);
+    m_newGameButton->setMinimumWidth(80);
     QFont buttonFont;
     buttonFont.setPointSize(14);
     buttonFont.setBold(true);
     m_newGameButton->setFont(buttonFont);
     connect(m_newGameButton, &QPushButton::clicked, this, &Qt_Chess::onNewGameClicked);
-    mainLayout->addWidget(m_newGameButton);
+    rightLayout->addWidget(m_newGameButton);
+    
+    // Add stretch below button to keep it centered
+    rightLayout->addStretch();
+    
+    mainLayout->addWidget(rightWidget);
+    
+    // Initialize timer
+    m_gameTimer = new QTimer(this);
+    connect(m_gameTimer, &QTimer::timeout, this, &Qt_Chess::updateTimerDisplay);
+    m_gameTimer->start(1000); // Update every second
+    m_timerRunning = true;
     
     setCentralWidget(centralWidget);
 }
@@ -291,8 +335,40 @@ void Qt_Chess::onSquareClicked(int row, int col) {
 void Qt_Chess::onNewGameClicked() {
     m_chessBoard.initializeBoard();
     m_pieceSelected = false;
+    // Reset timers
+    m_whiteTimeSeconds = 0;
+    m_blackTimeSeconds = 0;
+    updateTimerDisplay();
     updateBoard();
     updateStatus();
+}
+
+void Qt_Chess::updateTimerDisplay() {
+    if (!m_timerRunning) return;
+    
+    // Increment time for the current player
+    PieceColor currentPlayer = m_chessBoard.getCurrentPlayer();
+    if (currentPlayer == PieceColor::White) {
+        m_whiteTimeSeconds++;
+    } else {
+        m_blackTimeSeconds++;
+    }
+    
+    // Format and display white player time
+    int whiteMinutes = m_whiteTimeSeconds / 60;
+    int whiteSeconds = m_whiteTimeSeconds % 60;
+    QString whiteTimeStr = QString("白方\n%1:%2")
+        .arg(whiteMinutes, 2, 10, QChar('0'))
+        .arg(whiteSeconds, 2, 10, QChar('0'));
+    m_whiteTimeLabel->setText(whiteTimeStr);
+    
+    // Format and display black player time
+    int blackMinutes = m_blackTimeSeconds / 60;
+    int blackSeconds = m_blackTimeSeconds % 60;
+    QString blackTimeStr = QString("黑方\n%1:%2")
+        .arg(blackMinutes, 2, 10, QChar('0'))
+        .arg(blackSeconds, 2, 10, QChar('0'));
+    m_blackTimeLabel->setText(blackTimeStr);
 }
 
 void Qt_Chess::onSoundSettingsClicked() {

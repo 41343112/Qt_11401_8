@@ -12,6 +12,8 @@
 #include <QMenuBar>
 #include <QMenu>
 #include <QAction>
+#include <QTimer>
+#include <QTime>
 #include <vector>
 #include "chessboard.h"
 #include "soundsettingsdialog.h"
@@ -45,6 +47,7 @@ private slots:
     void onSoundSettingsClicked();
     void onPieceIconSettingsClicked();
     void onBoardColorSettingsClicked();
+    void updateTimerDisplay();
 
 private:
     Ui::Qt_Chess *ui;
@@ -63,6 +66,14 @@ private:
     QPushButton* m_newGameButton;
     QWidget* m_boardWidget;
     QMenuBar* m_menuBar;
+    
+    // Timer for game clock
+    QTimer* m_gameTimer;
+    QLabel* m_whiteTimeLabel;
+    QLabel* m_blackTimeLabel;
+    int m_whiteTimeSeconds;
+    int m_blackTimeSeconds;
+    bool m_timerRunning;
     
     // Sound effects
     QSoundEffect m_moveSound;
