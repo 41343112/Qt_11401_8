@@ -1454,7 +1454,12 @@ void Qt_Chess::setupTimeControlUI(QVBoxLayout* timeControlPanelLayout) {
     connect(m_incrementSlider, &QSlider::valueChanged, this, &Qt_Chess::onIncrementChanged);
     timeControlLayout->addWidget(m_incrementSlider);
     
-    // Start button
+    // Add stretch to fill remaining space in the group box
+    timeControlLayout->addStretch();
+    
+    timeControlPanelLayout->addWidget(timeControlGroup, 1);
+    
+    // Start button - placed at the bottom of the time control panel, outside the group box
     m_startButton = new QPushButton("開始", this);
     m_startButton->setMinimumHeight(40);
     QFont startButtonFont;
@@ -1463,12 +1468,7 @@ void Qt_Chess::setupTimeControlUI(QVBoxLayout* timeControlPanelLayout) {
     m_startButton->setFont(startButtonFont);
     m_startButton->setEnabled(false);  // Initially disabled
     connect(m_startButton, &QPushButton::clicked, this, &Qt_Chess::onStartButtonClicked);
-    timeControlLayout->addWidget(m_startButton);
-    
-    // Add stretch to fill remaining space
-    timeControlLayout->addStretch();
-    
-    timeControlPanelLayout->addWidget(timeControlGroup, 1);
+    timeControlPanelLayout->addWidget(m_startButton);
     
     // Initialize game timer
     m_gameTimer = new QTimer(this);
