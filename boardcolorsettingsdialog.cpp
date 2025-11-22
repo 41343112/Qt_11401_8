@@ -269,7 +269,7 @@ void BoardColorSettingsDialog::onResetToDefaults() {
 
 void BoardColorSettingsDialog::onAccept() {
     // Check if the current colors match any preset or custom slot
-    bool matchesAnyPreset = false;
+    bool matchesExistingScheme = false;
     
     // Check all presets (Classic through DarkMode)
     QVector<ColorScheme> presets = {
@@ -280,30 +280,30 @@ void BoardColorSettingsDialog::onAccept() {
         ColorScheme::DarkMode
     };
     
-    for (const ColorScheme& scheme : presets) {
+    for (ColorScheme scheme : presets) {
         BoardColorSettings preset = getPresetSettings(scheme);
         if (m_settings.lightSquareColor == preset.lightSquareColor && 
             m_settings.darkSquareColor == preset.darkSquareColor) {
-            matchesAnyPreset = true;
+            matchesExistingScheme = true;
             m_settings.scheme = scheme;
             break;
         }
     }
     
     // Check custom slots
-    if (!matchesAnyPreset) {
+    if (!matchesExistingScheme) {
         for (int i = 0; i < 3; ++i) {
             if (m_settings.lightSquareColor == m_customSlots[i].lightSquareColor && 
                 m_settings.darkSquareColor == m_customSlots[i].darkSquareColor) {
-                matchesAnyPreset = true;
+                matchesExistingScheme = true;
                 m_settings.scheme = static_cast<ColorScheme>(static_cast<int>(ColorScheme::Custom1) + i);
                 break;
             }
         }
     }
     
-    // If colors don't match any preset, ask user which custom slot to save to
-    if (!matchesAnyPreset) {
+    // If colors don't match any existing scheme, ask user which custom slot to save to
+    if (!matchesExistingScheme) {
         QDialog saveDialog(this);
         saveDialog.setWindowTitle("儲存自訂顏色");
         saveDialog.setModal(true);
