@@ -145,7 +145,7 @@ void Qt_Chess::setupUI() {
     m_blackTimeLabel->setStyleSheet("QLabel { background-color: rgba(51, 51, 51, 200); color: #FFF; padding: 8px; border-radius: 5px; }");
     m_blackTimeLabel->setMinimumSize(100, 40);
     m_blackTimeLabel->hide();  // Initially hidden
-    boardContainerLayout->addWidget(m_blackTimeLabel, 0, Qt::AlignCenter);
+    boardContainerLayout->addWidget(m_blackTimeLabel, 0, Qt::AlignTop);
     
     // Chess board
     m_boardWidget = new QWidget(m_boardContainer);
@@ -196,7 +196,7 @@ void Qt_Chess::setupUI() {
     m_whiteTimeLabel->setStyleSheet("QLabel { background-color: rgba(51, 51, 51, 200); color: #FFF; padding: 8px; border-radius: 5px; }");
     m_whiteTimeLabel->setMinimumSize(100, 40);
     m_whiteTimeLabel->hide();  // Initially hidden
-    boardContainerLayout->addWidget(m_whiteTimeLabel, 0, Qt::AlignCenter);
+    boardContainerLayout->addWidget(m_whiteTimeLabel, 0, Qt::AlignBottom);
     
     contentLayout->addWidget(m_boardContainer, 2);  // Give board more space (2:1 ratio)
     contentLayout->setAlignment(m_boardContainer, Qt::AlignCenter);  // Center the board container
