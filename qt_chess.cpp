@@ -63,10 +63,10 @@ Qt_Chess::Qt_Chess(QWidget *parent)
     loadPieceIconSettings();
     loadBoardColorSettings();
     loadBoardFlipSettings();
-    loadTimeControlSettings();
     loadPieceIconsToCache(); // Load icons to cache after loading settings
     setupMenuBar();
     setupUI();
+    loadTimeControlSettings();  // Load after setupUI() to ensure widgets exist
     updateBoard();
     updateStatus();
     updateTimeDisplays();
@@ -1327,15 +1327,19 @@ void Qt_Chess::onGameTimerTick() {
         m_whiteTimeMs -= 100; // Decrease by 100ms (timer ticks every 100ms)
         if (m_whiteTimeMs <= 0) {
             m_whiteTimeMs = 0;
+            updateTimeDisplays();
             stopTimer();
             QMessageBox::information(this, "時間到", "白方超時！黑方獲勝！");
+            return;
         }
     } else {
         m_blackTimeMs -= 100;
         if (m_blackTimeMs <= 0) {
             m_blackTimeMs = 0;
+            updateTimeDisplays();
             stopTimer();
             QMessageBox::information(this, "時間到", "黑方超時！白方獲勝！");
+            return;
         }
     }
     
