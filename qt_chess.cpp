@@ -142,16 +142,6 @@ void Qt_Chess::setupUI() {
     
     mainLayout->addLayout(contentLayout);
     
-    // New game button
-    m_newGameButton = new QPushButton("新遊戲", this);
-    m_newGameButton->setMinimumHeight(40);
-    QFont buttonFont;
-    buttonFont.setPointSize(14);
-    buttonFont.setBold(true);
-    m_newGameButton->setFont(buttonFont);
-    connect(m_newGameButton, &QPushButton::clicked, this, &Qt_Chess::onNewGameClicked);
-    mainLayout->addWidget(m_newGameButton);
-    
     setCentralWidget(centralWidget);
 }
 
@@ -1225,13 +1215,14 @@ void Qt_Chess::setupTimeControlUI(QVBoxLayout* rightPanelLayout) {
     m_timeLimitLabel->setAlignment(Qt::AlignCenter);
     timeControlLayout->addWidget(m_timeLimitLabel);
     
-    // Horizontal slider for total time - fills available width
+    // Horizontal slider for total time - discrete values
+    // Slider positions: 0=Unlimited, 1=30sec, 2-61=1-60min
     m_timeLimitSlider = new QSlider(Qt::Horizontal, this);
     m_timeLimitSlider->setMinimum(0);  // 0 = unlimited
-    m_timeLimitSlider->setMaximum(MAX_TIME_LIMIT_SECONDS);  // Max 60 minutes
+    m_timeLimitSlider->setMaximum(61);  // 0 (unlimited), 1 (30s), 2-61 (1-60 min)
     m_timeLimitSlider->setValue(0);
     m_timeLimitSlider->setTickPosition(QSlider::TicksBelow);
-    m_timeLimitSlider->setTickInterval(300);  // Tick every 5 minutes
+    m_timeLimitSlider->setTickInterval(1);
     connect(m_timeLimitSlider, &QSlider::valueChanged, this, &Qt_Chess::onTimeLimitChanged);
     timeControlLayout->addWidget(m_timeLimitSlider);
     
@@ -1293,6 +1284,16 @@ void Qt_Chess::setupTimeControlUI(QVBoxLayout* rightPanelLayout) {
     connect(m_startButton, &QPushButton::clicked, this, &Qt_Chess::onStartButtonClicked);
     timeControlLayout->addWidget(m_startButton);
     
+    // New game button - moved to time control panel
+    m_newGameButton = new QPushButton("新遊戲", this);
+    m_newGameButton->setMinimumHeight(40);
+    QFont newGameButtonFont;
+    newGameButtonFont.setPointSize(14);
+    newGameButtonFont.setBold(true);
+    m_newGameButton->setFont(newGameButtonFont);
+    connect(m_newGameButton, &QPushButton::clicked, this, &Qt_Chess::onNewGameClicked);
+    timeControlLayout->addWidget(m_newGameButton);
+    
     // Add stretch to fill remaining space
     timeControlLayout->addStretch();
     
@@ -1306,9 +1307,13 @@ void Qt_Chess::setupTimeControlUI(QVBoxLayout* rightPanelLayout) {
 void Qt_Chess::onTimeLimitChanged(int value) {
     if (!m_timeLimitSlider || !m_timeLimitLabel) return;
     
+    int actualSeconds = 0;
+    QString timeText;
+    
     if (value == 0) {
         // Unlimited time
-        m_timeLimitLabel->setText("不限時");
+        timeText = "不限時";
+        actualSeconds = 0;
         m_timeControlEnabled = false;
         stopTimer();
         m_timerStarted = false;
@@ -1316,24 +1321,26 @@ void Qt_Chess::onTimeLimitChanged(int value) {
             m_startButton->setEnabled(false);
             m_startButton->setText("開始");
         }
-    } else {
-        // Set time limit
-        // Format the label based on the value
-        QString timeText;
-        if (value < 60) {
-            timeText = QString("%1秒").arg(value);
-        } else if (value % 60 == 0) {
-            timeText = QString("%1分鐘").arg(value / 60);
-        } else {
-            int minutes = value / 60;
-            int seconds = value % 60;
-            timeText = QString("%1分%2秒").arg(minutes).arg(seconds);
-        }
-        m_timeLimitLabel->setText(timeText);
-        
+    } else if (value == 1) {
+        // 30 seconds
+        timeText = "30秒";
+        actualSeconds = 30;
         m_timeControlEnabled = true;
-        m_whiteTimeMs = value * 1000;
-        m_blackTimeMs = value * 1000;
+        m_whiteTimeMs = actualSeconds * 1000;
+        m_blackTimeMs = actualSeconds * 1000;
+        m_timerStarted = false;
+        if (m_startButton) {
+            m_startButton->setEnabled(true);
+            m_startButton->setText("開始");
+        }
+    } else {
+        // value 2-61 represents 1-60 minutes
+        int minutes = value - 1;
+        timeText = QString("%1分鐘").arg(minutes);
+        actualSeconds = minutes * 60;
+        m_timeControlEnabled = true;
+        m_whiteTimeMs = actualSeconds * 1000;
+        m_blackTimeMs = actualSeconds * 1000;
         m_timerStarted = false;
         if (m_startButton) {
             m_startButton->setEnabled(true);
@@ -1341,6 +1348,7 @@ void Qt_Chess::onTimeLimitChanged(int value) {
         }
     }
     
+    m_timeLimitLabel->setText(timeText);
     updateTimeDisplays();
     saveTimeControlSettings();
 }
@@ -1453,16 +1461,27 @@ void Qt_Chess::loadTimeControlSettings() {
     int timeLimitSeconds = settings.value("timeLimitSeconds", 0).toInt();
     int incrementSeconds = settings.value("incrementSeconds", 0).toInt();
     
-    // Validate and normalize time limit (convert legacy -1 to 0 for unlimited)
-    if (timeLimitSeconds < 0) {
-        timeLimitSeconds = 0;  // Normalize legacy unlimited setting
+    // Convert legacy seconds format to new slider position format
+    // New format: 0=unlimited, 1=30sec, 2-61=1-60min
+    int sliderPosition = 0;
+    
+    if (timeLimitSeconds <= 0) {
+        sliderPosition = 0;  // Unlimited
+    } else if (timeLimitSeconds == 30) {
+        sliderPosition = 1;  // 30 seconds
+    } else if (timeLimitSeconds < 60) {
+        // Legacy values < 60 seconds (not 30) -> default to unlimited
+        sliderPosition = 0;
+    } else {
+        // Convert minutes to slider position (2-61 = 1-60 minutes)
+        int minutes = timeLimitSeconds / 60;
+        if (minutes > 60) minutes = 60;  // Cap at 60 minutes
+        sliderPosition = minutes + 1;
     }
-    // Clamp to valid range [0, MAX_TIME_LIMIT_SECONDS]
-    timeLimitSeconds = qBound(0, timeLimitSeconds, MAX_TIME_LIMIT_SECONDS);
     
     // Set the time limit slider
     if (m_timeLimitSlider) {
-        m_timeLimitSlider->setValue(timeLimitSeconds);
+        m_timeLimitSlider->setValue(sliderPosition);
     }
     
     // Set increment
@@ -1472,20 +1491,27 @@ void Qt_Chess::loadTimeControlSettings() {
     
     m_incrementMs = incrementSeconds * 1000;
     
-    if (timeLimitSeconds == 0) {
-        m_timeControlEnabled = false;
-    } else {
-        m_timeControlEnabled = true;
-        m_whiteTimeMs = timeLimitSeconds * 1000;
-        m_blackTimeMs = timeLimitSeconds * 1000;
-    }
+    // Time control enabled state will be set by onTimeLimitChanged
+    // which is triggered by setValue above
 }
 
 void Qt_Chess::saveTimeControlSettings() {
     QSettings settings("Qt_Chess", "TimeControl");
     
     if (m_timeLimitSlider) {
-        settings.setValue("timeLimitSeconds", m_timeLimitSlider->value());
+        int sliderValue = m_timeLimitSlider->value();
+        int seconds = 0;
+        
+        if (sliderValue == 0) {
+            seconds = 0;  // Unlimited
+        } else if (sliderValue == 1) {
+            seconds = 30;  // 30 seconds
+        } else {
+            // sliderValue 2-61 = 1-60 minutes
+            seconds = (sliderValue - 1) * 60;
+        }
+        
+        settings.setValue("timeLimitSeconds", seconds);
     }
     
     if (m_incrementSlider) {
