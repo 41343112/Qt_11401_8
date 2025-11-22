@@ -5,12 +5,8 @@
 #include <QColorDialog>
 #include <QFrame>
 #include <QVector>
-<<<<<<< HEAD
 #include<QSettings>
-=======
 #include <QLineEdit>
-
->>>>>>> 524dfc637098ddae2e3bfa0d1a933ca252ad7ae2
 // Constants
 namespace {
     const QString HOVER_BORDER_COLOR = "#4A90E2";
@@ -78,12 +74,7 @@ void BoardColorSettingsDialog::setupUI() {
     customSlotsLayout->addLayout(customRow1);
     
     // Second row: Custom 5-7
-    QHBoxLayout* customRow2 = new QHBoxLayout();
-    customRow2->addWidget(createPresetPreview(ColorScheme::Custom5, "自訂5"));
-    customRow2->addWidget(createPresetPreview(ColorScheme::Custom6, "自訂6"));
-    customRow2->addWidget(createPresetPreview(ColorScheme::Custom7, "自訂7"));
-    customRow2->addStretch();
-    customSlotsLayout->addLayout(customRow2);
+
     
     mainLayout->addWidget(customSlotsGroup);
     
