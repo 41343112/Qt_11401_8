@@ -42,10 +42,10 @@ Qt_Chess::Qt_Chess(QWidget *parent)
 {
     ui->setupUi(this);
     setWindowTitle("國際象棋 - 雙人對弈");
-    resize(700, 660);
+    resize(900, 660);  // Increased width to accommodate side panels
     
-    // Set minimum window size: width 320px (8 squares × 40px), height 380px (320px board + ~60px UI elements)
-    setMinimumSize(320, 380);
+    // Set minimum window size: width 480px (320px board + 2*80px side panels), height 380px
+    setMinimumSize(480, 380);
     
     setMouseTracking(true);
     
@@ -724,15 +724,16 @@ void Qt_Chess::updateSquareSizes() {
     if (!central) return;
     
     // Calculate available space for the board
-    // Account for the new game button
-    int reservedHeight = 0;
-    if (m_newGameButton) reservedHeight += m_newGameButton->minimumHeight();
+    // Account for side panels (left and right timers) and margins
+    int sidePanelWidth = 0;
+    if (m_whiteTimeLabel) sidePanelWidth += m_whiteTimeLabel->minimumWidth();
+    if (m_blackTimeLabel) sidePanelWidth += m_blackTimeLabel->minimumWidth();
     
     // Add some padding for layout margins and spacing (estimate ~50px)
-    reservedHeight += 50;
+    int reservedWidth = sidePanelWidth + 50;
     
-    int availableWidth = central->width();
-    int availableHeight = central->height() - reservedHeight;
+    int availableWidth = central->width() - reservedWidth;
+    int availableHeight = central->height();
     
     // Calculate the size for each square (use the smaller dimension to keep squares square)
     int squareSize = qMin(availableWidth, availableHeight) / 8;
