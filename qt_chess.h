@@ -89,8 +89,10 @@ private:
     bool m_isBoardFlipped;
     
     // Time control
-    QSlider* m_timeLimitSlider;
-    QLabel* m_timeLimitLabel;
+    QSlider* m_whiteTimeLimitSlider;  // Separate slider for white's time
+    QLabel* m_whiteTimeLimitLabel;
+    QSlider* m_blackTimeLimitSlider;  // Separate slider for black's time
+    QLabel* m_blackTimeLimitLabel;
     QSlider* m_incrementSlider;
     QLabel* m_incrementLabel;
     QLabel* m_whiteTimeLabel;
@@ -103,6 +105,7 @@ private:
     bool m_timeControlEnabled;
     bool m_timerStarted;  // Track if timer has been manually started
     QWidget* m_boardContainer;  // Container for board with overlaid time displays
+    QWidget* m_timeControlPanel;  // Panel for time control settings
     
     void setupUI();
     void setupMenuBar();
@@ -142,8 +145,12 @@ private:
     int getLogicalCol(int displayCol) const;
     void setupTimeControlUI(QVBoxLayout* rightPanelLayout);
     void updateTimeDisplays();
-    void onTimeLimitChanged(int value);
+    void onWhiteTimeLimitChanged(int value);
+    void onBlackTimeLimitChanged(int value);
     void onIncrementChanged(int value);
+    void hideTimeControlPanel();
+    void showTimeControlPanel();
+    void positionOverlayTimeLabels();
     void onGameTimerTick();
     void startTimer();
     void stopTimer();
