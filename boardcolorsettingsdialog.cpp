@@ -88,7 +88,7 @@ void BoardColorSettingsDialog::setupUI() {
     QGroupBox* customGroup = new QGroupBox("自訂顏色", m_customColorWidget);
     QVBoxLayout* customLayout = new QVBoxLayout(customGroup);
     
-    QLabel* instructionLabel = new QLabel("點選上方自訂槽位後，使用下方按鈕選擇顏色", this);
+    QLabel* instructionLabel = new QLabel("使用下方按鈕選擇顏色", this);
     instructionLabel->setWordWrap(true);
     instructionLabel->setStyleSheet("QLabel { color: #666; font-size: 11px; }");
     customLayout->addWidget(instructionLabel);
@@ -368,7 +368,6 @@ void BoardColorSettingsDialog::onAccept() {
         if (nameDialog.exec() == QDialog::Accepted) {
             // Save to the selected custom slot
             m_customSlots[slotIndex] = m_settings;
-            m_customSlots[slotIndex].scheme = m_settings.scheme;
             m_customSlots[slotIndex].customName = nameEdit->text().trimmed();
             m_settings.customName = m_customSlots[slotIndex].customName;
             
@@ -432,8 +431,7 @@ void BoardColorSettingsDialog::onAccept() {
             m_customSlots[slotIndex] = m_settings;
             m_customSlots[slotIndex].scheme = static_cast<ColorScheme>(static_cast<int>(ColorScheme::Custom1) + slotIndex);
             m_customSlots[slotIndex].customName = nameEdit->text().trimmed();
-            m_settings.scheme = m_customSlots[slotIndex].scheme;
-            m_settings.customName = m_customSlots[slotIndex].customName;
+            m_settings = m_customSlots[slotIndex];
             
             saveCustomSlots();
         } else {
