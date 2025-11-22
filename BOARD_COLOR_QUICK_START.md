@@ -35,6 +35,10 @@ Step 1: Select from dropdown
         • 經典棕褐色 (Classic Brown/Beige)
         • 藍灰配色 (Blue/Gray)
         • 綠白配色 (Green/White)
+        • 紫粉配色 (Purple/Pink)
+        • 木紋深色 (Wood/Dark)
+        • 海洋藍配色 (Ocean/Blue)
+        • 淺色系 (Light Theme)
 
 Step 2: See preview update
         ┌────┬────┐
@@ -66,15 +70,18 @@ Step 4: Click "確定" (OK)
 
 ### Preview Explained / 預覽說明
 
-The dialog shows **FOUR** preview grids:
+The dialog shows preview grids for all color schemes:
 
 ```
-1. Three small presets (30×30 per square)
-   ┌──┐ ┌──┐ ┌──┐
-   │░█│ │░█│ │░█│  ← Click dropdown to select
-   │█░│ │█░│ │█░│
-   └──┘ └──┘ └──┘
-   經典  藍灰  綠白
+1. Seven small preset previews (30×30 per square)
+   ┌──┐ ┌──┐ ┌──┐ ┌──┐ ┌──┐ ┌──┐ ┌──┐
+   │░█│ │░█│ │░█│ │░█│ │░█│ │░█│ │░█│  ← Click to select
+   │█░│ │█░│ │█░│ │█░│ │█░│ │█░│ │█░│
+   └──┘ └──┘ └──┘ └──┘ └──┘ └──┘ └──┘
+   經典  藍灰  綠白  紫粉  木紋  海洋  淺色
+   
+   Note: All presets are displayed horizontally. 
+   Resize dialog window if needed to view all options.
 
 2. One large preview (80×80 per square)
    ┌────────┬────────┐
@@ -97,11 +104,25 @@ Classic (經典棕褐色)          Blue/Gray (藍灰配色)
 │██│░░│  Warm tones            │██│░░│  Cool tones
 └──┴──┘                        └──┴──┘
 
-Green/White (綠白配色)          Custom (自訂顏色)
+Green/White (綠白配色)          Purple/Pink (紫粉配色)
 ┌──┬──┐                        ┌──┬──┐
-│░░│██│  #FFFFDD / #86A666    │░░│██│  Your choice!
-├──┼──┤  Natural               ├──┼──┤  Unlimited
-│██│░░│  Fresh look            │██│░░│  possibilities
+│░░│██│  #FFFFDD / #86A666    │░░│██│  #E8C4E8 / #9B6B9B
+├──┼──┤  Natural               ├──┼──┤  Elegant
+│██│░░│  Fresh look            │██│░░│  Soft tones
+└──┴──┘                        └──┴──┘
+
+Wood/Dark (木紋深色)            Ocean/Blue (海洋藍配色)
+┌──┬──┐                        ┌──┬──┐
+│░░│██│  #D4A574 / #6B4423    │░░│██│  #A8D8EA / #2E5B6D
+├──┼──┤  Rich                  ├──┼──┤  Deep
+│██│░░│  Wooden look           │██│░░│  Ocean theme
+└──┴──┘                        └──┴──┘
+
+Light Theme (淺色系)            Custom (自訂顏色)
+┌──┬──┐                        ┌──┬──┐
+│░░│██│  #FEFEFE / #E0E0E0    │░░│██│  Your choice!
+├──┼──┤  Minimal               ├──┼──┤  Unlimited
+│██│░░│  Soft pastels          │██│░░│  possibilities
 └──┴──┘                        └──┴──┘
 ```
 
@@ -209,7 +230,7 @@ Brown tones                    Cool blue-gray tones
 
 🎯 **The 2×2 preview shows exactly how your board will look!**
 
-💡 **Try all three presets before creating custom colors**
+💡 **Try all seven presets before creating custom colors**
 
 ⚡ **Changes apply immediately when you click OK**
 

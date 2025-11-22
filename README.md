@@ -45,9 +45,10 @@ A fully functional player-vs-player chess game built with Qt5.
     - Purple/pink scheme (紫粉配色) - Elegant purple and pink tones
     - Wood/dark scheme (木紋深色) - Rich wooden brown with dark contrast
     - Ocean/blue scheme (海洋藍配色) - Deep ocean blue with light blue contrast
+    - Light theme (淺色系) - Very light pastel colors for a soft, minimal look
     - Fully custom colors using color picker
   - **2×2 Preview Grid**: See exactly how your board will look before applying
-  - **Preset Thumbnails**: Visual previews of all six preset color schemes
+  - **Preset Thumbnails**: Visual previews of all seven preset color schemes
   - Pick any custom colors for light and dark squares
   - Reset to default colors at any time
   - Settings are saved persistently between sessions
@@ -104,13 +105,14 @@ make
     - **Supported image formats**: PNG, JPG, SVG, BMP
       - PNG format with transparent background is recommended for best appearance
 12. **Board Color Settings**: Click "設定" (Settings) menu > "棋盤顏色設定" (Board Color Settings) to:
-    - Choose from six preset color schemes:
+    - Choose from seven preset color schemes:
       - 經典棕褐色 (Classic) - Traditional brown and beige colors
       - 藍灰配色 (Blue/Gray) - Modern blue and gray tones
       - 綠白配色 (Green/White) - Fresh green and white combination
       - 紫粉配色 (Purple/Pink) - Elegant purple and pink tones
       - 木紋深色 (Wood/Dark) - Rich wooden brown with dark contrast
       - 海洋藍配色 (Ocean/Blue) - Deep ocean blue with light blue contrast
+      - 淺色系 (Light Theme) - Very light pastel colors for a soft, minimal look
     - Create custom color schemes using the color picker
     - See a 2×2 preview grid showing exactly how your board will look
     - View thumbnail previews of all preset color schemes

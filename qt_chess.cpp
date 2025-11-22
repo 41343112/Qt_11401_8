@@ -1003,7 +1003,7 @@ void Qt_Chess::loadBoardColorSettings() {
     
     // Validate scheme is within valid range
     if (schemeInt < static_cast<int>(BoardColorSettingsDialog::ColorScheme::Classic) ||
-        schemeInt > static_cast<int>(BoardColorSettingsDialog::ColorScheme::Custom3)) {
+        schemeInt > static_cast<int>(BoardColorSettingsDialog::ColorScheme::Custom7)) {
         schemeInt = static_cast<int>(BoardColorSettingsDialog::ColorScheme::Classic);
     }
     

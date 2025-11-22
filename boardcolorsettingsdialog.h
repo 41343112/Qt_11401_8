@@ -29,6 +29,7 @@ public:
         PurplePink,   // Purple and pink
         WoodDark,     // Wood and dark
         OceanBlue,    // Ocean blue
+        LightTheme,   // Light pastel colors
         Custom1,      // Custom user-selected colors slot 1
         Custom2,      // Custom user-selected colors slot 2
         Custom3,      // Custom user-selected colors slot 3
