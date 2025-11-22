@@ -1454,9 +1454,6 @@ void Qt_Chess::setupTimeControlUI(QVBoxLayout* timeControlPanelLayout) {
     connect(m_incrementSlider, &QSlider::valueChanged, this, &Qt_Chess::onIncrementChanged);
     timeControlLayout->addWidget(m_incrementSlider);
     
-    // Add stretch to fill remaining space in the group box
-    timeControlLayout->addStretch();
-    
     timeControlPanelLayout->addWidget(timeControlGroup, 1);
     
     // Start button - placed at the bottom of the time control panel, outside the group box
