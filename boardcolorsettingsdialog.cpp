@@ -19,7 +19,10 @@ namespace {
     const QVector<BoardColorSettingsDialog::ColorScheme> PRESET_SCHEMES = {
         BoardColorSettingsDialog::ColorScheme::Classic,
         BoardColorSettingsDialog::ColorScheme::BlueGray,
-        BoardColorSettingsDialog::ColorScheme::GreenWhite
+        BoardColorSettingsDialog::ColorScheme::GreenWhite,
+        BoardColorSettingsDialog::ColorScheme::PurplePink,
+        BoardColorSettingsDialog::ColorScheme::WoodDark,
+        BoardColorSettingsDialog::ColorScheme::OceanBlue
     };
     
     // Helper function to generate settings key prefix for custom slots
@@ -58,6 +61,14 @@ void BoardColorSettingsDialog::setupUI() {
     presetsLayout->addWidget(createPresetPreview(ColorScheme::GreenWhite, "綠白"));
     presetsLayout->addStretch();
     schemeLayout->addLayout(presetsLayout);
+    
+    // Second row with 3 new presets
+    QHBoxLayout* presetsLayout2 = new QHBoxLayout();
+    presetsLayout2->addWidget(createPresetPreview(ColorScheme::PurplePink, "紫粉"));
+    presetsLayout2->addWidget(createPresetPreview(ColorScheme::WoodDark, "木紋深色"));
+    presetsLayout2->addWidget(createPresetPreview(ColorScheme::OceanBlue, "海洋藍"));
+    presetsLayout2->addStretch();
+    schemeLayout->addLayout(presetsLayout2);
     
     mainLayout->addWidget(schemeGroup);
     
@@ -494,6 +505,21 @@ BoardColorSettingsDialog::BoardColorSettings BoardColorSettingsDialog::getPreset
         case ColorScheme::GreenWhite:
             settings.lightSquareColor = QColor("#FFFFDD");  // Light cream/white
             settings.darkSquareColor = QColor("#86A666");   // Forest green
+            break;
+            
+        case ColorScheme::PurplePink:
+            settings.lightSquareColor = QColor("#E8C4E8");  // Light purple/pink
+            settings.darkSquareColor = QColor("#9B6B9B");   // Dark purple
+            break;
+            
+        case ColorScheme::WoodDark:
+            settings.lightSquareColor = QColor("#D4A574");  // Light wood
+            settings.darkSquareColor = QColor("#6B4423");   // Dark wood/brown
+            break;
+            
+        case ColorScheme::OceanBlue:
+            settings.lightSquareColor = QColor("#A8D8EA");  // Light ocean blue
+            settings.darkSquareColor = QColor("#2E5B6D");   // Deep ocean blue
             break;
             
         case ColorScheme::Custom1:

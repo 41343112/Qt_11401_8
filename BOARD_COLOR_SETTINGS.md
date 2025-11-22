@@ -6,10 +6,13 @@ Added a custom chessboard color settings interface that allows users to customiz
 ## Features
 
 ### 1. Color Scheme Selection
-Users can choose from 4 options:
+Users can choose from 7 preset options:
 - **經典棕褐色 (Classic)**: Traditional brown/beige chess board colors (#F0D9B5 and #B58863)
 - **藍灰配色 (Blue/Gray)**: Modern blue and gray color scheme (#DEE3E6 and #8CA2AD)
 - **綠白配色 (Green/White)**: Fresh green and white color scheme (#FFFFDD and #86A666)
+- **紫粉配色 (Purple/Pink)**: Elegant purple and pink color scheme (#E8C4E8 and #9B6B9B)
+- **木紋深色 (Wood/Dark)**: Rich wooden brown with dark contrast (#D4A574 and #6B4423)
+- **海洋藍配色 (Ocean/Blue)**: Deep ocean blue with light blue contrast (#A8D8EA and #2E5B6D)
 - **自訂顏色 (Custom)**: User-defined colors using color picker
 
 ### 2. 2×2 Preview Grid
@@ -39,11 +42,12 @@ When "Custom" mode is selected or custom preview is clicked:
 3. Select "棋盤顏色設定" (Board Color Settings)
 
 ### Dialog Layout
-1. **Preset Schemes Section**: Dropdown menu with 3 presets + custom option
-2. **Preset Previews**: **NEW: Four clickable 2×2 mini previews** (Classic, Blue-Gray, Green-White, Custom)
+1. **Preset Schemes Section**: Visual previews with 6 preset color schemes
+2. **Preset Previews**: Six clickable 2×2 mini previews displayed in two rows:
+   - Row 1: Classic, Blue-Gray, Green-White
+   - Row 2: Purple-Pink, Wood-Dark, Ocean-Blue
    - Hover effect shows blue border indicating they are interactive
    - Click to instantly apply that color scheme
-   - Custom preview shows colorful gradient pattern
 3. **Custom Colors Section**: Two color buttons for light and dark squares (still available)
 4. **Main Preview**: Large 2×2 preview grid (80×80 pixels per square)
 5. **Buttons**: Reset to Defaults, OK, Cancel
@@ -69,6 +73,9 @@ When "Custom" mode is selected or custom preview is clicked:
 Classic:    Light=#F0D9B5, Dark=#B58863
 BlueGray:   Light=#DEE3E6, Dark=#8CA2AD
 GreenWhite: Light=#FFFFDD, Dark=#86A666
+PurplePink: Light=#E8C4E8, Dark=#9B6B9B
+WoodDark:   Light=#D4A574, Dark=#6B4423
+OceanBlue:  Light=#A8D8EA, Dark=#2E5B6D
 ```
 
 ## Technical Architecture

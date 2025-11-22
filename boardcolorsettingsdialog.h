@@ -26,6 +26,9 @@ public:
         Classic,      // Classic brown/beige (default)
         BlueGray,     // Blue and gray
         GreenWhite,   // Green and white
+        PurplePink,   // Purple and pink
+        WoodDark,     // Wood and dark
+        OceanBlue,    // Ocean blue
         Custom1,      // Custom user-selected colors slot 1
         Custom2,      // Custom user-selected colors slot 2
         Custom3,      // Custom user-selected colors slot 3
