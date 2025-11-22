@@ -1,6 +1,6 @@
 #include "boardpresetdialog.h"
 #include <QGroupBox>
-#include <cassert>
+#include <QDebug>
 
 BoardPresetDialog::BoardPresetDialog(QWidget *parent)
     : QDialog(parent), m_selectedPreset(BoardPreset::Standard)
@@ -106,7 +106,8 @@ void BoardPresetDialog::onOkClicked()
             break;
         default:
             // This should never happen with controlled radio button selection
-            assert(false && "Invalid board preset selection");
+            // Log error and default to Standard preset
+            qWarning() << "BoardPresetDialog: Invalid button ID" << checkedId << "- defaulting to Standard preset";
             m_selectedPreset = BoardPreset::Standard;
             break;
     }

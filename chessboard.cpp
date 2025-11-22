@@ -23,6 +23,10 @@ void ChessBoard::initializeBoard(BoardPreset preset) {
         case BoardPreset::EndGame:
             initializeEndGameBoard();
             break;
+        default:
+            // Should never reach here with valid enum
+            initializeStandardBoard();
+            break;
     }
     
     m_currentPlayer = PieceColor::White;
@@ -71,6 +75,10 @@ void ChessBoard::initializeStandardBoard() {
 void ChessBoard::initializeMidGameBoard() {
     // Mid-game tactical position - Sicilian Defense-like position
     // This is a common mid-game position with both sides having active play
+    //
+    // Coordinate system: row 0 = rank 8, row 7 = rank 1
+    //                    col 0 = file a, col 7 = file h
+    //                    e.g., m_board[0][0] = a8, m_board[7][4] = e1
     
     // Black pieces - back rank
     m_board[0][0] = ChessPiece(PieceType::Rook, PieceColor::Black);    // a8
