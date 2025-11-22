@@ -45,6 +45,7 @@ private slots:
     void onSoundSettingsClicked();
     void onPieceIconSettingsClicked();
     void onBoardColorSettingsClicked();
+    void onFlipBoardClicked();
 
 private:
     Ui::Qt_Chess *ui;
@@ -79,6 +80,9 @@ private:
     // Board color settings
     BoardColorSettingsDialog::BoardColorSettings m_boardColorSettings;
     
+    // Board flip state
+    bool m_isBoardFlipped;
+    
     void setupUI();
     void setupMenuBar();
     void updateBoard();
@@ -109,5 +113,11 @@ private:
     int calculateIconSize(QPushButton* square) const;
     void loadBoardColorSettings();
     void applyBoardColorSettings();
+    void loadBoardFlipSettings();
+    void saveBoardFlipSettings();
+    int getDisplayRow(int logicalRow) const;
+    int getDisplayCol(int logicalCol) const;
+    int getLogicalRow(int displayRow) const;
+    int getLogicalCol(int displayCol) const;
 };
 #endif // QT_CHESS_H

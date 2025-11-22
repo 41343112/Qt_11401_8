@@ -33,6 +33,7 @@ Qt_Chess::Qt_Chess(QWidget *parent)
     , m_wasSelectedBeforeDrag(false)
     , m_boardWidget(nullptr)
     , m_menuBar(nullptr)
+    , m_isBoardFlipped(false)
 {
     ui->setupUi(this);
     setWindowTitle("國際象棋 - 雙人對弈");
@@ -47,6 +48,7 @@ Qt_Chess::Qt_Chess(QWidget *parent)
     initializeSounds();
     loadPieceIconSettings();
     loadBoardColorSettings();
+    loadBoardFlipSettings();
     loadPieceIconsToCache(); // Load icons to cache after loading settings
     setupMenuBar();
     setupUI();
@@ -135,6 +137,13 @@ void Qt_Chess::setupMenuBar() {
     QAction* boardColorSettingsAction = new QAction("棋盤顏色設定", this);
     connect(boardColorSettingsAction, &QAction::triggered, this, &Qt_Chess::onBoardColorSettingsClicked);
     settingsMenu->addAction(boardColorSettingsAction);
+    
+    settingsMenu->addSeparator();
+    
+    // Flip board action
+    QAction* flipBoardAction = new QAction("反轉棋盤", this);
+    connect(flipBoardAction, &QAction::triggered, this, &Qt_Chess::onFlipBoardClicked);
+    settingsMenu->addAction(flipBoardAction);
 }
 
 void Qt_Chess::updateSquareColor(int row, int col) {
@@ -146,11 +155,13 @@ void Qt_Chess::updateSquareColor(int row, int col) {
 }
 
 void Qt_Chess::updateBoard() {
-    for (int row = 0; row < 8; ++row) {
-        for (int col = 0; col < 8; ++col) {
-            const ChessPiece& piece = m_chessBoard.getPiece(row, col);
-            displayPieceOnSquare(m_squares[row][col], piece);
-            updateSquareColor(row, col);
+    for (int logicalRow = 0; logicalRow < 8; ++logicalRow) {
+        for (int logicalCol = 0; logicalCol < 8; ++logicalCol) {
+            int displayRow = getDisplayRow(logicalRow);
+            int displayCol = getDisplayCol(logicalCol);
+            const ChessPiece& piece = m_chessBoard.getPiece(logicalRow, logicalCol);
+            displayPieceOnSquare(m_squares[displayRow][displayCol], piece);
+            updateSquareColor(displayRow, displayCol);
         }
     }
     
@@ -181,9 +192,11 @@ void Qt_Chess::applyCheckHighlight(const QPoint& excludeSquare) {
     if (m_chessBoard.isInCheck(currentPlayer)) {
         QPoint kingPos = m_chessBoard.findKing(currentPlayer);
         if (kingPos.x() >= 0 && kingPos.y() >= 0 && kingPos != excludeSquare) {
-            int row = kingPos.y();
-            int col = kingPos.x();
-            m_squares[row][col]->setStyleSheet(CHECK_HIGHLIGHT_STYLE);
+            int logicalRow = kingPos.y();
+            int logicalCol = kingPos.x();
+            int displayRow = getDisplayRow(logicalRow);
+            int displayCol = getDisplayCol(logicalCol);
+            m_squares[displayRow][displayCol]->setStyleSheet(CHECK_HIGHLIGHT_STYLE);
         }
     }
 }
@@ -204,29 +217,33 @@ void Qt_Chess::highlightValidMoves() {
     
     if (!m_pieceSelected) return;
     
-    // Highlight selected square
-    m_squares[m_selectedSquare.y()][m_selectedSquare.x()]->setStyleSheet(
+    // Highlight selected square (m_selectedSquare is in logical coordinates)
+    int displayRow = getDisplayRow(m_selectedSquare.y());
+    int displayCol = getDisplayCol(m_selectedSquare.x());
+    m_squares[displayRow][displayCol]->setStyleSheet(
         "QPushButton { background-color: #7FC97F; border: 2px solid #00FF00; }"
     );
     
     // Highlight valid moves
-    for (int row = 0; row < 8; ++row) {
-        for (int col = 0; col < 8; ++col) {
-            QPoint targetSquare(col, row);
+    for (int logicalRow = 0; logicalRow < 8; ++logicalRow) {
+        for (int logicalCol = 0; logicalCol < 8; ++logicalCol) {
+            QPoint targetSquare(logicalCol, logicalRow);
             if (m_chessBoard.isValidMove(m_selectedSquare, targetSquare)) {
                 bool isCapture = isCaptureMove(m_selectedSquare, targetSquare);
-                bool isLight = (row + col) % 2 == 0;
+                int displayRow = getDisplayRow(logicalRow);
+                int displayCol = getDisplayCol(logicalCol);
+                bool isLight = (displayRow + displayCol) % 2 == 0;
                 
                 if (isCapture) {
                     // Highlight capture moves in red
                     QString color = isLight ? "#FFB3B3" : "#FF8080";
-                    m_squares[row][col]->setStyleSheet(
+                    m_squares[displayRow][displayCol]->setStyleSheet(
                         QString("QPushButton { background-color: %1; border: 2px solid #FF0000; }").arg(color)
                     );
                 } else {
                     // Highlight non-capture moves in orange
                     QString color = isLight ? "#FFE4B5" : "#DEB887";
-                    m_squares[row][col]->setStyleSheet(
+                    m_squares[displayRow][displayCol]->setStyleSheet(
                         QString("QPushButton { background-color: %1; border: 2px solid #FFA500; }").arg(color)
                     );
                 }
@@ -238,12 +255,15 @@ void Qt_Chess::highlightValidMoves() {
     applyCheckHighlight(m_selectedSquare);
 }
 
-void Qt_Chess::onSquareClicked(int row, int col) {
-    QPoint clickedSquare(col, row);
+void Qt_Chess::onSquareClicked(int displayRow, int displayCol) {
+    // Convert display coordinates to logical coordinates
+    int logicalRow = getLogicalRow(displayRow);
+    int logicalCol = getLogicalCol(displayCol);
+    QPoint clickedSquare(logicalCol, logicalRow);
     
     if (!m_pieceSelected) {
         // Try to select a piece
-        const ChessPiece& piece = m_chessBoard.getPiece(row, col);
+        const ChessPiece& piece = m_chessBoard.getPiece(logicalRow, logicalCol);
         if (piece.getType() != PieceType::None && 
             piece.getColor() == m_chessBoard.getCurrentPlayer()) {
             m_selectedSquare = clickedSquare;
@@ -278,7 +298,7 @@ void Qt_Chess::onSquareClicked(int row, int col) {
             clearHighlights();
         } else {
             // Try to select a different piece of the same color
-            const ChessPiece& piece = m_chessBoard.getPiece(row, col);
+            const ChessPiece& piece = m_chessBoard.getPiece(logicalRow, logicalCol);
             if (piece.getType() != PieceType::None && 
                 piece.getColor() == m_chessBoard.getCurrentPlayer()) {
                 m_selectedSquare = clickedSquare;
@@ -394,10 +414,12 @@ QPoint Qt_Chess::getSquareAtPosition(const QPoint& pos) const {
     return QPoint(-1, -1);
 }
 
-void Qt_Chess::restorePieceToSquare(const QPoint& square) {
-    if (square.x() >= 0 && square.y() >= 0 && square.x() < 8 && square.y() < 8) {
-        const ChessPiece& piece = m_chessBoard.getPiece(square.y(), square.x());
-        displayPieceOnSquare(m_squares[square.y()][square.x()], piece);
+void Qt_Chess::restorePieceToSquare(const QPoint& logicalSquare) {
+    if (logicalSquare.x() >= 0 && logicalSquare.y() >= 0 && logicalSquare.x() < 8 && logicalSquare.y() < 8) {
+        const ChessPiece& piece = m_chessBoard.getPiece(logicalSquare.y(), logicalSquare.x());
+        int displayRow = getDisplayRow(logicalSquare.y());
+        int displayCol = getDisplayCol(logicalSquare.x());
+        displayPieceOnSquare(m_squares[displayRow][displayCol], piece);
     }
 }
 
@@ -453,7 +475,7 @@ bool Qt_Chess::eventFilter(QObject *obj, QEvent *event) {
 }
 
 void Qt_Chess::mousePressEvent(QMouseEvent *event) {
-    QPoint square = getSquareAtPosition(event->pos());
+    QPoint displaySquare = getSquareAtPosition(event->pos());
     
     // Right click - cancel any current action
     if (event->button() == Qt::RightButton) {
@@ -478,18 +500,23 @@ void Qt_Chess::mousePressEvent(QMouseEvent *event) {
     }
     
     // Left click - start drag
-    if (event->button() == Qt::LeftButton && square.x() >= 0 && square.y() >= 0 && 
-        square.x() < 8 && square.y() < 8) {
-        const ChessPiece& piece = m_chessBoard.getPiece(square.y(), square.x());
+    if (event->button() == Qt::LeftButton && displaySquare.x() >= 0 && displaySquare.y() >= 0 && 
+        displaySquare.x() < 8 && displaySquare.y() < 8) {
+        // Convert display coordinates to logical coordinates
+        int logicalRow = getLogicalRow(displaySquare.y());
+        int logicalCol = getLogicalCol(displaySquare.x());
+        QPoint logicalSquare(logicalCol, logicalRow);
+        
+        const ChessPiece& piece = m_chessBoard.getPiece(logicalRow, logicalCol);
         if (piece.getType() != PieceType::None && 
             piece.getColor() == m_chessBoard.getCurrentPlayer()) {
             
             // Track if this piece was already selected before the drag
-            m_wasSelectedBeforeDrag = (m_pieceSelected && m_selectedSquare == square);
+            m_wasSelectedBeforeDrag = (m_pieceSelected && m_selectedSquare == logicalSquare);
             
             m_isDragging = true;
-            m_dragStartSquare = square;
-            m_selectedSquare = square;
+            m_dragStartSquare = logicalSquare;
+            m_selectedSquare = logicalSquare;
             m_pieceSelected = true;
             
             // Create drag label
@@ -499,7 +526,7 @@ void Qt_Chess::mousePressEvent(QMouseEvent *event) {
             if (m_pieceIconSettings.useCustomIcons) {
                 QPixmap pixmap = getCachedPieceIcon(piece.getType(), piece.getColor());
                 if (!pixmap.isNull()) {
-                    QPushButton* squareButton = m_squares[square.y()][square.x()];
+                    QPushButton* squareButton = m_squares[displaySquare.y()][displaySquare.x()];
                     int iconSize = calculateIconSize(squareButton);
                     m_dragLabel->setPixmap(pixmap.scaled(iconSize, iconSize, Qt::KeepAspectRatio, Qt::SmoothTransformation));
                 } else {
@@ -522,8 +549,8 @@ void Qt_Chess::mousePressEvent(QMouseEvent *event) {
             m_dragLabel->raise();
             
             // Hide the piece from the original square during drag
-            m_squares[square.y()][square.x()]->setText("");
-            m_squares[square.y()][square.x()]->setIcon(QIcon());
+            m_squares[displaySquare.y()][displaySquare.x()]->setText("");
+            m_squares[displaySquare.y()][displaySquare.x()]->setIcon(QIcon());
             
             highlightValidMoves();
         }
@@ -549,7 +576,7 @@ void Qt_Chess::mouseReleaseEvent(QMouseEvent *event) {
     
     // Left click release - complete drag
     if (event->button() == Qt::LeftButton && m_isDragging) {
-        QPoint dropSquare = getSquareAtPosition(event->pos());
+        QPoint displayDropSquare = getSquareAtPosition(event->pos());
         
         // Clean up drag label
         if (m_dragLabel) {
@@ -560,21 +587,26 @@ void Qt_Chess::mouseReleaseEvent(QMouseEvent *event) {
         
         m_isDragging = false;
         
-        if (dropSquare.x() >= 0 && dropSquare.y() >= 0) {
+        if (displayDropSquare.x() >= 0 && displayDropSquare.y() >= 0) {
+            // Convert display coordinates to logical coordinates
+            int logicalRow = getLogicalRow(displayDropSquare.y());
+            int logicalCol = getLogicalCol(displayDropSquare.x());
+            QPoint logicalDropSquare(logicalCol, logicalRow);
+            
             // Detect move type before executing the move
-            bool isCapture = isCaptureMove(m_dragStartSquare, dropSquare);
-            bool isCastling = isCastlingMove(m_dragStartSquare, dropSquare);
+            bool isCapture = isCaptureMove(m_dragStartSquare, logicalDropSquare);
+            bool isCastling = isCastlingMove(m_dragStartSquare, logicalDropSquare);
             
             // Try to move the piece
-            if (m_chessBoard.movePiece(m_dragStartSquare, dropSquare)) {
+            if (m_chessBoard.movePiece(m_dragStartSquare, logicalDropSquare)) {
                 m_pieceSelected = false;
                 updateBoard();
                 
                 // Check if pawn promotion is needed
-                if (m_chessBoard.needsPromotion(dropSquare)) {
-                    const ChessPiece& piece = m_chessBoard.getPiece(dropSquare.y(), dropSquare.x());
+                if (m_chessBoard.needsPromotion(logicalDropSquare)) {
+                    const ChessPiece& piece = m_chessBoard.getPiece(logicalDropSquare.y(), logicalDropSquare.x());
                     PieceType promotionType = showPromotionDialog(piece.getColor());
-                    m_chessBoard.promotePawn(dropSquare, promotionType);
+                    m_chessBoard.promotePawn(logicalDropSquare, promotionType);
                     updateBoard();
                 }
                 
@@ -583,7 +615,7 @@ void Qt_Chess::mouseReleaseEvent(QMouseEvent *event) {
                 
                 updateStatus();
                 clearHighlights();
-            } else if (dropSquare == m_dragStartSquare) {
+            } else if (logicalDropSquare == m_dragStartSquare) {
                 // Dropped on same square - toggle selection
                 // Restore the piece to the original square
                 restorePieceToSquare(m_dragStartSquare);
@@ -600,12 +632,12 @@ void Qt_Chess::mouseReleaseEvent(QMouseEvent *event) {
                 }
             } else {
                 // Invalid move - try to select a different piece
-                const ChessPiece& piece = m_chessBoard.getPiece(dropSquare.y(), dropSquare.x());
+                const ChessPiece& piece = m_chessBoard.getPiece(logicalDropSquare.y(), logicalDropSquare.x());
                 if (piece.getType() != PieceType::None && 
                     piece.getColor() == m_chessBoard.getCurrentPlayer()) {
                     // Restore the piece to the original square first
                     restorePieceToSquare(m_dragStartSquare);
-                    m_selectedSquare = dropSquare;
+                    m_selectedSquare = logicalDropSquare;
                     m_pieceSelected = true;
                     highlightValidMoves();
                 } else {
@@ -1050,4 +1082,36 @@ void Qt_Chess::applyBoardColorSettings() {
     if (m_chessBoard.isInCheck(currentPlayer)) {
         applyCheckHighlight();
     }
+}
+
+void Qt_Chess::loadBoardFlipSettings() {
+    QSettings settings("QtChess", "ChessGame");
+    m_isBoardFlipped = settings.value("boardFlipped", false).toBool();
+}
+
+void Qt_Chess::saveBoardFlipSettings() {
+    QSettings settings("QtChess", "ChessGame");
+    settings.setValue("boardFlipped", m_isBoardFlipped);
+}
+
+int Qt_Chess::getDisplayRow(int logicalRow) const {
+    return m_isBoardFlipped ? (7 - logicalRow) : logicalRow;
+}
+
+int Qt_Chess::getDisplayCol(int logicalCol) const {
+    return m_isBoardFlipped ? (7 - logicalCol) : logicalCol;
+}
+
+int Qt_Chess::getLogicalRow(int displayRow) const {
+    return m_isBoardFlipped ? (7 - displayRow) : displayRow;
+}
+
+int Qt_Chess::getLogicalCol(int displayCol) const {
+    return m_isBoardFlipped ? (7 - displayCol) : displayCol;
+}
+
+void Qt_Chess::onFlipBoardClicked() {
+    m_isBoardFlipped = !m_isBoardFlipped;
+    saveBoardFlipSettings();
+    updateBoard();
 }
