@@ -910,7 +910,7 @@ void Qt_Chess::updateSquareSizes() {
         reservedWidth += PANEL_SPACING;          // Spacing before right panel
     }
     
-    // Add base margins (not including board container's 10px horizontal margins already in board size)
+    // Add base margins for layout spacing (board container margins are part of board widget size)
     reservedWidth += BASE_MARGINS;
     
     // Account for time labels height if visible, plus spacing
