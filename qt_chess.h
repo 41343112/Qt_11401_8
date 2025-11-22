@@ -89,7 +89,8 @@ private:
     bool m_isBoardFlipped;
     
     // Time control
-    QComboBox* m_timeLimitCombo;
+    QSlider* m_timeLimitSlider;
+    QLabel* m_timeLimitLabel;
     QSlider* m_incrementSlider;
     QLabel* m_incrementLabel;
     QLabel* m_whiteTimeLabel;
@@ -141,7 +142,7 @@ private:
     int getLogicalCol(int displayCol) const;
     void setupTimeControlUI(QVBoxLayout* rightPanelLayout);
     void updateTimeDisplays();
-    void onTimeLimitChanged(int index);
+    void onTimeLimitChanged(int value);
     void onIncrementChanged(int value);
     void onGameTimerTick();
     void startTimer();
@@ -149,6 +150,5 @@ private:
     void applyIncrement();
     void loadTimeControlSettings();
     void saveTimeControlSettings();
-    void positionTimeDisplaysOnBoard();
 };
 #endif // QT_CHESS_H

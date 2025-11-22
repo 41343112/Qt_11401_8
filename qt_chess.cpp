@@ -24,8 +24,7 @@
 namespace {
     const QString CHECK_HIGHLIGHT_STYLE = "QPushButton { background-color: #FF6B6B; border: 2px solid #FF0000; }";
     const int DEFAULT_ICON_SIZE = 40; // Default fallback icon size in pixels
-    const int TIME_DISPLAY_MARGIN = 10; // Margin from board edges for time displays
-    const int TIME_DISPLAY_FALLBACK_OFFSET = 120; // Offset for white time fallback position
+    const int MAX_TIME_LIMIT_SECONDS = 3600; // Maximum time limit: 60 minutes
 }
 
 Qt_Chess::Qt_Chess(QWidget *parent)
@@ -40,7 +39,8 @@ Qt_Chess::Qt_Chess(QWidget *parent)
     , m_boardWidget(nullptr)
     , m_menuBar(nullptr)
     , m_isBoardFlipped(false)
-    , m_timeLimitCombo(nullptr)
+    , m_timeLimitSlider(nullptr)
+    , m_timeLimitLabel(nullptr)
     , m_incrementSlider(nullptr)
     , m_incrementLabel(nullptr)
     , m_whiteTimeLabel(nullptr)
@@ -365,9 +365,8 @@ void Qt_Chess::onNewGameClicked() {
     stopTimer();
     m_timerStarted = false;
     
-    if (m_timeControlEnabled && m_timeLimitCombo) {
-        int index = m_timeLimitCombo->currentIndex();
-        int seconds = m_timeLimitCombo->itemData(index).toInt();
+    if (m_timeControlEnabled && m_timeLimitSlider) {
+        int seconds = m_timeLimitSlider->value();
         if (seconds > 0) {
             m_whiteTimeMs = seconds * 1000;
             m_blackTimeMs = seconds * 1000;
@@ -758,9 +757,6 @@ void Qt_Chess::mouseReleaseEvent(QMouseEvent *event) {
 void Qt_Chess::resizeEvent(QResizeEvent *event) {
     QMainWindow::resizeEvent(event);
     updateSquareSizes();
-    
-    // Reposition time displays on board
-    positionTimeDisplaysOnBoard();
     
     // Reapply highlights after resize
     if (m_pieceSelected) {
@@ -1217,26 +1213,27 @@ void Qt_Chess::setupTimeControlUI(QVBoxLayout* rightPanelLayout) {
     QGroupBox* timeControlGroup = new QGroupBox("時間控制", this);
     QVBoxLayout* timeControlLayout = new QVBoxLayout(timeControlGroup);
     
-    // Time limit label and combo box
-    QLabel* timeLimitLabel = new QLabel("總時間:", this);
+    // Total time label and slider
+    QLabel* timeLimitTitleLabel = new QLabel("總時間:", this);
     QFont labelFont;
     labelFont.setPointSize(10);
-    timeLimitLabel->setFont(labelFont);
-    timeControlLayout->addWidget(timeLimitLabel);
+    timeLimitTitleLabel->setFont(labelFont);
+    timeControlLayout->addWidget(timeLimitTitleLabel);
     
-    m_timeLimitCombo = new QComboBox(this);
-    m_timeLimitCombo->addItem("無限制", -1);
-    m_timeLimitCombo->addItem("30秒", 30);
-    m_timeLimitCombo->addItem("1分鐘", 60);
-    m_timeLimitCombo->addItem("3分鐘", 180);
-    m_timeLimitCombo->addItem("5分鐘", 300);
-    m_timeLimitCombo->addItem("10分鐘", 600);
-    m_timeLimitCombo->addItem("15分鐘", 900);
-    m_timeLimitCombo->addItem("30分鐘", 1800);
-    m_timeLimitCombo->addItem("60分鐘", 3600);
-    connect(m_timeLimitCombo, QOverload<int>::of(&QComboBox::currentIndexChanged), 
-            this, &Qt_Chess::onTimeLimitChanged);
-    timeControlLayout->addWidget(m_timeLimitCombo);
+    m_timeLimitLabel = new QLabel("不限時", this);
+    m_timeLimitLabel->setFont(labelFont);
+    m_timeLimitLabel->setAlignment(Qt::AlignCenter);
+    timeControlLayout->addWidget(m_timeLimitLabel);
+    
+    // Horizontal slider for total time - fills available width
+    m_timeLimitSlider = new QSlider(Qt::Horizontal, this);
+    m_timeLimitSlider->setMinimum(0);  // 0 = unlimited
+    m_timeLimitSlider->setMaximum(MAX_TIME_LIMIT_SECONDS);  // Max 60 minutes
+    m_timeLimitSlider->setValue(0);
+    m_timeLimitSlider->setTickPosition(QSlider::TicksBelow);
+    m_timeLimitSlider->setTickInterval(300);  // Tick every 5 minutes
+    connect(m_timeLimitSlider, &QSlider::valueChanged, this, &Qt_Chess::onTimeLimitChanged);
+    timeControlLayout->addWidget(m_timeLimitSlider);
     
     // Increment label and slider
     QLabel* incrementTitleLabel = new QLabel("每著加秒:", this);
@@ -1248,14 +1245,42 @@ void Qt_Chess::setupTimeControlUI(QVBoxLayout* rightPanelLayout) {
     m_incrementLabel->setAlignment(Qt::AlignCenter);
     timeControlLayout->addWidget(m_incrementLabel);
     
-    m_incrementSlider = new QSlider(Qt::Vertical, this);  // Changed to vertical
+    // Horizontal slider for increment - fills available width
+    m_incrementSlider = new QSlider(Qt::Horizontal, this);
     m_incrementSlider->setMinimum(0);
     m_incrementSlider->setMaximum(60);
     m_incrementSlider->setValue(0);
-    m_incrementSlider->setTickPosition(QSlider::TicksLeft);
+    m_incrementSlider->setTickPosition(QSlider::TicksBelow);
     m_incrementSlider->setTickInterval(5);
     connect(m_incrementSlider, &QSlider::valueChanged, this, &Qt_Chess::onIncrementChanged);
-    timeControlLayout->addWidget(m_incrementSlider, 1);  // Give it stretch factor to fill height
+    timeControlLayout->addWidget(m_incrementSlider);
+    
+    // Black time display
+    QLabel* blackTimeTitle = new QLabel("黑方時間:", this);
+    blackTimeTitle->setFont(labelFont);
+    timeControlLayout->addWidget(blackTimeTitle);
+    
+    m_blackTimeLabel = new QLabel("--:--", this);
+    QFont timeFont;
+    timeFont.setPointSize(14);
+    timeFont.setBold(true);
+    m_blackTimeLabel->setFont(timeFont);
+    m_blackTimeLabel->setAlignment(Qt::AlignCenter);
+    m_blackTimeLabel->setStyleSheet("QLabel { background-color: rgba(51, 51, 51, 200); color: #FFF; padding: 8px; border-radius: 5px; }");
+    m_blackTimeLabel->setMinimumHeight(40);
+    timeControlLayout->addWidget(m_blackTimeLabel);
+    
+    // White time display
+    QLabel* whiteTimeTitle = new QLabel("白方時間:", this);
+    whiteTimeTitle->setFont(labelFont);
+    timeControlLayout->addWidget(whiteTimeTitle);
+    
+    m_whiteTimeLabel = new QLabel("--:--", this);
+    m_whiteTimeLabel->setFont(timeFont);
+    m_whiteTimeLabel->setAlignment(Qt::AlignCenter);
+    m_whiteTimeLabel->setStyleSheet("QLabel { background-color: rgba(51, 51, 51, 200); color: #FFF; padding: 8px; border-radius: 5px; }");
+    m_whiteTimeLabel->setMinimumHeight(40);
+    timeControlLayout->addWidget(m_whiteTimeLabel);
     
     // Start button
     m_startButton = new QPushButton("開始", this);
@@ -1268,62 +1293,61 @@ void Qt_Chess::setupTimeControlUI(QVBoxLayout* rightPanelLayout) {
     connect(m_startButton, &QPushButton::clicked, this, &Qt_Chess::onStartButtonClicked);
     timeControlLayout->addWidget(m_startButton);
     
+    // Add stretch to push everything to the top
+    timeControlLayout->addStretch();
+    
     rightPanelLayout->addWidget(timeControlGroup);
-    
-    // Create time displays as overlays on the board (will be positioned later)
-    // Black time display (top-left of board)
-    m_blackTimeLabel = new QLabel("--:--", m_boardContainer);
-    QFont timeFont;
-    timeFont.setPointSize(14);
-    timeFont.setBold(true);
-    m_blackTimeLabel->setFont(timeFont);
-    m_blackTimeLabel->setAlignment(Qt::AlignCenter);
-    m_blackTimeLabel->setStyleSheet("QLabel { background-color: rgba(51, 51, 51, 200); color: #FFF; padding: 8px; border-radius: 5px; }");
-    m_blackTimeLabel->setFixedSize(100, 40);
-    
-    // White time display (bottom-right of board)
-    m_whiteTimeLabel = new QLabel("--:--", m_boardContainer);
-    m_whiteTimeLabel->setFont(timeFont);
-    m_whiteTimeLabel->setAlignment(Qt::AlignCenter);
-    m_whiteTimeLabel->setStyleSheet("QLabel { background-color: rgba(51, 51, 51, 200); color: #FFF; padding: 8px; border-radius: 5px; }");
-    m_whiteTimeLabel->setFixedSize(100, 40);
-    
-    // Show the labels
-    m_blackTimeLabel->show();
-    m_whiteTimeLabel->show();
-    
-    // Position the time displays (will be called after board is sized)
-    positionTimeDisplaysOnBoard();
     
     // Initialize game timer
     m_gameTimer = new QTimer(this);
     connect(m_gameTimer, &QTimer::timeout, this, &Qt_Chess::onGameTimerTick);
 }
 
-void Qt_Chess::positionTimeDisplaysOnBoard() {
-    if (!m_boardWidget || !m_blackTimeLabel || !m_whiteTimeLabel) return;
+void Qt_Chess::onTimeLimitChanged(int value) {
+    if (!m_timeLimitSlider || !m_timeLimitLabel) return;
     
-    // Get the board widget's position within the container
-    QPoint boardPos = m_boardWidget->pos();
-    int boardWidth = m_boardWidget->width();
-    int boardHeight = m_boardWidget->height();
-    
-    // Position black time at top-left of board (offset from board position)
-    m_blackTimeLabel->move(boardPos.x() + TIME_DISPLAY_MARGIN, boardPos.y() + TIME_DISPLAY_MARGIN);
-    m_blackTimeLabel->raise();  // Ensure it's on top
-    
-    // Position white time at bottom-right of board
-    if (boardHeight > 0 && boardWidth > 0) {
-        m_whiteTimeLabel->move(boardPos.x() + boardWidth - m_whiteTimeLabel->width() - TIME_DISPLAY_MARGIN, 
-                               boardPos.y() + boardHeight - m_whiteTimeLabel->height() - TIME_DISPLAY_MARGIN);
+    if (value == 0) {
+        // Unlimited time
+        m_timeLimitLabel->setText("不限時");
+        m_timeControlEnabled = false;
+        stopTimer();
+        m_timerStarted = false;
+        if (m_startButton) {
+            m_startButton->setEnabled(false);
+            m_startButton->setText("開始");
+        }
     } else {
-        // Default position if board isn't sized yet (offset to avoid overlap with black label)
-        m_whiteTimeLabel->move(boardPos.x() + TIME_DISPLAY_FALLBACK_OFFSET, boardPos.y() + TIME_DISPLAY_MARGIN);
+        // Set time limit
+        // Format the label based on the value
+        QString timeText;
+        if (value < 60) {
+            timeText = QString("%1秒").arg(value);
+        } else if (value % 60 == 0) {
+            timeText = QString("%1分鐘").arg(value / 60);
+        } else {
+            int minutes = value / 60;
+            int seconds = value % 60;
+            timeText = QString("%1分%2秒").arg(minutes).arg(seconds);
+        }
+        m_timeLimitLabel->setText(timeText);
+        
+        m_timeControlEnabled = true;
+        m_whiteTimeMs = value * 1000;
+        m_blackTimeMs = value * 1000;
+        m_timerStarted = false;
+        if (m_startButton) {
+            m_startButton->setEnabled(true);
+            m_startButton->setText("開始");
+        }
     }
-    m_whiteTimeLabel->raise();  // Ensure it's on top
+    
+    updateTimeDisplays();
+    saveTimeControlSettings();
 }
 
 void Qt_Chess::updateTimeDisplays() {
+    if (!m_whiteTimeLabel || !m_blackTimeLabel) return;
+    
     if (!m_timeControlEnabled) {
         m_whiteTimeLabel->setText("--:--");
         m_blackTimeLabel->setText("--:--");
@@ -1350,36 +1374,6 @@ void Qt_Chess::updateTimeDisplays() {
         m_blackTimeLabel->setStyleSheet("QLabel { background-color: rgba(76, 175, 80, 200); color: #FFF; padding: 8px; border-radius: 5px; }");
         m_whiteTimeLabel->setStyleSheet("QLabel { background-color: rgba(51, 51, 51, 200); color: #FFF; padding: 8px; border-radius: 5px; }");
     }
-}
-
-void Qt_Chess::onTimeLimitChanged(int index) {
-    if (!m_timeLimitCombo) return;
-    
-    int seconds = m_timeLimitCombo->itemData(index).toInt();
-    
-    if (seconds < 0) {
-        // Unlimited time
-        m_timeControlEnabled = false;
-        stopTimer();
-        m_timerStarted = false;
-        if (m_startButton) {
-            m_startButton->setEnabled(false);
-            m_startButton->setText("開始");
-        }
-    } else {
-        // Set time limit
-        m_timeControlEnabled = true;
-        m_whiteTimeMs = seconds * 1000;
-        m_blackTimeMs = seconds * 1000;
-        m_timerStarted = false;
-        if (m_startButton) {
-            m_startButton->setEnabled(true);
-            m_startButton->setText("開始");
-        }
-    }
-    
-    updateTimeDisplays();
-    saveTimeControlSettings();
 }
 
 void Qt_Chess::onIncrementChanged(int value) {
@@ -1456,17 +1450,19 @@ void Qt_Chess::applyIncrement() {
 void Qt_Chess::loadTimeControlSettings() {
     QSettings settings("Qt_Chess", "TimeControl");
     
-    int timeLimitSeconds = settings.value("timeLimitSeconds", -1).toInt();
+    int timeLimitSeconds = settings.value("timeLimitSeconds", 0).toInt();
     int incrementSeconds = settings.value("incrementSeconds", 0).toInt();
     
-    // Find and set the time limit in combo box
-    if (m_timeLimitCombo) {
-        for (int i = 0; i < m_timeLimitCombo->count(); ++i) {
-            if (m_timeLimitCombo->itemData(i).toInt() == timeLimitSeconds) {
-                m_timeLimitCombo->setCurrentIndex(i);
-                break;
-            }
-        }
+    // Validate and normalize time limit (convert legacy -1 to 0 for unlimited)
+    if (timeLimitSeconds < 0) {
+        timeLimitSeconds = 0;  // Normalize legacy unlimited setting
+    }
+    // Clamp to valid range [0, MAX_TIME_LIMIT_SECONDS]
+    timeLimitSeconds = qBound(0, timeLimitSeconds, MAX_TIME_LIMIT_SECONDS);
+    
+    // Set the time limit slider
+    if (m_timeLimitSlider) {
+        m_timeLimitSlider->setValue(timeLimitSeconds);
     }
     
     // Set increment
@@ -1476,7 +1472,7 @@ void Qt_Chess::loadTimeControlSettings() {
     
     m_incrementMs = incrementSeconds * 1000;
     
-    if (timeLimitSeconds < 0) {
+    if (timeLimitSeconds == 0) {
         m_timeControlEnabled = false;
     } else {
         m_timeControlEnabled = true;
@@ -1488,10 +1484,8 @@ void Qt_Chess::loadTimeControlSettings() {
 void Qt_Chess::saveTimeControlSettings() {
     QSettings settings("Qt_Chess", "TimeControl");
     
-    if (m_timeLimitCombo) {
-        int index = m_timeLimitCombo->currentIndex();
-        int seconds = m_timeLimitCombo->itemData(index).toInt();
-        settings.setValue("timeLimitSeconds", seconds);
+    if (m_timeLimitSlider) {
+        settings.setValue("timeLimitSeconds", m_timeLimitSlider->value());
     }
     
     if (m_incrementSlider) {
