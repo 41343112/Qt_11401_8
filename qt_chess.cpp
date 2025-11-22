@@ -1003,18 +1003,28 @@ void Qt_Chess::updateSquareSizes() {
         
         // Set the time control panel to have the same height as the board
         // This ensures it always fills the left side of the chessboard
-        m_timeControlPanel->setMinimumHeight(boardHeight);
-        m_timeControlPanel->setMaximumHeight(boardHeight);
+        m_timeControlPanel->setFixedHeight(boardHeight);
         
         // Scale font sizes in time control panel based on board size
         int controlFontSize = qMax(MIN_UI_FONT_SIZE, qMin(MAX_UI_FONT_SIZE, squareSize / UI_FONT_SCALE_DIVISOR));
         
-        // Update all labels in time control panel
-        QList<QLabel*> labels = m_timeControlPanel->findChildren<QLabel*>();
-        for (QLabel* label : labels) {
-            QFont labelFont = label->font();
+        // Update specific labels in time control panel
+        if (m_whiteTimeLimitLabel) {
+            QFont labelFont = m_whiteTimeLimitLabel->font();
             labelFont.setPointSize(controlFontSize);
-            label->setFont(labelFont);
+            m_whiteTimeLimitLabel->setFont(labelFont);
+        }
+        
+        if (m_blackTimeLimitLabel) {
+            QFont labelFont = m_blackTimeLimitLabel->font();
+            labelFont.setPointSize(controlFontSize);
+            m_blackTimeLimitLabel->setFont(labelFont);
+        }
+        
+        if (m_incrementLabel) {
+            QFont labelFont = m_incrementLabel->font();
+            labelFont.setPointSize(controlFontSize);
+            m_incrementLabel->setFont(labelFont);
         }
         
         // Update start button font
