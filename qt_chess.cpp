@@ -69,10 +69,10 @@ Qt_Chess::Qt_Chess(QWidget *parent)
     , m_blackTimeLabel(nullptr)
     , m_startButton(nullptr)
     , m_gameTimer(nullptr)
-    , m_whiteTimeMs(0)
-    , m_blackTimeMs(0)
-    , m_incrementMs(0)
-    , m_timeControlEnabled(false)
+    , m_whiteTimeMs(1500000)  // TEMPORARY: 25 minutes for testing
+    , m_blackTimeMs(300000)   // TEMPORARY: 5 minutes for testing
+    , m_incrementMs(5000)     // TEMPORARY: 5 seconds for testing
+    , m_timeControlEnabled(true)  // TEMPORARY: Enable for testing
     , m_timerStarted(false)
     , m_boardContainer(nullptr)
     , m_timeControlPanel(nullptr)
@@ -145,7 +145,7 @@ void Qt_Chess::setupUI() {
     m_blackTimeLabel->setAlignment(Qt::AlignCenter);
     m_blackTimeLabel->setStyleSheet("QLabel { background-color: rgba(51, 51, 51, 200); color: #FFF; padding: 8px; border-radius: 5px; }");
     m_blackTimeLabel->setMinimumSize(100, 40);
-    m_blackTimeLabel->hide();  // Initially hidden
+    m_blackTimeLabel->show();  // TEMPORARY: Show for testing
     boardContainerLayout->addWidget(m_blackTimeLabel, 0, Qt::AlignVCenter);
     
     // Chess board
@@ -195,7 +195,7 @@ void Qt_Chess::setupUI() {
     m_whiteTimeLabel->setAlignment(Qt::AlignCenter);
     m_whiteTimeLabel->setStyleSheet("QLabel { background-color: rgba(51, 51, 51, 200); color: #FFF; padding: 8px; border-radius: 5px; }");
     m_whiteTimeLabel->setMinimumSize(100, 40);
-    m_whiteTimeLabel->hide();  // Initially hidden
+    m_whiteTimeLabel->show();  // TEMPORARY: Show for testing
     boardContainerLayout->addWidget(m_whiteTimeLabel, 0, Qt::AlignVCenter);
     
     contentLayout->addWidget(m_boardContainer, 2);  // Give board more space (2:1 ratio)
