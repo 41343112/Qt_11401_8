@@ -34,6 +34,7 @@ namespace {
     const int RIGHT_PANEL_MAX_WIDTH = 200; // Maximum width of new game button panel
     const int PANEL_SPACING = 20;          // Spacing between panels
     const int BASE_MARGINS = 30;           // Base layout margins (not including board container's 5px*2=10px)
+    const int TIME_LABEL_SPACING = 10;     // Spacing around time labels
     
     // Scaling constants for UI elements
     const int MIN_SQUARE_SIZE = 30;        // Minimum size for chess board squares
@@ -80,9 +81,8 @@ Qt_Chess::Qt_Chess(QWidget *parent)
     // Set minimum window size to ensure all content fits without clipping
     // Calculation: LEFT_PANEL_MAX_WIDTH (300) + min board (8*MIN_SQUARE_SIZE+4=244) + 
     //              RIGHT_PANEL_MAX_WIDTH (200) + 2*PANEL_SPACING (40) + BASE_MARGINS (30) + board margins (10) = 824
-    // Using 820 as a round number close to the calculated minimum
-    // Height: board (244) + time labels (80) + spacing (60) = 384, increased to 420 for better usability
-    setMinimumSize(820, 420);
+    // Height: board (244) + time labels (~80) + spacing (~60) = ~384, using 420 for comfortable sizing
+    setMinimumSize(824, 420);
     
     setMouseTracking(true);
     
@@ -125,7 +125,7 @@ void Qt_Chess::setupUI() {
     m_boardContainer->setMouseTracking(true);
     QVBoxLayout* boardContainerLayout = new QVBoxLayout(m_boardContainer);
     boardContainerLayout->setContentsMargins(5, 5, 5, 5);  // Add margins to prevent clipping
-    boardContainerLayout->setSpacing(10);  // Consistent spacing between elements
+    boardContainerLayout->setSpacing(TIME_LABEL_SPACING);  // Consistent spacing between elements
     
     // Time display font
     QFont timeFont;
@@ -910,14 +910,14 @@ void Qt_Chess::updateSquareSizes() {
     
     // Account for time labels height if visible, plus spacing
     if (m_whiteTimeLabel && m_whiteTimeLabel->isVisible()) {
-        reservedHeight += m_whiteTimeLabel->minimumHeight() + 10;  // Current height + spacing
+        reservedHeight += m_whiteTimeLabel->minimumHeight() + TIME_LABEL_SPACING;
     }
     if (m_blackTimeLabel && m_blackTimeLabel->isVisible()) {
-        reservedHeight += m_blackTimeLabel->minimumHeight() + 10;  // Current height + spacing
+        reservedHeight += m_blackTimeLabel->minimumHeight() + TIME_LABEL_SPACING;
     }
     
     // Add some padding for layout margins and spacing
-    reservedHeight += 30;
+    reservedHeight += BASE_MARGINS;
     
     int availableWidth = central->width() - reservedWidth;
     int availableHeight = central->height() - reservedHeight;
