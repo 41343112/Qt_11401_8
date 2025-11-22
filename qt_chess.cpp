@@ -124,10 +124,10 @@ void Qt_Chess::setupUI() {
     setupTimeControlUI(leftPanelLayout);
     contentLayout->addWidget(m_timeControlPanel, 1);  // Less space for control panel
     
-    // Chess board container with time displays above and below
+    // Chess board container with time displays on left and right
     m_boardContainer = new QWidget(this);
     m_boardContainer->setMouseTracking(true);
-    QVBoxLayout* boardContainerLayout = new QVBoxLayout(m_boardContainer);
+    QHBoxLayout* boardContainerLayout = new QHBoxLayout(m_boardContainer);
     boardContainerLayout->setContentsMargins(BOARD_CONTAINER_MARGIN, BOARD_CONTAINER_MARGIN, 
                                              BOARD_CONTAINER_MARGIN, BOARD_CONTAINER_MARGIN);
     boardContainerLayout->setSpacing(TIME_LABEL_SPACING);  // Consistent spacing between elements
@@ -137,7 +137,7 @@ void Qt_Chess::setupUI() {
     timeFont.setPointSize(14);
     timeFont.setBold(true);
     
-    // Black time label (above board) - initially hidden
+    // Black time label (left side - opponent's time) - initially hidden
     m_blackTimeLabel = new QLabel("--:--", m_boardContainer);
     m_blackTimeLabel->setFont(timeFont);
     m_blackTimeLabel->setAlignment(Qt::AlignCenter);
@@ -184,9 +184,9 @@ void Qt_Chess::setupUI() {
     }
     
     // Add board to container layout, centered
-    boardContainerLayout->addWidget(m_boardWidget, 0, Qt::AlignCenter);
+    boardContainerLayout->addWidget(m_boardWidget, 1, Qt::AlignCenter);
     
-    // White time label (below board) - initially hidden
+    // White time label (right side - player's time) - initially hidden
     m_whiteTimeLabel = new QLabel("--:--", m_boardContainer);
     m_whiteTimeLabel->setFont(timeFont);
     m_whiteTimeLabel->setAlignment(Qt::AlignCenter);
@@ -913,12 +913,12 @@ void Qt_Chess::updateSquareSizes() {
     // Add base margins for layout spacing (board container margins are part of board widget size)
     reservedWidth += BASE_MARGINS;
     
-    // Account for time labels height if visible, plus spacing
+    // Account for time labels width if visible, plus spacing (now positioned horizontally)
     if (m_whiteTimeLabel && m_whiteTimeLabel->isVisible()) {
-        reservedHeight += m_whiteTimeLabel->minimumHeight() + TIME_LABEL_SPACING;
+        reservedWidth += m_whiteTimeLabel->minimumWidth() + TIME_LABEL_SPACING;
     }
     if (m_blackTimeLabel && m_blackTimeLabel->isVisible()) {
-        reservedHeight += m_blackTimeLabel->minimumHeight() + TIME_LABEL_SPACING;
+        reservedWidth += m_blackTimeLabel->minimumWidth() + TIME_LABEL_SPACING;
     }
     
     // Add some padding for layout margins and spacing
