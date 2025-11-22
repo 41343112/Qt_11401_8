@@ -92,7 +92,7 @@ void Qt_Chess::setupUI() {
     QWidget* centralWidget = new QWidget(this);
     QVBoxLayout* mainLayout = new QVBoxLayout(centralWidget);
     
-    // Create horizontal layout for time controls and board
+    // Create horizontal layout for time controls, board, and new game button
     QHBoxLayout* contentLayout = new QHBoxLayout();
     
     // Left panel for time controls
@@ -175,20 +175,34 @@ void Qt_Chess::setupUI() {
     m_whiteTimeLabel->hide();  // Initially hidden
     boardContainerLayout->addWidget(m_whiteTimeLabel, 0, Qt::AlignCenter);
     
-    // New game button (below white time label) - initially hidden
-    m_newGameButton = new QPushButton("新遊戲", m_boardContainer);
+    contentLayout->addWidget(m_boardContainer, 2);  // Give board more space (2:1 ratio)
+    contentLayout->setAlignment(m_boardContainer, Qt::AlignCenter);  // Center the board container
+    
+    // Right panel for new game button - positioned in the middle
+    QWidget* rightPanel = new QWidget(this);
+    rightPanel->setMaximumWidth(200);  // Limit panel width
+    QVBoxLayout* rightPanelLayout = new QVBoxLayout(rightPanel);
+    rightPanelLayout->setContentsMargins(0, 0, 0, 0);
+    
+    // Add stretch to center the button vertically
+    rightPanelLayout->addStretch(1);
+    
+    // New game button (in right panel, vertically centered) - initially hidden
+    m_newGameButton = new QPushButton("新遊戲", rightPanel);
     m_newGameButton->setMinimumHeight(40);
-    m_newGameButton->setMaximumWidth(200);
+    m_newGameButton->setMaximumWidth(180);  // Slightly smaller than panel width (200px) for better appearance
     QFont newGameButtonFont;
     newGameButtonFont.setPointSize(14);
     newGameButtonFont.setBold(true);
     m_newGameButton->setFont(newGameButtonFont);
     connect(m_newGameButton, &QPushButton::clicked, this, &Qt_Chess::onNewGameClicked);
     m_newGameButton->hide();  // Initially hidden
-    boardContainerLayout->addWidget(m_newGameButton, 0, Qt::AlignCenter);
+    rightPanelLayout->addWidget(m_newGameButton, 0, Qt::AlignCenter);
     
-    contentLayout->addWidget(m_boardContainer, 2);  // Give board more space (2:1 ratio)
-    contentLayout->setAlignment(m_boardContainer, Qt::AlignCenter);  // Center the board container
+    // Add stretch below the button to keep it centered
+    rightPanelLayout->addStretch(1);
+    
+    contentLayout->addWidget(rightPanel, 1);  // Right panel gets same space as left panel
     
     mainLayout->addLayout(contentLayout);
     
@@ -859,9 +873,9 @@ void Qt_Chess::updateSquareSizes() {
     if (!central) return;
     
     // Calculate available space for the board
-    // Account for the new game button
+    // The new game button is now in the right panel, not below the board,
+    // so we only need to account for time labels and padding
     int reservedHeight = 0;
-    if (m_newGameButton) reservedHeight += m_newGameButton->minimumHeight();
     
     // Add some padding for layout margins and spacing (estimate ~50px)
     reservedHeight += 50;
