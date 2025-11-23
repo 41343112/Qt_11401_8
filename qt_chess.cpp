@@ -1882,7 +1882,9 @@ void Qt_Chess::updateTimeDisplays() {
     
     // 根據當前回合和剩餘時間確定背景顏色
     // 規則：不是自己的回合時顯示灰色，是自己的回合時根據剩餘時間決定（< 10 秒紅色，否則綠色）
-    PieceColor currentPlayer = m_chessBoard.getCurrentPlayer();
+    // 在回放模式中，使用進入回放時儲存的玩家，而不是棋盤上的當前玩家
+    // 這樣可以確保計時器高亮顯示與實際倒數的玩家保持一致，不會隨著回放的棋步切換
+    PieceColor currentPlayer = m_isReplayMode ? m_savedCurrentPlayer : m_chessBoard.getCurrentPlayer();
     
     QString whiteStyle, blackStyle;
     
@@ -1928,7 +1930,9 @@ void Qt_Chess::onGameTimerTick() {
     if (!m_timeControlEnabled) return;
     
     // 減少當前玩家的時間
-    PieceColor currentPlayer = m_chessBoard.getCurrentPlayer();
+    // 在回放模式中，使用進入回放時儲存的玩家，而不是棋盤上的當前玩家
+    // 這樣可以確保在回放過程中時間只從同一個玩家倒數，不會隨著棋步切換
+    PieceColor currentPlayer = m_isReplayMode ? m_savedCurrentPlayer : m_chessBoard.getCurrentPlayer();
     if (currentPlayer == PieceColor::White) {
         // 僅當白方有時間限制（非無限制）時才減少時間
         if (m_whiteTimeMs > 0) {
