@@ -64,11 +64,17 @@
    - 退出回放模式時，計時器自動恢復
    - 確保回放不會影響玩家的剩餘時間
 
-6. **退出回放**：
-   - **遊戲進行中**：點擊「退出回放」按鈕返回當前遊戲狀態，繼續對弈
-   - **遊戲結束後**：開始新遊戲自動退出回放模式
-   - 棋盤恢復到保存的狀態
-   - 計時器恢復運行（如果之前在運行）
+6. **自動退出回放**：
+   - **智能退出**：當使用「下一步」或「最後一步」按鈕導航到最新一步時，系統自動退出回放模式
+   - **無縫銜接**：自動恢復到當前遊戲狀態，玩家可立即繼續對弈
+   - **計時器恢復**：如果遊戲正在進行且計時器之前在運行，會自動恢復計時
+   - **效率提升**：無需手動退出回放，提供更流暢的使用體驗
+
+7. **開始新遊戲退出**：
+   - 開始新遊戲時自動退出回放模式
+   - 清除所有回放狀態
+   - 重置棋盤到初始狀態
+
 
 ### 技術實作
 
@@ -116,9 +122,9 @@ bool m_savedTimerWasActive;       // 儲存進入回放前計時器是否在運�
    1. 開始一局遊戲並下幾步棋
    2. 在左側棋譜面板中雙擊任一步棋，或點擊任一回放按鈕
    3. 進入回放模式，計時器自動暫停
-   4. 看到「退出回放」按鈕出現
-   5. 使用導航按鈕查看每一步
-   6. 點擊「退出回放」返回當前遊戲狀態
+   4. 使用導航按鈕查看每一步
+   5. 點擊「下一步」或「最後一步」導航到最新一步
+   6. 自動退出回放模式，返回當前遊戲狀態
    7. 計時器自動恢復，繼續對弈
    ```
 
@@ -128,14 +134,16 @@ bool m_savedTimerWasActive;       // 儲存進入回放前計時器是否在運�
    2. 在左側棋譜面板中雙擊任一步棋
    3. 進入回放模式，看到回放控制按鈕
    4. 使用導航按鈕查看每一步
-   5. 開始新遊戲自動退出回放模式
+   5. 導航到最新一步時自動退出回放模式
+   6. 或開始新遊戲自動退出回放模式
    ```
 
 3. **快速導航**：
    ```
    - 點擊 ⏮ 查看棋局開始
-   - 點擊 ⏭ 查看棋局結束
+   - 點擊 ⏭ 查看棋局結束（自動退出回放模式）
    - 使用 ◀ ▶ 逐步查看
+   - 使用 ▶ 導航到最新一步時自動退出回放模式
    ```
 
 ### 錯誤處理
@@ -180,7 +188,6 @@ QPushButton* m_replayFirstButton;
 QPushButton* m_replayPrevButton;
 QPushButton* m_replayNextButton;
 QPushButton* m_replayLastButton;
-QPushButton* m_exitReplayButton;
 bool m_isReplayMode;
 int m_replayMoveIndex;
 std::vector<std::vector<ChessPiece>> m_savedBoardState;
@@ -194,7 +201,6 @@ void onReplayFirstClicked();
 void onReplayPrevClicked();
 void onReplayNextClicked();
 void onReplayLastClicked();
-void onExitReplayClicked();
 void updateReplayButtons();
 void saveBoardState();
 void restoreBoardState();
