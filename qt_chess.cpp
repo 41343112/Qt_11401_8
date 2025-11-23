@@ -174,7 +174,13 @@ void Qt_Chess::setupUI() {
     connect(m_moveListWidget, &QListWidget::itemDoubleClicked, this, [this](QListWidgetItem* item) {
         if (!m_gameStarted) {  // 只有在遊戲結束後才允許回放
             int row = m_moveListWidget->row(item);
-            int moveIndex = row * 2 + 1;  // 每行包含兩步，點擊某行會跳到該行的黑方移動
+            const std::vector<MoveRecord>& moveHistory = m_chessBoard.getMoveHistory();
+            // 每行包含兩步（白方和黑方），點擊某行會跳到該行的最後一步
+            int moveIndex = row * 2 + 1;  
+            // 確保索引不超出範圍
+            if (moveIndex >= static_cast<int>(moveHistory.size())) {
+                moveIndex = moveHistory.size() - 1;
+            }
             enterReplayMode();
             replayToMove(moveIndex);
         }
@@ -2369,7 +2375,9 @@ void Qt_Chess::onReplayNextClicked() {
 
 void Qt_Chess::onReplayLastClicked() {
     const std::vector<MoveRecord>& moveHistory = m_chessBoard.getMoveHistory();
-    replayToMove(moveHistory.size() - 1);
+    if (!moveHistory.empty()) {
+        replayToMove(moveHistory.size() - 1);
+    }
 }
 
 void Qt_Chess::onExitReplayClicked() {
@@ -2413,7 +2421,7 @@ void Qt_Chess::restoreBoardState() {
     
     for (int row = 0; row < 8; ++row) {
         for (int col = 0; col < 8; ++col) {
-            m_chessBoard.getPiece(row, col) = m_savedBoardState[row][col];
+            m_chessBoard.setPiece(row, col, m_savedBoardState[row][col]);
         }
     }
     

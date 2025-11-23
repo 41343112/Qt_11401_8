@@ -56,6 +56,12 @@ ChessPiece& ChessBoard::getPiece(int row, int col) {
     return m_board[row][col];
 }
 
+void ChessBoard::setPiece(int row, int col, const ChessPiece& piece) {
+    if (row >= 0 && row < 8 && col >= 0 && col < 8) {
+        m_board[row][col] = piece;
+    }
+}
+
 QPoint ChessBoard::findKing(PieceColor color) const {
     for (int row = 0; row < 8; ++row) {
         for (int col = 0; col < 8; ++col) {

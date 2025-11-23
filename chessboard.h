@@ -38,6 +38,7 @@ public:
     void initializeBoard();
     const ChessPiece& getPiece(int row, int col) const;
     ChessPiece& getPiece(int row, int col);
+    void setPiece(int row, int col, const ChessPiece& piece);  // 安全地設置棋子
     
     bool movePiece(const QPoint& from, const QPoint& to);
     bool isValidMove(const QPoint& from, const QPoint& to) const;
