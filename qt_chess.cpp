@@ -459,19 +459,19 @@ void Qt_Chess::onNewGameClicked() {
     stopTimer();
     m_timerStarted = false;
     
-    // Show time control panel
+    // 顯示時間控制面板
     if (m_timeControlPanel) {
         m_timeControlPanel->show();
     }
     
-    // Hide time displays
+    // 隱藏時間顯示
     if (m_whiteTimeLabel) m_whiteTimeLabel->hide();
     if (m_blackTimeLabel) m_blackTimeLabel->hide();
     
-    // Hide give up button
+    // 隱藏放棄按鈕
     if (m_giveUpButton) m_giveUpButton->hide();
     
-    // Reset times based on slider values
+    // 根據滑桿值重置時間
     if (m_whiteTimeLimitSlider) {
         int value = m_whiteTimeLimitSlider->value();
         if (value == 0) {
@@ -494,10 +494,10 @@ void Qt_Chess::onNewGameClicked() {
         }
     }
     
-    // Check if time control is enabled
+    // 檢查是否啟用時間控制
     m_timeControlEnabled = (m_whiteTimeMs > 0 || m_blackTimeMs > 0);
     
-    // Enable start button after board reset
+    // 重置棋盤後啟用開始按鈕
     if (m_startButton) {
         m_startButton->setEnabled(true);
         m_startButton->setText("開始");
@@ -509,7 +509,7 @@ void Qt_Chess::onNewGameClicked() {
 }
 
 void Qt_Chess::onGiveUpClicked() {
-    // Show confirmation dialog
+    // 顯示確認對話框
     QMessageBox::StandardButton reply = QMessageBox::question(
         this, 
         "確認放棄", 
@@ -518,30 +518,30 @@ void Qt_Chess::onGiveUpClicked() {
     );
     
     if (reply == QMessageBox::Yes) {
-        // Stop the game
+        // 停止遊戲
         m_gameStarted = false;
         stopTimer();
         m_timerStarted = false;
         
-        // Show time control panel
+        // 顯示時間控制面板
         if (m_timeControlPanel) {
             m_timeControlPanel->show();
         }
         
-        // Hide time displays
+        // 隱藏時間顯示
         if (m_whiteTimeLabel) m_whiteTimeLabel->hide();
         if (m_blackTimeLabel) m_blackTimeLabel->hide();
         
-        // Hide give up button
+        // 隱藏放棄按鈕
         if (m_giveUpButton) m_giveUpButton->hide();
         
-        // Re-enable start button
+        // 重新啟用開始按鈕
         if (m_startButton) {
             m_startButton->setText("開始");
             m_startButton->setEnabled(true);
         }
         
-        // Show message about who gave up
+        // 顯示放棄者的訊息
         PieceColor currentPlayer = m_chessBoard.getCurrentPlayer();
         QString playerName = (currentPlayer == PieceColor::White) ? "白方" : "黑方";
         QString winner = (currentPlayer == PieceColor::White) ? "黑方" : "白方";
@@ -552,21 +552,21 @@ void Qt_Chess::onGiveUpClicked() {
 void Qt_Chess::onStartButtonClicked() {
     if (m_timeControlEnabled && !m_timerStarted) {
         m_timerStarted = true;
-        m_gameStarted = true;  // Mark game as started
+        m_gameStarted = true;  // 標記遊戲已開始
         startTimer();
         
-        // Hide time control panel
+        // 隱藏時間控制面板
         if (m_timeControlPanel) {
             m_timeControlPanel->hide();
         }
         
-        // Show time displays on left and right sides of the board
+        // 在棋盤左右兩側顯示時間
         if (m_whiteTimeLabel && m_blackTimeLabel) {
             m_whiteTimeLabel->show();
             m_blackTimeLabel->show();
         }
         
-        // Show give up button
+        // 顯示放棄按鈕
         if (m_giveUpButton) {
             m_giveUpButton->show();
         }
@@ -578,15 +578,15 @@ void Qt_Chess::onStartButtonClicked() {
             m_startButton->setText("進行中");
         }
     } else if (!m_timeControlEnabled && !m_gameStarted) {
-        // Allow game to start even without time control
+        // 即使沒有時間控制也允許遊戲開始
         m_gameStarted = true;
         
-        // Hide time control panel
+        // 隱藏時間控制面板
         if (m_timeControlPanel) {
             m_timeControlPanel->hide();
         }
         
-        // Show give up button
+        // 顯示放棄按鈕
         if (m_giveUpButton) {
             m_giveUpButton->show();
         }
@@ -644,7 +644,7 @@ PieceType Qt_Chess::showPromotionDialog(PieceColor color) {
     
     QHBoxLayout* buttonLayout = new QHBoxLayout();
     
-    // Create buttons for each promotion option
+    // 為每個升變選項創建按鈕
     struct PromotionOption {
         PieceType type;
         QString symbol;
@@ -657,7 +657,7 @@ PieceType Qt_Chess::showPromotionDialog(PieceColor color) {
         {PieceType::Knight, color == PieceColor::White ? "♘" : "♞"}
     };
     
-    PieceType selectedType = PieceType::Queen; // Default to Queen
+    PieceType selectedType = PieceType::Queen; // 預設為后
     
     for (const auto& option : options) {
         QPushButton* button = new QPushButton(option.symbol, &dialog);
@@ -707,29 +707,29 @@ void Qt_Chess::restorePieceToSquare(const QPoint& logicalSquare) {
 }
 
 bool Qt_Chess::eventFilter(QObject *obj, QEvent *event) {
-    // Check if the event is from one of our chess square buttons
+    // 檢查事件是否來自我們的棋盤格子按鈕之一
     QPushButton* button = qobject_cast<QPushButton*>(obj);
     if (!button) {
         return QMainWindow::eventFilter(obj, event);
     }
     
-    // Check if this button is one of our chess squares using efficient map lookup
+    // 使用高效的映射查找檢查此按鈕是否為我們的棋盤格子之一
     if (!m_buttonCoordinates.contains(button)) {
         return QMainWindow::eventFilter(obj, event);
     }
     
-    // Forward mouse events to enable drag-and-drop
+    // 轉發滑鼠事件以啟用拖放
     if (event->type() == QEvent::MouseButtonPress) {
         QMouseEvent* mouseEvent = static_cast<QMouseEvent*>(event);
-        // Map the button's position to the main window's coordinate system
+        // 將按鈕的位置映射到主視窗的坐標系統
         QPoint globalPos = button->mapToGlobal(mouseEvent->pos());
         QPoint windowPos = mapFromGlobal(globalPos);
         QMouseEvent mappedEvent(mouseEvent->type(), windowPos, mouseEvent->button(), 
                                mouseEvent->buttons(), mouseEvent->modifiers());
         mousePressEvent(&mappedEvent);
-        // Don't accept the event completely - let the button still handle clicks if no drag started
+        // 不要完全接受事件 - 如果沒有開始拖動，讓按鈕仍然處理點擊
         if (m_isDragging) {
-            return true; // Event handled, start dragging
+            return true; // 事件已處理，開始拖動
         }
     } else if (event->type() == QEvent::MouseMove) {
         if (m_isDragging) {
@@ -739,7 +739,7 @@ bool Qt_Chess::eventFilter(QObject *obj, QEvent *event) {
             QMouseEvent mappedEvent(mouseEvent->type(), windowPos, mouseEvent->button(), 
                                    mouseEvent->buttons(), mouseEvent->modifiers());
             mouseMoveEvent(&mappedEvent);
-            return true; // Event handled
+            return true; // 事件已處理
         }
     } else if (event->type() == QEvent::MouseButtonRelease) {
         if (m_isDragging) {
@@ -749,48 +749,48 @@ bool Qt_Chess::eventFilter(QObject *obj, QEvent *event) {
             QMouseEvent mappedEvent(mouseEvent->type(), windowPos, mouseEvent->button(), 
                                    mouseEvent->buttons(), mouseEvent->modifiers());
             mouseReleaseEvent(&mappedEvent);
-            return true; // Event handled
+            return true; // 事件已處理
         }
     }
     
-    // Pass the event to the parent class for standard processing
+    // 將事件傳遞給父類進行標準處理
     return QMainWindow::eventFilter(obj, event);
 }
 
 void Qt_Chess::mousePressEvent(QMouseEvent *event) {
     QPoint displaySquare = getSquareAtPosition(event->pos());
     
-    // Right click - cancel any current action
+    // 右鍵點擊 - 取消任何當前動作
     if (event->button() == Qt::RightButton) {
         if (m_isDragging) {
-            // Cancel drag and return piece to original position
+            // 取消拖動並將棋子返回原位
             m_isDragging = false;
             if (m_dragLabel) {
                 m_dragLabel->hide();
                 m_dragLabel->deleteLater();
                 m_dragLabel = nullptr;
             }
-            // Restore the piece to the original square
+            // 將棋子恢復到原始格子
             restorePieceToSquare(m_dragStartSquare);
             m_dragStartSquare = QPoint(-1, -1);
             clearHighlights();
         } else if (m_pieceSelected) {
-            // Deselect piece if one is selected
+            // 如果選擇了棋子則取消選擇
             m_pieceSelected = false;
             clearHighlights();
         }
         return;
     }
     
-    // Don't allow drag if game hasn't started
+    // 如果遊戲尚未開始，不允許拖動
     if (!m_gameStarted) {
         return;
     }
     
-    // Left click - start drag
+    // 左鍵點擊 - 開始拖動
     if (event->button() == Qt::LeftButton && displaySquare.x() >= 0 && displaySquare.y() >= 0 && 
         displaySquare.x() < 8 && displaySquare.y() < 8) {
-        // Convert display coordinates to logical coordinates
+        // 轉換 display coordinates to logical coordinates
         int logicalRow = getLogicalRow(displaySquare.y());
         int logicalCol = getLogicalCol(displaySquare.x());
         QPoint logicalSquare(logicalCol, logicalRow);
@@ -799,7 +799,7 @@ void Qt_Chess::mousePressEvent(QMouseEvent *event) {
         if (piece.getType() != PieceType::None && 
             piece.getColor() == m_chessBoard.getCurrentPlayer()) {
             
-            // Track if this piece was already selected before the drag
+            // 追蹤這個棋子在拖動前是否已被選中
             m_wasSelectedBeforeDrag = (m_pieceSelected && m_selectedSquare == logicalSquare);
             
             m_isDragging = true;
@@ -807,10 +807,10 @@ void Qt_Chess::mousePressEvent(QMouseEvent *event) {
             m_selectedSquare = logicalSquare;
             m_pieceSelected = true;
             
-            // Create drag label
+            // 創建 drag label
             m_dragLabel = new QLabel(this);
             
-            // Use custom icon or Unicode symbol
+            // 使用自訂圖示或 Unicode 符號
             if (m_pieceIconSettings.useCustomIcons) {
                 QPixmap pixmap = getCachedPieceIcon(piece.getType(), piece.getColor());
                 if (!pixmap.isNull()) {
@@ -836,7 +836,7 @@ void Qt_Chess::mousePressEvent(QMouseEvent *event) {
             m_dragLabel->show();
             m_dragLabel->raise();
             
-            // Hide the piece from the original square during drag
+            // 隱藏 the piece from the original square during drag
             m_squares[displaySquare.y()][displaySquare.x()]->setText("");
             m_squares[displaySquare.y()][displaySquare.x()]->setIcon(QIcon());
             
@@ -856,17 +856,17 @@ void Qt_Chess::mouseMoveEvent(QMouseEvent *event) {
 }
 
 void Qt_Chess::mouseReleaseEvent(QMouseEvent *event) {
-    // Right click - already handled in mousePressEvent
+    // 右鍵點擊 - 已在 mousePressEvent 中處理
     if (event->button() == Qt::RightButton) {
         QMainWindow::mouseReleaseEvent(event);
         return;
     }
     
-    // Left click release - complete drag
+    // 左鍵釋放 - 完成拖動
     if (event->button() == Qt::LeftButton && m_isDragging) {
         QPoint displayDropSquare = getSquareAtPosition(event->pos());
         
-        // Clean up drag label
+        // 清理拖動標籤
         if (m_dragLabel) {
             m_dragLabel->hide();
             m_dragLabel->deleteLater();
@@ -876,25 +876,25 @@ void Qt_Chess::mouseReleaseEvent(QMouseEvent *event) {
         m_isDragging = false;
         
         if (displayDropSquare.x() >= 0 && displayDropSquare.y() >= 0) {
-            // Convert display coordinates to logical coordinates
+            // 轉換 display coordinates to logical coordinates
             int logicalRow = getLogicalRow(displayDropSquare.y());
             int logicalCol = getLogicalCol(displayDropSquare.x());
             QPoint logicalDropSquare(logicalCol, logicalRow);
             
-            // Detect move type before executing the move
+            // 在執行移動之前檢測移動類型
             bool isCapture = isCaptureMove(m_dragStartSquare, logicalDropSquare);
             bool isCastling = isCastlingMove(m_dragStartSquare, logicalDropSquare);
             
-            // Try to move the piece
+            // 嘗試移動棋子
             if (m_chessBoard.movePiece(m_dragStartSquare, logicalDropSquare)) {
                 m_pieceSelected = false;
                 
-                // Apply time increment for the player who just moved
+                // 應用 time increment for the player who just moved
                 applyIncrement();
                 
                 updateBoard();
                 
-                // Check if pawn promotion is needed
+                // 檢查 pawn promotion is needed
                 if (m_chessBoard.needsPromotion(logicalDropSquare)) {
                     const ChessPiece& piece = m_chessBoard.getPiece(logicalDropSquare.y(), logicalDropSquare.x());
                     PieceType promotionType = showPromotionDialog(piece.getColor());
@@ -902,31 +902,31 @@ void Qt_Chess::mouseReleaseEvent(QMouseEvent *event) {
                     updateBoard();
                 }
                 
-                // Play appropriate sound effect
+                // 播放適當的音效
                 playSoundForMove(isCapture, isCastling);
                 
-                // Update time displays (timer only runs if already started)
+                // 更新 time displays (timer only runs if already started)
                 updateTimeDisplays();
                 
                 updateStatus();
                 clearHighlights();
             } else if (logicalDropSquare == m_dragStartSquare) {
-                // Dropped on same square - toggle selection
-                // Restore the piece to the original square
+                // 放在同一格子上 - 切換選擇
+                // 將棋子恢復到原始格子
                 restorePieceToSquare(m_dragStartSquare);
                 
                 if (m_wasSelectedBeforeDrag) {
-                    // Was already selected, so deselect
+                    // 已經被選中，所以取消選擇
                     m_pieceSelected = false;
                     clearHighlights();
                 } else {
-                    // Was not selected, so keep it selected with highlights
+                    // 未被選中，所以保持選中並顯示高亮
                     m_selectedSquare = m_dragStartSquare;
                     m_pieceSelected = true;
                     highlightValidMoves();
                 }
             } else {
-                // Invalid move - try to select a different piece
+                // 無效的移動 - 嘗試選擇不同的棋子
                 const ChessPiece& piece = m_chessBoard.getPiece(logicalDropSquare.y(), logicalDropSquare.x());
                 if (piece.getType() != PieceType::None && 
                     piece.getColor() == m_chessBoard.getCurrentPlayer()) {
@@ -960,7 +960,7 @@ void Qt_Chess::mouseReleaseEvent(QMouseEvent *event) {
 void Qt_Chess::resizeEvent(QResizeEvent *event) {
     QMainWindow::resizeEvent(event);
     updateSquareSizes();
-    updateTimeControlSizes();  // Update time control UI sizes when window is resized
+    updateTimeControlSizes();  // 更新 time control UI sizes when window is resized
     
     // Reapply highlights after resize
     if (m_pieceSelected) {
@@ -971,11 +971,11 @@ void Qt_Chess::resizeEvent(QResizeEvent *event) {
 void Qt_Chess::updateSquareSizes() {
     if (!m_boardWidget || m_squares.empty()) return;
     
-    // Get the central widget
+    // 獲取 the central widget
     QWidget* central = centralWidget();
     if (!central) return;
     
-    // Calculate available space for the board
+    // 計算 available space for the board
     // Account for the horizontal layout with right panel and spacing between panels
     int reservedWidth = 0;
     int reservedHeight = 0;
@@ -1003,19 +1003,19 @@ void Qt_Chess::updateSquareSizes() {
     int availableWidth = central->width() - reservedWidth;
     int availableHeight = central->height() - reservedHeight;
     
-    // Calculate the size for each square (use the smaller dimension to keep squares square)
+    // 計算 the size for each square (use the smaller dimension to keep squares square)
     int squareSize = qMin(availableWidth, availableHeight) / 8;
     
     // Ensure minimum and reasonable maximum size
     squareSize = qMax(squareSize, MIN_SQUARE_SIZE);  // Use constant for minimum size
     squareSize = qMin(squareSize, MAX_SQUARE_SIZE);  // Cap at a reasonable maximum
     
-    // Calculate font size based on square size (approximately 45% of square size)
+    // 計算 font size based on square size (approximately 45% of square size)
     int fontSize = squareSize * 9 / 20;  // This gives roughly 36pt for 80px squares
     fontSize = qMax(fontSize, 12);  // Ensure minimum readable font size
     fontSize = qMin(fontSize, 54);  // Cap font size for very large boards
     
-    // Update all squares
+    // 更新 all squares
     for (int row = 0; row < 8; ++row) {
         for (int col = 0; col < 8; ++col) {
             QPushButton* square = m_squares[row][col];
@@ -1025,7 +1025,7 @@ void Qt_Chess::updateSquareSizes() {
             font.setPointSize(fontSize);
             square->setFont(font);
             
-            // Update icon size if using custom icons
+            // 更新 icon size if using custom icons
             if (m_pieceIconSettings.useCustomIcons && !square->icon().isNull()) {
                 // Ensure scale is within valid range (60-100)
                 int scale = qBound(60, m_pieceIconSettings.pieceScale, 100);
@@ -1035,11 +1035,11 @@ void Qt_Chess::updateSquareSizes() {
         }
     }
     
-    // Update the board widget size to fit the squares exactly
+    // 更新 the board widget size to fit the squares exactly
     // Add 4 extra pixels (2px on each side) to prevent border clipping when squares are highlighted
     m_boardWidget->setFixedSize(squareSize * 8 + 4, squareSize * 8 + 4);
     
-    // Update time label font sizes to scale with board size
+    // 更新 time label font sizes to scale with board size
     if (m_whiteTimeLabel && m_blackTimeLabel) {
         int timeFontSize = qMax(MIN_UI_FONT_SIZE, qMin(MAX_UI_FONT_SIZE, squareSize / UI_FONT_SCALE_DIVISOR));
         QFont timeFont = m_whiteTimeLabel->font();
@@ -1048,12 +1048,12 @@ void Qt_Chess::updateSquareSizes() {
         m_whiteTimeLabel->setFont(timeFont);
         m_blackTimeLabel->setFont(timeFont);
         
-        // Update time label minimum heights proportionally
+        // 更新 time label minimum heights proportionally
         int timeLabelHeight = qMax(MIN_TIME_LABEL_HEIGHT, qMin(MAX_TIME_LABEL_HEIGHT, squareSize / 2));
         m_whiteTimeLabel->setMinimumHeight(timeLabelHeight);
         m_blackTimeLabel->setMinimumHeight(timeLabelHeight);
         
-        // Set minimum width for horizontal positioning (ensure time text fits)
+        // 設置 minimum width for horizontal positioning (ensure time text fits)
         int timeLabelWidth = qMax(MIN_TIME_LABEL_WIDTH, squareSize);  // At least MIN_TIME_LABEL_WIDTH or square size
         m_whiteTimeLabel->setMinimumWidth(timeLabelWidth);
         m_blackTimeLabel->setMinimumWidth(timeLabelWidth);
@@ -1063,7 +1063,7 @@ void Qt_Chess::updateSquareSizes() {
 void Qt_Chess::updateTimeControlSizes() {
     if (!m_boardWidget || m_squares.empty()) return;
     
-    // Get a reference square size to base scaling on
+    // 獲取 a reference square size to base scaling on
     int squareSize = m_squares[0][0]->width();
     if (squareSize <= 0) {
         squareSize = m_squares[0][0]->minimumWidth();
@@ -1072,10 +1072,10 @@ void Qt_Chess::updateTimeControlSizes() {
         }
     }
     
-    // Calculate font sizes based on square size
+    // 計算 font sizes based on square size
     int controlLabelFontSize = qMax(MIN_TIME_CONTROL_FONT, qMin(MAX_TIME_CONTROL_FONT, squareSize / TIME_CONTROL_FONT_DIVISOR));
     
-    // Update time control panel label fonts
+    // 更新 time control panel label fonts
     QFont controlLabelFont;
     controlLabelFont.setPointSize(controlLabelFontSize);
     
@@ -1086,7 +1086,7 @@ void Qt_Chess::updateTimeControlSizes() {
     if (m_incrementTitleLabel) m_incrementTitleLabel->setFont(controlLabelFont);
     if (m_incrementLabel) m_incrementLabel->setFont(controlLabelFont);
     
-    // Update slider heights based on square size
+    // 更新 slider heights based on square size
     int sliderHeight = qMax(MIN_SLIDER_HEIGHT, qMin(MAX_SLIDER_HEIGHT, squareSize / SLIDER_HEIGHT_DIVISOR));
     
     // Helper lambda to set slider height
@@ -1101,7 +1101,7 @@ void Qt_Chess::updateTimeControlSizes() {
     setSliderHeight(m_blackTimeLimitSlider);
     setSliderHeight(m_incrementSlider);
     
-    // Update button fonts
+    // 更新 button fonts
     int buttonFontSize = qMax(MIN_BUTTON_FONT, qMin(MAX_BUTTON_FONT, squareSize / BUTTON_FONT_DIVISOR));
     QFont buttonFont;
     buttonFont.setPointSize(buttonFontSize);
@@ -1151,7 +1151,7 @@ void Qt_Chess::setSoundSource(QSoundEffect& sound, const QString& path) {
 }
 
 void Qt_Chess::applySoundSettings() {
-    // Initialize sound effects with settings
+    // 初始化 sound effects with settings
     setSoundSource(m_moveSound, m_soundSettings.moveSound);
     m_moveSound.setVolume(m_soundSettings.moveVolume);
     
@@ -1191,7 +1191,7 @@ bool Qt_Chess::isCaptureMove(const QPoint& from, const QPoint& to) const {
 bool Qt_Chess::isCastlingMove(const QPoint& from, const QPoint& to) const {
     const ChessPiece& movingPiece = m_chessBoard.getPiece(from.y(), from.x());
     
-    // Check if the moving piece is a king moving 2 squares horizontally
+    // 檢查 the moving piece is a king moving 2 squares horizontally
     if (movingPiece.getType() != PieceType::King || abs(to.x() - from.x()) != 2) {
         return false;
     }
@@ -1216,12 +1216,12 @@ void Qt_Chess::stopAllSounds() {
 }
 
 void Qt_Chess::playSoundForMove(bool isCapture, bool isCastling) {
-    // Check if all sounds are disabled
+    // 檢查 all sounds are disabled
     if (!m_soundSettings.allSoundsEnabled) {
         return;
     }
     
-    // Stop any currently playing sound before playing the new one
+    // 停止 any currently playing sound before playing the new one
     stopAllSounds();
     
     // Note: After movePiece(), the turn has switched, so currentPlayer is now the opponent
@@ -1249,7 +1249,7 @@ void Qt_Chess::loadPieceIconSettings() {
     m_pieceIconSettings.iconSetType = static_cast<PieceIconSettingsDialog::IconSetType>(
         settings.value("PieceIcons/iconSetType", static_cast<int>(PieceIconSettingsDialog::IconSetType::Unicode)).toInt()
     );
-    // Load and validate piece scale (ensure it's within valid range 60-100)
+    // 載入 and validate piece scale (ensure it's within valid range 60-100)
     int loadedScale = settings.value("PieceIcons/pieceScale", 80).toInt();
     m_pieceIconSettings.pieceScale = qBound(60, loadedScale, 100);
     m_pieceIconSettings.whiteKingIcon = settings.value("PieceIcons/whiteKingIcon", "").toString();
@@ -1289,10 +1289,10 @@ void Qt_Chess::applyPieceIconSettings() {
     
     settings.sync();
     
-    // Load icons to cache for improved performance
+    // 載入 icons to cache for improved performance
     loadPieceIconsToCache();
     
-    // Update the board to reflect the new settings
+    // 更新 the board to reflect the new settings
     updateBoard();
 }
 
@@ -1327,7 +1327,7 @@ QString Qt_Chess::getPieceIconPath(PieceType type, PieceColor color) const {
 void Qt_Chess::displayPieceOnSquare(QPushButton* square, const ChessPiece& piece) {
     if (!square) return;
     
-    // Clear previous content
+    // 清除 previous content
     square->setText("");
     square->setIcon(QIcon());
     
@@ -1337,7 +1337,7 @@ void Qt_Chess::displayPieceOnSquare(QPushButton* square, const ChessPiece& piece
         if (!pixmap.isNull()) {
             QIcon icon(pixmap);
             square->setIcon(icon);
-            // Set icon size based on square size
+            // 設置 icon size based on square size
             int iconSize = calculateIconSize(square);
             square->setIconSize(QSize(iconSize, iconSize));
         } else {
@@ -1357,7 +1357,7 @@ void Qt_Chess::loadPieceIconsToCache() {
         return;
     }
     
-    // Load all piece icons into cache
+    // 載入 all piece icons into cache
     auto loadIconToCache = [this](const QString& iconPath) {
         if (!iconPath.isEmpty() && !m_pieceIconCache.contains(iconPath) && QFile::exists(iconPath)) {
             QPixmap pixmap(iconPath);
@@ -1367,7 +1367,7 @@ void Qt_Chess::loadPieceIconsToCache() {
         }
     };
     
-    // Load white pieces
+    // 載入 white pieces
     loadIconToCache(m_pieceIconSettings.whiteKingIcon);
     loadIconToCache(m_pieceIconSettings.whiteQueenIcon);
     loadIconToCache(m_pieceIconSettings.whiteRookIcon);
@@ -1375,7 +1375,7 @@ void Qt_Chess::loadPieceIconsToCache() {
     loadIconToCache(m_pieceIconSettings.whiteKnightIcon);
     loadIconToCache(m_pieceIconSettings.whitePawnIcon);
     
-    // Load black pieces
+    // 載入 black pieces
     loadIconToCache(m_pieceIconSettings.blackKingIcon);
     loadIconToCache(m_pieceIconSettings.blackQueenIcon);
     loadIconToCache(m_pieceIconSettings.blackRookIcon);
@@ -1405,7 +1405,7 @@ int Qt_Chess::calculateIconSize(QPushButton* square) const {
             return DEFAULT_ICON_SIZE;
         }
     }
-    // Apply the user-configured scale factor (default 80%)
+    // 應用 the user-configured scale factor (default 80%)
     // Ensure scale is within valid range (60-100)
     int scale = qBound(60, m_pieceIconSettings.pieceScale, 100);
     return static_cast<int>(squareWidth * scale / 100.0);
@@ -1414,7 +1414,7 @@ int Qt_Chess::calculateIconSize(QPushButton* square) const {
 void Qt_Chess::loadBoardColorSettings() {
     QSettings settings("Qt_Chess", "BoardColorSettings");
     
-    // Load color scheme type with validation
+    // 載入 color scheme type with validation
     int schemeInt = settings.value("colorScheme", static_cast<int>(BoardColorSettingsDialog::ColorScheme::Classic)).toInt();
     
     // Validate scheme is within valid range
@@ -1425,7 +1425,7 @@ void Qt_Chess::loadBoardColorSettings() {
     
     BoardColorSettingsDialog::ColorScheme scheme = static_cast<BoardColorSettingsDialog::ColorScheme>(schemeInt);
     
-    // Load colors
+    // 載入 colors
     QString lightColorStr = settings.value("lightSquareColor", "#F0D9B5").toString();
     QString darkColorStr = settings.value("darkSquareColor", "#B58863").toString();
     
@@ -1443,13 +1443,13 @@ void Qt_Chess::loadBoardColorSettings() {
 }
 
 void Qt_Chess::applyBoardColorSettings() {
-    // Save settings
+    // 儲存 settings
     QSettings settings("Qt_Chess", "BoardColorSettings");
     settings.setValue("colorScheme", static_cast<int>(m_boardColorSettings.scheme));
     settings.setValue("lightSquareColor", m_boardColorSettings.lightSquareColor.name());
     settings.setValue("darkSquareColor", m_boardColorSettings.darkSquareColor.name());
     
-    // Update all squares on the board
+    // 更新 all squares on the board
     for (int row = 0; row < 8; ++row) {
         for (int col = 0; col < 8; ++col) {
             updateSquareColor(row, col);
@@ -1574,7 +1574,7 @@ void Qt_Chess::setupTimeControlUI(QVBoxLayout* timeControlPanelLayout) {
     
     timeControlPanelLayout->addWidget(timeControlGroup, 1);
     
-    // Start button - placed at the bottom of the time control panel, outside the group box
+    // 開始 button - placed at the bottom of the time control panel, outside the group box
     m_startButton = new QPushButton("開始", this);
     m_startButton->setMinimumHeight(40);
     QFont startButtonFont;
@@ -1596,7 +1596,7 @@ void Qt_Chess::setupTimeControlUI(QVBoxLayout* timeControlPanelLayout) {
     connect(m_giveUpButton, &QPushButton::clicked, this, &Qt_Chess::onGiveUpClicked);
     timeControlPanelLayout->addWidget(m_giveUpButton, 0);  // Stretch factor 0 to maintain button height
     
-    // Initialize game timer
+    // 初始化 game timer
     m_gameTimer = new QTimer(this);
     connect(m_gameTimer, &QTimer::timeout, this, &Qt_Chess::onGameTimerTick);
 }
@@ -1627,11 +1627,11 @@ void Qt_Chess::onWhiteTimeLimitChanged(int value) {
     
     m_whiteTimeLimitLabel->setText(timeText);
     
-    // Update time control enabled state
+    // 更新 time control enabled state
     m_timeControlEnabled = (m_whiteTimeMs > 0 || m_blackTimeMs > 0);
     m_timerStarted = false;
     
-    // Start button is always enabled
+    // 開始 button is always enabled
     if (m_startButton) {
         m_startButton->setEnabled(true);
         m_startButton->setText("開始");
@@ -1667,11 +1667,11 @@ void Qt_Chess::onBlackTimeLimitChanged(int value) {
     
     m_blackTimeLimitLabel->setText(timeText);
     
-    // Update time control enabled state
+    // 更新 time control enabled state
     m_timeControlEnabled = (m_whiteTimeMs > 0 || m_blackTimeMs > 0);
     m_timerStarted = false;
     
-    // Start button is always enabled
+    // 開始 button is always enabled
     if (m_startButton) {
         m_startButton->setEnabled(true);
         m_startButton->setText("開始");
@@ -1690,7 +1690,7 @@ void Qt_Chess::updateTimeDisplays() {
         return;
     }
     
-    // Convert milliseconds to minutes:seconds or show unlimited
+    // 轉換 milliseconds to minutes:seconds or show unlimited
     // When time < 10 seconds, show decimal points (e.g., "9.8")
     auto formatTime = [](int ms) -> QString {
         if (ms < 0) {
@@ -1700,7 +1700,7 @@ void Qt_Chess::updateTimeDisplays() {
         // If less than LOW_TIME_THRESHOLD_MS (10 seconds), show decimal format
         if (ms < LOW_TIME_THRESHOLD_MS) {
             double seconds = ms / 1000.0;
-            return QString::number(seconds, 'f', 1);  // Show 1 decimal place
+            return QString::number(seconds, 'f', 1);  // 顯示 1 decimal place
         }
         
         // Otherwise show minutes:seconds format
@@ -1813,17 +1813,17 @@ void Qt_Chess::applyIncrement() {
 }
 
 void Qt_Chess::handleGameEnd() {
-    // Stop timer when game ends
+    // 停止 timer when game ends
     stopTimer();
     m_timerStarted = false;
     m_gameStarted = false;  // Mark game as ended
     
-    // Hide give up button
+    // 隱藏放棄按鈕
     if (m_giveUpButton) {
         m_giveUpButton->hide();
     }
     
-    // Show time control panel
+    // 顯示時間控制面板
     if (m_timeControlPanel) {
         m_timeControlPanel->show();
     }
@@ -1834,7 +1834,7 @@ void Qt_Chess::handleGameEnd() {
         m_startButton->setEnabled(true);
     }
     
-    // Hide time displays
+    // 隱藏時間顯示
     if (m_whiteTimeLabel) m_whiteTimeLabel->hide();
     if (m_blackTimeLabel) m_blackTimeLabel->hide();
 }
@@ -1842,7 +1842,7 @@ void Qt_Chess::handleGameEnd() {
 void Qt_Chess::loadTimeControlSettings() {
     QSettings settings("Qt_Chess", "TimeControl");
     
-    // Load white time
+    // 載入 white time
     int whiteTimeLimitSeconds = settings.value("whiteTimeLimitSeconds", 0).toInt();
     int whiteSliderPosition = 0;
     
@@ -1854,13 +1854,13 @@ void Qt_Chess::loadTimeControlSettings() {
         // Legacy values < 60 seconds (not 30) -> map to 30 seconds as closest valid option
         whiteSliderPosition = 1;
     } else {
-        // Convert minutes to slider position (2-31 = 1-30 minutes)
+        // 轉換 minutes to slider position (2-31 = 1-30 minutes)
         int minutes = whiteTimeLimitSeconds / 60;
         if (minutes > MAX_MINUTES) minutes = MAX_MINUTES;  // Cap at maximum minutes
         whiteSliderPosition = minutes + 1;
     }
     
-    // Load black time
+    // 載入 black time
     int blackTimeLimitSeconds = settings.value("blackTimeLimitSeconds", 0).toInt();
     int blackSliderPosition = 0;
     
@@ -1878,7 +1878,7 @@ void Qt_Chess::loadTimeControlSettings() {
     
     int incrementSeconds = settings.value("incrementSeconds", 0).toInt();
     
-    // Set the time limit sliders
+    // 設置 the time limit sliders
     if (m_whiteTimeLimitSlider) {
         m_whiteTimeLimitSlider->setValue(whiteSliderPosition);
     }
@@ -1887,7 +1887,7 @@ void Qt_Chess::loadTimeControlSettings() {
         m_blackTimeLimitSlider->setValue(blackSliderPosition);
     }
     
-    // Set increment
+    // 設置 increment
     if (m_incrementSlider) {
         m_incrementSlider->setValue(incrementSeconds);
     }
@@ -1901,7 +1901,7 @@ void Qt_Chess::loadTimeControlSettings() {
 void Qt_Chess::saveTimeControlSettings() {
     QSettings settings("Qt_Chess", "TimeControl");
     
-    // Save white time
+    // 儲存 white time
     if (m_whiteTimeLimitSlider) {
         int sliderValue = m_whiteTimeLimitSlider->value();
         int seconds = 0;
@@ -1918,7 +1918,7 @@ void Qt_Chess::saveTimeControlSettings() {
         settings.setValue("whiteTimeLimitSeconds", seconds);
     }
     
-    // Save black time
+    // 儲存 black time
     if (m_blackTimeLimitSlider) {
         int sliderValue = m_blackTimeLimitSlider->value();
         int seconds = 0;
@@ -1946,12 +1946,12 @@ void Qt_Chess::showTimeControlAfterTimeout() {
     // Mark game as ended
     m_gameStarted = false;
     
-    // Show time control panel so user can adjust settings
+    // 顯示時間控制面板 so user can adjust settings
     if (m_timeControlPanel) {
         m_timeControlPanel->show();
     }
     
-    // Hide give up button
+    // 隱藏放棄按鈕
     if (m_giveUpButton) {
         m_giveUpButton->hide();
     }
@@ -1962,7 +1962,7 @@ void Qt_Chess::showTimeControlAfterTimeout() {
         m_startButton->setEnabled(true);
     }
     
-    // Hide time displays since game is over
+    // 隱藏時間顯示 since game is over
     if (m_whiteTimeLabel) m_whiteTimeLabel->hide();
     if (m_blackTimeLabel) m_blackTimeLabel->hide();
 }
