@@ -32,7 +32,7 @@ public:
     
     QString getSymbol() const;
     
-    // Check if a move to target position is valid (basic piece movement rules)
+    // 檢查移動到目標位置是否有效（基本棋子移動規則）
     bool isValidMove(const QPoint& from, const QPoint& to, 
                      const std::vector<std::vector<ChessPiece>>& board,
                      const QPoint& enPassantTarget = QPoint(-1, -1)) const;

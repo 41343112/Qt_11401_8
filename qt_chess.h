@@ -57,11 +57,11 @@ private:
     Ui::Qt_Chess *ui;
     ChessBoard m_chessBoard;
     std::vector<std::vector<QPushButton*>> m_squares;
-    QMap<QPushButton*, QPoint> m_buttonCoordinates; // For efficient button-to-coordinate lookup
+    QMap<QPushButton*, QPoint> m_buttonCoordinates; // 用於高效的按鈕到坐標查找
     QPoint m_selectedSquare;
     bool m_pieceSelected;
     
-    // Drag-and-drop state
+    // 拖放狀態
     bool m_isDragging;
     QPoint m_dragStartSquare;
     QLabel* m_dragLabel;
@@ -71,9 +71,9 @@ private:
     QPushButton* m_giveUpButton;
     QWidget* m_boardWidget;
     QMenuBar* m_menuBar;
-    bool m_gameStarted;  // Track if game has started
+    bool m_gameStarted;  // 追蹤遊戲是否已開始
     
-    // Sound effects
+    // 音效
     QSoundEffect m_moveSound;
     QSoundEffect m_captureSound;
     QSoundEffect m_castlingSound;
@@ -81,37 +81,37 @@ private:
     QSoundEffect m_checkmateSound;
     SoundSettingsDialog::SoundSettings m_soundSettings;
     
-    // Piece icon settings
+    // 棋子圖示設定
     PieceIconSettingsDialog::PieceIconSettings m_pieceIconSettings;
-    QMap<QString, QPixmap> m_pieceIconCache; // Cache for loaded piece icons
+    QMap<QString, QPixmap> m_pieceIconCache; // 已載入棋子圖示的快取
     
-    // Board color settings
+    // 棋盤顏色設定
     BoardColorSettingsDialog::BoardColorSettings m_boardColorSettings;
     
-    // Board flip state
+    // 棋盤翻轉狀態
     bool m_isBoardFlipped;
     
-    // Time control
-    QSlider* m_whiteTimeLimitSlider;  // Separate slider for white's time
+    // 時間控制
+    QSlider* m_whiteTimeLimitSlider;  // 白方時間的獨立滑桿
     QLabel* m_whiteTimeLimitLabel;
-    QLabel* m_whiteTimeLimitTitleLabel;  // Title label for white time
-    QSlider* m_blackTimeLimitSlider;  // Separate slider for black's time
+    QLabel* m_whiteTimeLimitTitleLabel;  // 白方時間的標題標籤
+    QSlider* m_blackTimeLimitSlider;  // 黑方時間的獨立滑桿
     QLabel* m_blackTimeLimitLabel;
-    QLabel* m_blackTimeLimitTitleLabel;  // Title label for black time
+    QLabel* m_blackTimeLimitTitleLabel;  // 黑方時間的標題標籤
     QSlider* m_incrementSlider;
     QLabel* m_incrementLabel;
-    QLabel* m_incrementTitleLabel;  // Title label for increment
+    QLabel* m_incrementTitleLabel;  // 增量的標題標籤
     QLabel* m_whiteTimeLabel;
     QLabel* m_blackTimeLabel;
     QPushButton* m_startButton;
     QTimer* m_gameTimer;
-    int m_whiteTimeMs;  // White's remaining time in milliseconds
-    int m_blackTimeMs;  // Black's remaining time in milliseconds
-    int m_incrementMs;  // Increment per move in milliseconds
+    int m_whiteTimeMs;  // 白方剩餘時間（毫秒）
+    int m_blackTimeMs;  // 黑方剩餘時間（毫秒）
+    int m_incrementMs;  // 每步的增量（毫秒）
     bool m_timeControlEnabled;
-    bool m_timerStarted;  // Track if timer has been manually started
-    QWidget* m_boardContainer;  // Container for board with overlaid time displays
-    QWidget* m_timeControlPanel;  // Panel for time control settings
+    bool m_timerStarted;  // 追蹤計時器是否已手動啟動
+    QWidget* m_boardContainer;  // 帶有疊加時間顯示的棋盤容器
+    QWidget* m_timeControlPanel;  // 時間控制設定面板
     
     void setupUI();
     void setupMenuBar();
@@ -160,8 +160,8 @@ private:
     void applyIncrement();
     void loadTimeControlSettings();
     void saveTimeControlSettings();
-    void handleGameEnd();  // Helper to handle game end state
-    void showTimeControlAfterTimeout();  // Helper to show time control panel after time expires
-    void updateTimeControlSizes();  // Helper to update time control UI element sizes based on window size
+    void handleGameEnd();  // 處理遊戲結束狀態的輔助函數
+    void showTimeControlAfterTimeout();  // 時間到期後顯示時間控制面板的輔助函數
+    void updateTimeControlSizes();  // 根據視窗大小更新時間控制 UI 元素大小的輔助函數
 };
 #endif // QT_CHESS_H

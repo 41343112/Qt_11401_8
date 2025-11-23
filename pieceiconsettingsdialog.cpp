@@ -31,41 +31,41 @@ void PieceIconSettingsDialog::setupUI()
 {
     QVBoxLayout* mainLayout = new QVBoxLayout(this);
     
-    // Icon Set Selection Group with visual previews
+    // 圖示集選擇群組（帶視覺預覽）
     QGroupBox* iconSetGroup = new QGroupBox("圖標集選擇 - 點擊預覽圖選擇", this);
     QVBoxLayout* iconSetLayout = new QVBoxLayout(iconSetGroup);
     
-    // Create button group for radio buttons
+    // 為單選按鈕創建按鈕群組
     m_iconSetButtonGroup = new QButtonGroup(this);
     connect(m_iconSetButtonGroup, QOverload<int>::of(&QButtonGroup::idClicked),
             this, &PieceIconSettingsDialog::onIconSetButtonClicked);
     
-    // Create a grid layout for icon set previews
+    // 為圖示集預覽創建格線佈局
     QGridLayout* previewGrid = new QGridLayout();
     previewGrid->setSpacing(15);
     
-    // Row 1: Unicode and Preset1
+    // 第 1 行：Unicode 和預設 1
     QWidget* unicodeWidget = createIconSetPreviewWidget(IconSetType::Unicode, "Unicode 符號 (預設)");
     previewGrid->addWidget(unicodeWidget, 0, 0);
     
     QWidget* preset1Widget = createIconSetPreviewWidget(IconSetType::Preset1, "預設圖標集 1");
     previewGrid->addWidget(preset1Widget, 0, 1);
     
-    // Row 2: Preset2 and Preset3
+    // 第 2 行：預設 2 和預設 3
     QWidget* preset2Widget = createIconSetPreviewWidget(IconSetType::Preset2, "預設圖標集 2");
     previewGrid->addWidget(preset2Widget, 1, 0);
     
     QWidget* preset3Widget = createIconSetPreviewWidget(IconSetType::Preset3, "預設圖標集 3");
     previewGrid->addWidget(preset3Widget, 1, 1);
     
-    // Row 3: Custom (spans both columns)
+    // 第 3 行：自訂（跨越兩列）
     QWidget* customWidget = createIconSetPreviewWidget(IconSetType::Custom, "自訂圖標");
     previewGrid->addWidget(customWidget, 2, 0, 1, 2);
     
     iconSetLayout->addLayout(previewGrid);
     mainLayout->addWidget(iconSetGroup);
     
-    // Piece Scale Control Group
+    // 棋子縮放控制群組
     QGroupBox* scaleGroup = new QGroupBox("棋子大小調整", this);
     QHBoxLayout* scaleLayout = new QHBoxLayout(scaleGroup);
     
@@ -73,9 +73,9 @@ void PieceIconSettingsDialog::setupUI()
     scaleLayout->addWidget(scaleTextLabel);
     
     m_pieceScaleSlider = new QSlider(Qt::Horizontal, this);
-    m_pieceScaleSlider->setMinimum(50);   // 60% minimum size
-    m_pieceScaleSlider->setMaximum(100);  // 100% maximum size
-    m_pieceScaleSlider->setValue(80);     // 80% default size
+    m_pieceScaleSlider->setMinimum(50);   // 60% 最小大小
+    m_pieceScaleSlider->setMaximum(100);  // 100% 最大大小
+    m_pieceScaleSlider->setValue(80);     // 80% 預設大小
     m_pieceScaleSlider->setTickPosition(QSlider::TicksBelow);
     m_pieceScaleSlider->setTickInterval(10);
     scaleLayout->addWidget(m_pieceScaleSlider, 1);
@@ -86,7 +86,7 @@ void PieceIconSettingsDialog::setupUI()
     scaleLayout->addWidget(m_pieceScaleLabel);
     
     connect(m_pieceScaleSlider, &QSlider::valueChanged, [this](int value) {
-        // Ensure value is within valid range (60-100)
+        // 確保值在有效範圍內（60-100）
         value = qBound(60, value, 100);
         m_pieceScaleLabel->setText(QString("%1%").arg(value));
         m_settings.pieceScale = value;
@@ -94,33 +94,33 @@ void PieceIconSettingsDialog::setupUI()
     
     mainLayout->addWidget(scaleGroup);
     
-    // Keep combo box hidden but functional for backward compatibility
+    // 保持組合框隱藏但保持功能以向後相容
     m_iconSetComboBox = new QComboBox(this);
     m_iconSetComboBox->addItem("Unicode 符號 (預設)", static_cast<int>(IconSetType::Unicode));
     m_iconSetComboBox->addItem("預設圖標集 1", static_cast<int>(IconSetType::Preset1));
     m_iconSetComboBox->addItem("預設圖標集 2", static_cast<int>(IconSetType::Preset2));
     m_iconSetComboBox->addItem("預設圖標集 3", static_cast<int>(IconSetType::Preset3));
     m_iconSetComboBox->addItem("自訂圖標", static_cast<int>(IconSetType::Custom));
-    m_iconSetComboBox->setVisible(false);  // Hidden, using visual interface instead
+    m_iconSetComboBox->setVisible(false);  // 隱藏，改用視覺介面
     connect(m_iconSetComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged), 
             this, &PieceIconSettingsDialog::onIconSetTypeChanged);
     
-    // Use custom icons checkbox (legacy, for backward compatibility)
+    // 使用自訂圖示核取方塊（舊版，用於向後相容）
     m_useCustomIconsCheckBox = new QCheckBox("使用自訂圖標 (舊版相容)", this);
     m_useCustomIconsCheckBox->setChecked(m_settings.useCustomIcons);
-    m_useCustomIconsCheckBox->setVisible(false); // Hidden by default, icon set combo handles this now
+    m_useCustomIconsCheckBox->setVisible(false); // 預設隱藏，圖示集組合框現在處理此操作
     connect(m_useCustomIconsCheckBox, &QCheckBox::toggled, this, &PieceIconSettingsDialog::onUseCustomIconsToggled);
     mainLayout->addWidget(m_useCustomIconsCheckBox);
     
-    // Scroll area for piece settings (hidden by default, shown only for custom icons)
+    // 棋子設定的捲動區域（預設隱藏，僅為自訂圖示顯示）
     m_customIconsScrollArea = new QScrollArea(this);
     m_customIconsScrollArea->setWidgetResizable(true);
-    m_customIconsScrollArea->setVisible(false);  // Hidden by default
+    m_customIconsScrollArea->setVisible(false);  // 預設隱藏
     
     QWidget* scrollWidget = new QWidget();
     QVBoxLayout* scrollLayout = new QVBoxLayout(scrollWidget);
     
-    // White pieces group
+    // 白色棋子群組
     QGroupBox* whiteGroup = new QGroupBox("白方棋子", this);
     QGridLayout* whiteGridLayout = new QGridLayout(whiteGroup);
     int whiteRow = 0;
@@ -163,7 +163,7 @@ void PieceIconSettingsDialog::setupUI()
     
     scrollLayout->addWidget(whiteGroup);
     
-    // Black pieces group
+    // 黑色棋子群組
     QGroupBox* blackGroup = new QGroupBox("黑方棋子", this);
     QGridLayout* blackGridLayout = new QGridLayout(blackGroup);
     int blackRow = 0;
@@ -210,7 +210,7 @@ void PieceIconSettingsDialog::setupUI()
     m_customIconsScrollArea->setWidget(scrollWidget);
     mainLayout->addWidget(m_customIconsScrollArea);
     
-    // Buttons
+    // 按鈕
     QHBoxLayout* buttonLayout = new QHBoxLayout();
     
     QPushButton* resetAllButton = new QPushButton("重設為預設值", this);
@@ -229,7 +229,7 @@ void PieceIconSettingsDialog::setupUI()
     
     mainLayout->addLayout(buttonLayout);
     
-    // Set default selection to Unicode
+    // 設置預設選擇為 Unicode
     QAbstractButton* defaultButton = m_iconSetButtonGroup->button(static_cast<int>(IconSetType::Unicode));
     if (defaultButton) {
         defaultButton->setChecked(true);
@@ -295,7 +295,7 @@ void PieceIconSettingsDialog::previewIcon(const QString& iconFile)
     previewDialog.resize(400, 500);
     QVBoxLayout* layout = new QVBoxLayout(&previewDialog);
     
-    // Image label with scroll area for zoom
+    // 帶捲動區域的圖片標籤以進行縮放
     QScrollArea* scrollArea = new QScrollArea(&previewDialog);
     scrollArea->setAlignment(Qt::AlignCenter);
     scrollArea->setWidgetResizable(false);
@@ -303,9 +303,9 @@ void PieceIconSettingsDialog::previewIcon(const QString& iconFile)
     QLabel* imageLabel = new QLabel(scrollArea);
     imageLabel->setAlignment(Qt::AlignCenter);
     scrollArea->setWidget(imageLabel);
-    layout->addWidget(scrollArea, 1);  // Give it more space
+    layout->addWidget(scrollArea, 1);  // 給它更多空間
     
-    // Zoom controls
+    // 縮放控制
     QHBoxLayout* zoomLayout = new QHBoxLayout();
     QLabel* zoomLabel = new QLabel("縮放:", &previewDialog);
     zoomLayout->addWidget(zoomLabel);
@@ -315,9 +315,9 @@ void PieceIconSettingsDialog::previewIcon(const QString& iconFile)
     zoomLayout->addWidget(zoomOutButton);
     
     QSlider* zoomSlider = new QSlider(Qt::Horizontal, &previewDialog);
-    zoomSlider->setMinimum(25);   // 25% zoom
-    zoomSlider->setMaximum(400);  // 400% zoom
-    zoomSlider->setValue(100);    // 100% zoom (default)
+    zoomSlider->setMinimum(25);   // 25% 縮放
+    zoomSlider->setMaximum(400);  // 400% 縮放
+    zoomSlider->setValue(100);    // 100% 縮放（預設）
     zoomSlider->setTickPosition(QSlider::TicksBelow);
     zoomSlider->setTickInterval(25);
     zoomLayout->addWidget(zoomSlider);
@@ -333,10 +333,10 @@ void PieceIconSettingsDialog::previewIcon(const QString& iconFile)
     
     layout->addLayout(zoomLayout);
     
-    // Zoom step for +/- buttons
+    // +/- 按鈕的縮放步進
     const int zoomStep = 25;
     
-    // Update image function - capture pixmap by value to avoid dangling reference
+    // 更新圖片函數 - 按值捕獲 pixmap 以避免懸空引用
     auto updateImage = [pixmap, imageLabel, zoomValueLabel](int zoomPercent) {
         int newWidth = pixmap.width() * zoomPercent / 100;
         int newHeight = pixmap.height() * zoomPercent / 100;
@@ -344,7 +344,7 @@ void PieceIconSettingsDialog::previewIcon(const QString& iconFile)
         zoomValueLabel->setText(QString("%1%").arg(zoomPercent));
     };
     
-    // Connect zoom controls
+    // 連接縮放控制
     connect(zoomSlider, &QSlider::valueChanged, updateImage);
     
     connect(zoomInButton, &QPushButton::clicked, [zoomSlider, zoomStep]() {
@@ -355,10 +355,10 @@ void PieceIconSettingsDialog::previewIcon(const QString& iconFile)
         zoomSlider->setValue(qMax(zoomSlider->value() - zoomStep, zoomSlider->minimum()));
     });
     
-    // Set initial display
+    // 設置初始顯示
     updateImage(100);
     
-    // Close button
+    // 關閉按鈕
     QPushButton* closeButton = new QPushButton("關閉", &previewDialog);
     connect(closeButton, &QPushButton::clicked, &previewDialog, &QDialog::accept);
     layout->addWidget(closeButton);
@@ -366,7 +366,7 @@ void PieceIconSettingsDialog::previewIcon(const QString& iconFile)
     previewDialog.exec();
 }
 
-// Browse slots
+// 瀏覽插槽
 void PieceIconSettingsDialog::onBrowseWhiteKing() {
     QString file = browseForIconFile();
     if (!file.isEmpty()) {
@@ -463,7 +463,7 @@ void PieceIconSettingsDialog::onBrowseBlackPawn() {
     }
 }
 
-// Preview slots
+// 預覽插槽
 void PieceIconSettingsDialog::onPreviewWhiteKing() { previewIcon(m_settings.whiteKingIcon); }
 void PieceIconSettingsDialog::onPreviewWhiteQueen() { previewIcon(m_settings.whiteQueenIcon); }
 void PieceIconSettingsDialog::onPreviewWhiteRook() { previewIcon(m_settings.whiteRookIcon); }
@@ -477,7 +477,7 @@ void PieceIconSettingsDialog::onPreviewBlackBishop() { previewIcon(m_settings.bl
 void PieceIconSettingsDialog::onPreviewBlackKnight() { previewIcon(m_settings.blackKnightIcon); }
 void PieceIconSettingsDialog::onPreviewBlackPawn() { previewIcon(m_settings.blackPawnIcon); }
 
-// Reset slots
+// 重置插槽
 void PieceIconSettingsDialog::onResetWhiteKing() { m_whiteKingEdit->clear(); m_settings.whiteKingIcon.clear(); }
 void PieceIconSettingsDialog::onResetWhiteQueen() { m_whiteQueenEdit->clear(); m_settings.whiteQueenIcon.clear(); }
 void PieceIconSettingsDialog::onResetWhiteRook() { m_whiteRookEdit->clear(); m_settings.whiteRookIcon.clear(); }
@@ -516,13 +516,13 @@ void PieceIconSettingsDialog::setSettings(const PieceIconSettings& settings)
 {
     m_settings = settings;
     
-    // Set icon set type in combo box
+    // 在組合框中設置圖示集類型
     int index = m_iconSetComboBox->findData(static_cast<int>(settings.iconSetType));
     if (index >= 0) {
         m_iconSetComboBox->setCurrentIndex(index);
     }
     
-    // Set the radio button for the icon set
+    // 設置圖示集的單選按鈕
     QAbstractButton* button = m_iconSetButtonGroup->button(static_cast<int>(settings.iconSetType));
     if (button) {
         button->setChecked(true);
@@ -530,7 +530,7 @@ void PieceIconSettingsDialog::setSettings(const PieceIconSettings& settings)
     
     m_useCustomIconsCheckBox->setChecked(settings.useCustomIcons);
     
-    // Set piece scale slider
+    // 設置棋子縮放滑桿
     m_pieceScaleSlider->setValue(settings.pieceScale);
     m_pieceScaleLabel->setText(QString("%1%").arg(settings.pieceScale));
     
@@ -568,7 +568,7 @@ PieceIconSettingsDialog::PieceIconSettings PieceIconSettingsDialog::getDefaultSe
     defaults.blackPawnIcon = "";
     defaults.useCustomIcons = false;
     defaults.iconSetType = IconSetType::Unicode;
-    defaults.pieceScale = 80;  // Default 80% scale
+    defaults.pieceScale = 80;  // 預設 80% 縮放
     return defaults;
 }
 
@@ -577,12 +577,12 @@ PieceIconSettingsDialog::PieceIconSettings PieceIconSettingsDialog::getPresetSet
     PieceIconSettings settings;
     
     if (setType == IconSetType::Unicode) {
-        // Use default Unicode symbols
+        // 使用預設 Unicode 符號
         settings = getDefaultSettings();
-        settings.iconSetType = setType;  // Ensure iconSetType is preserved
+        settings.iconSetType = setType;  // 確保保留 iconSetType
     } else if (setType == IconSetType::Preset1 || setType == IconSetType::Preset2 || setType == IconSetType::Preset3) {
         settings.iconSetType = setType;
-        settings.useCustomIcons = true;  // Enable custom icons for preset sets
+        settings.useCustomIcons = true;  // 為預設集啟用自訂圖示
         QString setDir = getSetDirectoryName(setType);
         QString basePath = ":/resources/icons/" + setDir + "/";
         settings.whiteKingIcon = basePath + "white_king.png";
@@ -598,8 +598,8 @@ PieceIconSettingsDialog::PieceIconSettings PieceIconSettingsDialog::getPresetSet
         settings.blackKnightIcon = basePath + "black_knight.png";
         settings.blackPawnIcon = basePath + "black_pawn.png";
     } else {
-        // Custom - return empty settings structure (user will populate paths via browse)
-        // All QString members are already empty by default initialization
+        // 自訂 - 返回空設定結構（使用者將透過瀏覽填充路徑）
+        // 所有 QString 成員在預設初始化時已經為空
         settings.iconSetType = setType;
         settings.useCustomIcons = true;
     }
@@ -613,10 +613,10 @@ void PieceIconSettingsDialog::onIconSetTypeChanged(int index)
     m_settings.iconSetType = selectedType;
     
     if (selectedType == IconSetType::Custom) {
-        // Enable custom icon editing
+        // 啟用自訂圖示編輯
         m_settings.useCustomIcons = true;
     } else {
-        // Apply preset or Unicode
+        // 應用預設或 Unicode
         applyPresetIconSet(selectedType);
     }
     
@@ -627,10 +627,10 @@ void PieceIconSettingsDialog::updateCustomIconsControls()
 {
     bool enableCustomEditing = (m_settings.iconSetType == IconSetType::Custom);
     
-    // Show/hide the scroll area based on whether custom icons are selected
+    // 根據是否選擇自訂圖示來顯示/隱藏捲動區域
     m_customIconsScrollArea->setVisible(enableCustomEditing);
     
-    // Enable/disable all browse, preview, and reset buttons
+    // 啟用/禁用所有瀏覽、預覽和重置按鈕
     m_whiteKingBrowseButton->setEnabled(enableCustomEditing);
     m_whiteQueenBrowseButton->setEnabled(enableCustomEditing);
     m_whiteRookBrowseButton->setEnabled(enableCustomEditing);
@@ -678,7 +678,7 @@ void PieceIconSettingsDialog::applyPresetIconSet(IconSetType setType)
     m_settings.blackPawnIcon = presetSettings.blackPawnIcon;
     m_settings.useCustomIcons = presetSettings.useCustomIcons;
     
-    // Update UI to show the new paths
+    // 更新 UI 以顯示新路徑
     m_whiteKingEdit->setText(m_settings.whiteKingIcon);
     m_whiteQueenEdit->setText(m_settings.whiteQueenIcon);
     m_whiteRookEdit->setText(m_settings.whiteRookIcon);
@@ -715,32 +715,32 @@ QWidget* PieceIconSettingsDialog::createIconSetPreviewWidget(IconSetType setType
     QVBoxLayout* layout = new QVBoxLayout(widget);
     layout->setContentsMargins(5, 5, 5, 5);
     
-    // Create a frame with border
+    // 創建帶邊框的框架
     QFrame* frame = new QFrame(widget);
     frame->setFrameStyle(QFrame::Box | QFrame::Raised);
     frame->setLineWidth(2);
     QVBoxLayout* frameLayout = new QVBoxLayout(frame);
     
-    // Radio button for selection
+    // 用於選擇的單選按鈕
     QRadioButton* radioButton = new QRadioButton(label, frame);
     radioButton->setStyleSheet("QRadioButton { font-weight: bold; font-size: 11pt; }");
     m_iconSetButtonGroup->addButton(radioButton, static_cast<int>(setType));
     frameLayout->addWidget(radioButton);
     
-    // Store the radio button pointer in the frame and widget for the event filter
+    // 在框架和元件中儲存單選按鈕指標以用於事件過濾器
     frame->setProperty("radioButton", QVariant::fromValue(radioButton));
     widget->setProperty("radioButton", QVariant::fromValue(radioButton));
     
-    // Install event filter to make the entire frame clickable
+    // 安裝事件過濾器以使整個框架可點擊
     frame->installEventFilter(this);
     widget->installEventFilter(this);
     
-    // Preview images layout
+    // 預覽圖片佈局
     QHBoxLayout* previewLayout = new QHBoxLayout();
     previewLayout->setSpacing(5);
     
     if (setType == IconSetType::Unicode) {
-        // Show Unicode symbols
+        // 顯示 Unicode 符號
         QLabel* unicodeLabel = new QLabel("♔ ♕ ♖ ♗ ♘ ♙", frame);
         unicodeLabel->setStyleSheet("QLabel { font-size: 36pt; }");
         unicodeLabel->setAlignment(Qt::AlignCenter);
@@ -748,7 +748,7 @@ QWidget* PieceIconSettingsDialog::createIconSetPreviewWidget(IconSetType setType
         unicodeLabel->installEventFilter(this);
         previewLayout->addWidget(unicodeLabel);
     } else if (setType == IconSetType::Custom) {
-        // Show text description for custom
+        // 顯示自訂的文字描述
         QLabel* customLabel = new QLabel("使用您自己的圖標檔案\n點擊下方「瀏覽」按鈕選擇", frame);
         customLabel->setStyleSheet("QLabel { font-size: 10pt; color: #666; }");
         customLabel->setAlignment(Qt::AlignCenter);
@@ -757,11 +757,11 @@ QWidget* PieceIconSettingsDialog::createIconSetPreviewWidget(IconSetType setType
         customLabel->installEventFilter(this);
         previewLayout->addWidget(customLabel);
     } else {
-        // Show preset icon previews
+        // 顯示預設圖示預覽
         PieceIconSettings presetSettings = getPresetSettings(setType);
         
-        // Display a few key pieces as preview
-        // Order: White King, Black Queen, White Rook, Black Bishop, White Knight, Black Pawn
+        // 顯示一些關鍵棋子作為預覽
+        // 順序：白王、黑后、白車、黑象、白馬、黑兵
         QStringList previewPieces;
         previewPieces << presetSettings.whiteKingIcon 
                       << presetSettings.blackQueenIcon 
@@ -798,17 +798,17 @@ void PieceIconSettingsDialog::onIconSetButtonClicked(int id)
     IconSetType selectedType = static_cast<IconSetType>(id);
     m_settings.iconSetType = selectedType;
     
-    // Update the hidden combo box to stay in sync
+    // 更新隱藏的組合框以保持同步
     int comboIndex = m_iconSetComboBox->findData(static_cast<int>(selectedType));
     if (comboIndex >= 0) {
         m_iconSetComboBox->setCurrentIndex(comboIndex);
     }
     
     if (selectedType == IconSetType::Custom) {
-        // Enable custom icon editing
+        // 啟用自訂圖示編輯
         m_settings.useCustomIcons = true;
     } else {
-        // Apply preset or Unicode
+        // 應用預設或 Unicode
         applyPresetIconSet(selectedType);
     }
     
@@ -817,25 +817,25 @@ void PieceIconSettingsDialog::onIconSetButtonClicked(int id)
 
 bool PieceIconSettingsDialog::eventFilter(QObject *obj, QEvent *event)
 {
-    // Check if this is a mouse button press event
+    // 檢查這是否為滑鼠按鈕按下事件
     if (event->type() == QEvent::MouseButtonPress) {
         QMouseEvent *mouseEvent = static_cast<QMouseEvent*>(event);
         
-        // Only handle left button clicks
+        // 僅處理左鍵點擊
         if (mouseEvent->button() == Qt::LeftButton) {
-            // Check if the object has a "radioButton" property that we set
+            // 檢查物件是否具有我們設置的 "radioButton" 屬性
             QVariant radioButtonVariant = obj->property("radioButton");
             if (radioButtonVariant.isValid()) {
                 QRadioButton* radioButton = qvariant_cast<QRadioButton*>(radioButtonVariant);
                 if (radioButton && !radioButton->isChecked()) {
-                    // Trigger the radio button (handles both state and signals)
+                    // 觸發單選按鈕（處理狀態和信號）
                     radioButton->click();
-                    return true;  // Event handled
+                    return true;  // 事件已處理
                 }
             }
         }
     }
     
-    // Call base class implementation for other events
+    // 為其他事件調用基類實現
     return QDialog::eventFilter(obj, event);
 }

@@ -38,10 +38,10 @@ bool ChessPiece::isValidMove(const QPoint& from, const QPoint& to,
                               const QPoint& enPassantTarget) const {
     if (from == to) return false;
     
-    // Check bounds
+    // 檢查邊界
     if (to.x() < 0 || to.x() >= 8 || to.y() < 0 || to.y() >= 8) return false;
     
-    // Can't capture own piece
+    // 不能吃掉自己的棋子
     const ChessPiece& target = board[to.y()][to.x()];
     if (target.getColor() == m_color && target.getType() != PieceType::None) return false;
     
@@ -65,28 +65,28 @@ bool ChessPiece::isValidPawnMove(const QPoint& from, const QPoint& to,
     int dx = to.x() - from.x();
     int dy = to.y() - from.y();
     
-    // Forward move
+    // 向前移動
     if (dx == 0) {
         const ChessPiece& target = board[to.y()][to.x()];
         if (target.getType() != PieceType::None) return false;
         
-        // One square forward
+        // 向前一格
         if (dy == direction) return true;
         
-        // Two squares forward from starting position
+        // 從起始位置向前兩格
         if (!m_hasMoved && from.y() == startRow && dy == 2 * direction) {
             const ChessPiece& middle = board[from.y() + direction][from.x()];
             return middle.getType() == PieceType::None;
         }
     }
-    // Diagonal capture
+    // 斜向吃子
     else if (abs(dx) == 1 && dy == direction) {
         const ChessPiece& target = board[to.y()][to.x()];
-        // Normal diagonal capture
+        // 普通斜向吃子
         if (target.getType() != PieceType::None && target.getColor() != m_color) {
             return true;
         }
-        // En passant capture
+        // 吃過路兵
         if (enPassantTarget.x() >= 0 && to == enPassantTarget) {
             return true;
         }
@@ -122,11 +122,11 @@ bool ChessPiece::isValidKingMove(const QPoint& from, const QPoint& to) const {
     int dx = abs(to.x() - from.x());
     int dy = abs(to.y() - from.y());
     
-    // Normal king move (one square in any direction)
+    // 普通國王移動（任意方向一格）
     if (dx <= 1 && dy <= 1) return true;
     
-    // Castling (2 squares horizontally)
-    // Note: Additional validation (e.g., not in check, path clear) is done in ChessBoard::canCastle
+    // 王車易位（水平移動 2 格）
+    // 注意：額外的驗證（例如，不處於被將軍狀態、路徑暢通）在 ChessBoard::canCastle 中完成
     if (dx == 2 && dy == 0 && !m_hasMoved) return true;
     
     return false;
