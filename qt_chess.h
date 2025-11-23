@@ -16,6 +16,7 @@
 #include <QSlider>
 #include <QTimer>
 #include <QGroupBox>
+#include <QListWidget>
 #include <vector>
 #include "chessboard.h"
 #include "soundsettingsdialog.h"
@@ -52,6 +53,7 @@ private slots:
     void onBoardColorSettingsClicked();
     void onFlipBoardClicked();
     void onStartButtonClicked();
+    void onExportPGNClicked();
 
 private:
     Ui::Qt_Chess *ui;
@@ -113,6 +115,11 @@ private:
     QWidget* m_boardContainer;  // 帶有疊加時間顯示的棋盤容器
     QWidget* m_timeControlPanel;  // 時間控制設定面板
     
+    // 棋譜面板
+    QListWidget* m_moveListWidget;
+    QPushButton* m_exportPGNButton;
+    QWidget* m_moveListPanel;
+    
     void setupUI();
     void setupMenuBar();
     void updateBoard();
@@ -166,5 +173,10 @@ private:
     void resetBoardState();  // 重置棋盤到初始狀態的輔助函數
     int calculateTimeFromSliderValue(int value) const;  // 根據滑桿值計算時間（毫秒）的輔助函數
     QString getTimeTextFromSliderValue(int value) const;  // 根據滑桿值取得顯示文字的輔助函數
+    
+    // 棋譜功能
+    void updateMoveList();
+    void exportPGN();
+    QString generatePGN() const;
 };
 #endif // QT_CHESS_H

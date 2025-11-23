@@ -20,6 +20,9 @@
 #include <QSlider>
 #include <QTimer>
 #include <QGroupBox>
+#include <QFileDialog>
+#include <QDate>
+#include <QTextStream>
 
 namespace {
     const QString CHECK_HIGHLIGHT_STYLE = "QPushButton { background-color: #FF6B6B; border: 2px solid #FF0000; }";
@@ -59,6 +62,9 @@ namespace {
     const int MAX_SLIDER_HEIGHT = 80;            // 滑桿的最大高度
     const int SLIDER_HANDLE_EXTRA = 10;          // 滑桿手柄的額外空間
     const int LOW_TIME_THRESHOLD_MS = 10000;     // 低時間警告的閾值（10 秒）
+    
+    // PGN 格式常數
+    const int PGN_MOVES_PER_LINE = 6;            // PGN 檔案中每行的移動回合數
 }
 
 Qt_Chess::Qt_Chess(QWidget *parent)
@@ -72,6 +78,7 @@ Qt_Chess::Qt_Chess(QWidget *parent)
     , m_wasSelectedBeforeDrag(false)
     , m_boardWidget(nullptr)
     , m_menuBar(nullptr)
+    , m_gameStarted(false)
     , m_isBoardFlipped(false)
     , m_whiteTimeLimitSlider(nullptr)
     , m_whiteTimeLimitLabel(nullptr)
@@ -93,7 +100,9 @@ Qt_Chess::Qt_Chess(QWidget *parent)
     , m_timerStarted(false)
     , m_boardContainer(nullptr)
     , m_timeControlPanel(nullptr)
-    , m_gameStarted(false)
+    , m_moveListWidget(nullptr)
+    , m_exportPGNButton(nullptr)
+    , m_moveListPanel(nullptr)
 {
     ui->setupUi(this);
     setWindowTitle("國際象棋 - 雙人對弈");
@@ -134,7 +143,31 @@ void Qt_Chess::setupUI() {
     // 為棋盤和時間控制創建水平佈局
     QHBoxLayout* contentLayout = new QHBoxLayout();
     
-    // 移除左側面板 - 沒有新遊戲按鈕後不再需要
+    // 左側棋譜面板
+    m_moveListPanel = new QWidget(this);
+    m_moveListPanel->setMaximumWidth(LEFT_PANEL_MAX_WIDTH);
+    QVBoxLayout* moveListLayout = new QVBoxLayout(m_moveListPanel);
+    moveListLayout->setContentsMargins(0, 0, 0, 0);
+    
+    QLabel* moveListTitle = new QLabel("棋譜", m_moveListPanel);
+    moveListTitle->setAlignment(Qt::AlignCenter);
+    QFont titleFont;
+    titleFont.setPointSize(12);
+    titleFont.setBold(true);
+    moveListTitle->setFont(titleFont);
+    moveListLayout->addWidget(moveListTitle);
+    
+    m_moveListWidget = new QListWidget(m_moveListPanel);
+    m_moveListWidget->setAlternatingRowColors(true);
+    moveListLayout->addWidget(m_moveListWidget);
+    
+    // 匯出PGN按鈕（初始隱藏）
+    m_exportPGNButton = new QPushButton("匯出 PGN", m_moveListPanel);
+    m_exportPGNButton->hide();
+    connect(m_exportPGNButton, &QPushButton::clicked, this, &Qt_Chess::onExportPGNClicked);
+    moveListLayout->addWidget(m_exportPGNButton);
+    
+    contentLayout->addWidget(m_moveListPanel);
     
     // 棋盤容器，左右兩側顯示時間
     m_boardContainer = new QWidget(this);
@@ -427,6 +460,9 @@ void Qt_Chess::onSquareClicked(int displayRow, int displayCol) {
                 updateBoard();
             }
             
+            // 更新棋譜列表
+            updateMoveList();
+            
             // 播放適當的音效
             playSoundForMove(isCapture, isCastling);
             
@@ -470,6 +506,12 @@ void Qt_Chess::onNewGameClicked() {
     
     // 隱藏放棄按鈕
     if (m_giveUpButton) m_giveUpButton->hide();
+    
+    // 隱藏匯出 PGN 按鈕
+    if (m_exportPGNButton) m_exportPGNButton->hide();
+    
+    // 清空棋譜列表
+    if (m_moveListWidget) m_moveListWidget->clear();
     
     // 根據滑桿值重置時間
     if (m_whiteTimeLimitSlider) {
@@ -909,6 +951,9 @@ void Qt_Chess::mouseReleaseEvent(QMouseEvent *event) {
                     m_chessBoard.promotePawn(logicalDropSquare, promotionType);
                     updateBoard();
                 }
+                
+                // 更新棋譜列表
+                updateMoveList();
                 
                 // 播放適當的音效
                 playSoundForMove(isCapture, isCastling);
@@ -1820,6 +1865,11 @@ void Qt_Chess::handleGameEnd() {
     // 隱藏時間顯示
     if (m_whiteTimeLabel) m_whiteTimeLabel->hide();
     if (m_blackTimeLabel) m_blackTimeLabel->hide();
+    
+    // 顯示匯出 PGN 按鈕
+    if (m_exportPGNButton) {
+        m_exportPGNButton->show();
+    }
 }
 
 void Qt_Chess::loadTimeControlSettings() {
@@ -1975,4 +2025,109 @@ QString Qt_Chess::getTimeTextFromSliderValue(int value) const {
         int minutes = value - 1;
         return QString("%1分鐘").arg(minutes);
     }
+}
+
+// 棋譜功能實現
+void Qt_Chess::updateMoveList() {
+    if (!m_moveListWidget) return;
+    
+    m_moveListWidget->clear();
+    const std::vector<MoveRecord>& moveHistory = m_chessBoard.getMoveHistory();
+    
+    // 每兩步組合成一行（白方和黑方）
+    for (size_t i = 0; i < moveHistory.size(); i += 2) {
+        int moveNumber = (i / 2) + 1;
+        QString moveText = QString("%1. %2").arg(moveNumber).arg(moveHistory[i].algebraicNotation);
+        
+        // 如果有黑方的移動，添加到同一行
+        if (i + 1 < moveHistory.size()) {
+            moveText += QString(" %1").arg(moveHistory[i + 1].algebraicNotation);
+        }
+        
+        m_moveListWidget->addItem(moveText);
+    }
+    
+    // 自動捲動到最新的移動
+    m_moveListWidget->scrollToBottom();
+}
+
+void Qt_Chess::onExportPGNClicked() {
+    exportPGN();
+}
+
+void Qt_Chess::exportPGN() {
+    QString pgn = generatePGN();
+    
+    // 使用文件對話框讓用戶選擇保存位置
+    QString fileName = QFileDialog::getSaveFileName(this,
+        "匯出 PGN",
+        "game.pgn",
+        "PGN 檔案 (*.pgn);;所有檔案 (*)");
+    
+    if (fileName.isEmpty()) {
+        return;  // 用戶取消
+    }
+    
+    QFile file(fileName);
+    if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
+        QMessageBox::warning(this, "錯誤", "無法保存檔案");
+        return;
+    }
+    
+    QTextStream out(&file);
+    out << pgn;
+    file.close();
+    
+    QMessageBox::information(this, "成功", "PGN 已成功匯出");
+}
+
+QString Qt_Chess::generatePGN() const {
+    QString pgn;
+    
+    // PGN 標頭
+    QDate currentDate = QDate::currentDate();
+    pgn += QString("[Event \"雙人對弈\"]\n");
+    pgn += QString("[Site \"Qt_Chess\"]\n");
+    pgn += QString("[Date \"%1\"]\n").arg(currentDate.toString("yyyy.MM.dd"));
+    pgn += QString("[Round \"-\"]\n");
+    pgn += QString("[White \"白方\"]\n");
+    pgn += QString("[Black \"黑方\"]\n");
+    
+    // 結果
+    QString result = "*";  // 遊戲正在進行中
+    PieceColor currentPlayer = m_chessBoard.getCurrentPlayer();
+    if (m_chessBoard.isCheckmate(currentPlayer)) {
+        result = (currentPlayer == PieceColor::White) ? "0-1" : "1-0";
+    } else if (m_chessBoard.isStalemate(currentPlayer) || m_chessBoard.isInsufficientMaterial()) {
+        result = "1/2-1/2";
+    }
+    pgn += QString("[Result \"%1\"]\n\n").arg(result);
+    
+    // 移動列表
+    const std::vector<MoveRecord>& moveHistory = m_chessBoard.getMoveHistory();
+    int moveNumber = 1;
+    for (size_t i = 0; i < moveHistory.size(); ++i) {
+        if (i % 2 == 0) {
+            // 白方移動
+            if (i > 0) pgn += " ";
+            pgn += QString("%1. %2").arg(moveNumber).arg(moveHistory[i].algebraicNotation);
+        } else {
+            // 黑方移動
+            pgn += QString(" %1").arg(moveHistory[i].algebraicNotation);
+            moveNumber++;
+            
+            // 每 PGN_MOVES_PER_LINE 個回合換行以提高可讀性
+            if (moveNumber > 1 && (moveNumber - 1) % PGN_MOVES_PER_LINE == 0 && i + 1 < moveHistory.size()) {
+                pgn += "\n";
+            }
+        }
+    }
+    
+    // 添加結果
+    if (!moveHistory.empty()) {
+        pgn += " ";
+    }
+    pgn += result + "\n";
+    
+    return pgn;
 }
