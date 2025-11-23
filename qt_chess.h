@@ -164,5 +164,7 @@ private:
     void showTimeControlAfterTimeout();  // 時間到期後顯示時間控制面板的輔助函數
     void updateTimeControlSizes();  // 根據視窗大小更新時間控制 UI 元素大小的輔助函數
     void resetBoardState();  // 重置棋盤到初始狀態的輔助函數
+    int calculateTimeFromSliderValue(int value) const;  // 根據滑桿值計算時間（毫秒）的輔助函數
+    QString getTimeTextFromSliderValue(int value) const;  // 根據滑桿值取得顯示文字的輔助函數
 };
 #endif // QT_CHESS_H

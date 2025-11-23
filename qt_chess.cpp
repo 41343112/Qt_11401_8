@@ -473,25 +473,11 @@ void Qt_Chess::onNewGameClicked() {
     
     // 根據滑桿值重置時間
     if (m_whiteTimeLimitSlider) {
-        int value = m_whiteTimeLimitSlider->value();
-        if (value == 0) {
-            m_whiteTimeMs = 0;
-        } else if (value == 1) {
-            m_whiteTimeMs = 30 * 1000;
-        } else {
-            m_whiteTimeMs = (value - 1) * 60 * 1000;
-        }
+        m_whiteTimeMs = calculateTimeFromSliderValue(m_whiteTimeLimitSlider->value());
     }
     
     if (m_blackTimeLimitSlider) {
-        int value = m_blackTimeLimitSlider->value();
-        if (value == 0) {
-            m_blackTimeMs = 0;
-        } else if (value == 1) {
-            m_blackTimeMs = 30 * 1000;
-        } else {
-            m_blackTimeMs = (value - 1) * 60 * 1000;
-        }
+        m_blackTimeMs = calculateTimeFromSliderValue(m_blackTimeLimitSlider->value());
     }
     
     // 檢查是否啟用時間控制
@@ -557,6 +543,15 @@ void Qt_Chess::onStartButtonClicked() {
         // 重置棋盤到初始狀態
         resetBoardState();
         
+        // 根據滑桿值重置時間
+        if (m_whiteTimeLimitSlider) {
+            m_whiteTimeMs = calculateTimeFromSliderValue(m_whiteTimeLimitSlider->value());
+        }
+        
+        if (m_blackTimeLimitSlider) {
+            m_blackTimeMs = calculateTimeFromSliderValue(m_blackTimeLimitSlider->value());
+        }
+        
         m_timerStarted = true;
         m_gameStarted = true;  // 標記遊戲已開始
         startTimer();
@@ -586,6 +581,10 @@ void Qt_Chess::onStartButtonClicked() {
     } else if (!m_timeControlEnabled && !m_gameStarted) {
         // 重置棋盤到初始狀態（即使沒有時間控制）
         resetBoardState();
+        
+        // 重置時間值為 0（無限制）
+        m_whiteTimeMs = 0;
+        m_blackTimeMs = 0;
         
         // 即使沒有時間控制也允許遊戲開始
         m_gameStarted = true;
@@ -1618,28 +1617,8 @@ void Qt_Chess::setupTimeControlUI(QVBoxLayout* timeControlPanelLayout) {
 void Qt_Chess::onWhiteTimeLimitChanged(int value) {
     if (!m_whiteTimeLimitSlider || !m_whiteTimeLimitLabel) return;
     
-    int actualSeconds = 0;
-    QString timeText;
-    
-    if (value == 0) {
-        // 無限制時間
-        timeText = "不限時";
-        actualSeconds = 0;
-        m_whiteTimeMs = 0;
-    } else if (value == 1) {
-        // 30 秒
-        timeText = "30秒";
-        actualSeconds = 30;
-        m_whiteTimeMs = actualSeconds * 1000;
-    } else {
-        // 值 2-31 代表 1-30 分鐘
-        int minutes = value - 1;
-        timeText = QString("%1分鐘").arg(minutes);
-        actualSeconds = minutes * 60;
-        m_whiteTimeMs = actualSeconds * 1000;
-    }
-    
-    m_whiteTimeLimitLabel->setText(timeText);
+    m_whiteTimeMs = calculateTimeFromSliderValue(value);
+    m_whiteTimeLimitLabel->setText(getTimeTextFromSliderValue(value));
     
     // 更新 time control enabled state
     m_timeControlEnabled = (m_whiteTimeMs > 0 || m_blackTimeMs > 0);
@@ -1658,28 +1637,8 @@ void Qt_Chess::onWhiteTimeLimitChanged(int value) {
 void Qt_Chess::onBlackTimeLimitChanged(int value) {
     if (!m_blackTimeLimitSlider || !m_blackTimeLimitLabel) return;
     
-    int actualSeconds = 0;
-    QString timeText;
-    
-    if (value == 0) {
-        // 無限制時間
-        timeText = "不限時";
-        actualSeconds = 0;
-        m_blackTimeMs = 0;
-    } else if (value == 1) {
-        // 30 秒
-        timeText = "30秒";
-        actualSeconds = 30;
-        m_blackTimeMs = actualSeconds * 1000;
-    } else {
-        // 值 2-31 代表 1-30 分鐘
-        int minutes = value - 1;
-        timeText = QString("%1分鐘").arg(minutes);
-        actualSeconds = minutes * 60;
-        m_blackTimeMs = actualSeconds * 1000;
-    }
-    
-    m_blackTimeLimitLabel->setText(timeText);
+    m_blackTimeMs = calculateTimeFromSliderValue(value);
+    m_blackTimeLimitLabel->setText(getTimeTextFromSliderValue(value));
     
     // 更新 time control enabled state
     m_timeControlEnabled = (m_whiteTimeMs > 0 || m_blackTimeMs > 0);
@@ -1917,37 +1876,17 @@ void Qt_Chess::loadTimeControlSettings() {
 void Qt_Chess::saveTimeControlSettings() {
     QSettings settings("Qt_Chess", "TimeControl");
     
-    // 儲存 white time
+    // 儲存 white time (轉換毫秒為秒)
     if (m_whiteTimeLimitSlider) {
-        int sliderValue = m_whiteTimeLimitSlider->value();
-        int seconds = 0;
-        
-        if (sliderValue == 0) {
-            seconds = 0;  // 無限制
-        } else if (sliderValue == 1) {
-            seconds = 30;  // 30 秒
-        } else {
-            // sliderValue 2-31 = 1-30 分鐘
-            seconds = (sliderValue - 1) * 60;
-        }
-        
+        int timeMs = calculateTimeFromSliderValue(m_whiteTimeLimitSlider->value());
+        int seconds = timeMs / 1000;
         settings.setValue("whiteTimeLimitSeconds", seconds);
     }
     
-    // 儲存 black time
+    // 儲存 black time (轉換毫秒為秒)
     if (m_blackTimeLimitSlider) {
-        int sliderValue = m_blackTimeLimitSlider->value();
-        int seconds = 0;
-        
-        if (sliderValue == 0) {
-            seconds = 0;  // 無限制
-        } else if (sliderValue == 1) {
-            seconds = 30;  // 30 秒
-        } else {
-            // sliderValue 2-31 = 1-30 分鐘
-            seconds = (sliderValue - 1) * 60;
-        }
-        
+        int timeMs = calculateTimeFromSliderValue(m_blackTimeLimitSlider->value());
+        int seconds = timeMs / 1000;
         settings.setValue("blackTimeLimitSeconds", seconds);
     }
     
@@ -1989,4 +1928,43 @@ void Qt_Chess::resetBoardState() {
     m_pieceSelected = false;
     updateBoard();
     clearHighlights();
+}
+
+int Qt_Chess::calculateTimeFromSliderValue(int value) const {
+    // 根據滑桿值計算時間（毫秒）
+    // 滑桿位置：0=無限制，1=30秒，2-31=1-30分鐘
+    
+    // 驗證輸入範圍
+    if (value < 0 || value > MAX_SLIDER_POSITION) {
+        return 0;  // 無效輸入，返回無限制
+    }
+    
+    if (value == 0) {
+        return 0;  // 無限制
+    } else if (value == 1) {
+        return 30 * 1000;  // 30 秒
+    } else {
+        // 值 2-31 代表 1-30 分鐘
+        return (value - 1) * 60 * 1000;
+    }
+}
+
+QString Qt_Chess::getTimeTextFromSliderValue(int value) const {
+    // 根據滑桿值取得顯示文字
+    // 滑桿位置：0=無限制，1=30秒，2-31=1-30分鐘
+    
+    // 驗證輸入範圍（與 calculateTimeFromSliderValue 一致）
+    if (value < 0 || value > MAX_SLIDER_POSITION) {
+        return "不限時";  // 無效輸入，返回不限時
+    }
+    
+    if (value == 0) {
+        return "不限時";
+    } else if (value == 1) {
+        return "30秒";
+    } else {
+        // 值 2-31 代表 1-30 分鐘
+        int minutes = value - 1;
+        return QString("%1分鐘").arg(minutes);
+    }
 }
