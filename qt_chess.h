@@ -94,10 +94,13 @@ private:
     // Time control
     QSlider* m_whiteTimeLimitSlider;  // Separate slider for white's time
     QLabel* m_whiteTimeLimitLabel;
+    QLabel* m_whiteTimeLimitTitleLabel;  // Title label for white time
     QSlider* m_blackTimeLimitSlider;  // Separate slider for black's time
     QLabel* m_blackTimeLimitLabel;
+    QLabel* m_blackTimeLimitTitleLabel;  // Title label for black time
     QSlider* m_incrementSlider;
     QLabel* m_incrementLabel;
+    QLabel* m_incrementTitleLabel;  // Title label for increment
     QLabel* m_whiteTimeLabel;
     QLabel* m_blackTimeLabel;
     QPushButton* m_startButton;
@@ -159,5 +162,6 @@ private:
     void saveTimeControlSettings();
     void handleGameEnd();  // Helper to handle game end state
     void showTimeControlAfterTimeout();  // Helper to show time control panel after time expires
+    void updateTimeControlSizes();  // Helper to update time control UI element sizes based on window size
 };
 #endif // QT_CHESS_H
