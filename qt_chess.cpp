@@ -172,18 +172,17 @@ void Qt_Chess::setupUI() {
     m_moveListWidget = new QListWidget(m_moveListPanel);
     m_moveListWidget->setAlternatingRowColors(true);
     connect(m_moveListWidget, &QListWidget::itemDoubleClicked, this, [this](QListWidgetItem* item) {
-        if (!m_gameStarted) {  // 只有在遊戲結束後才允許回放
-            int row = m_moveListWidget->row(item);
-            const std::vector<MoveRecord>& moveHistory = m_chessBoard.getMoveHistory();
-            // 每行包含兩步（白方和黑方），點擊某行會跳到該行的最後一步
-            int moveIndex = row * 2 + 1;  
-            // 確保索引不超出範圍
-            if (moveIndex >= static_cast<int>(moveHistory.size())) {
-                moveIndex = moveHistory.size() - 1;
-            }
-            enterReplayMode();
-            replayToMove(moveIndex);
+        // 允許在遊戲進行中或結束後查看回放
+        int row = m_moveListWidget->row(item);
+        const std::vector<MoveRecord>& moveHistory = m_chessBoard.getMoveHistory();
+        // 每行包含兩步（白方和黑方），點擊某行會跳到該行的最後一步
+        int moveIndex = row * 2 + 1;  
+        // 確保索引不超出範圍
+        if (moveIndex >= static_cast<int>(moveHistory.size())) {
+            moveIndex = moveHistory.size() - 1;
         }
+        enterReplayMode();
+        replayToMove(moveIndex);
     });
     moveListLayout->addWidget(m_moveListWidget);
     
@@ -682,6 +681,32 @@ void Qt_Chess::onGiveUpClicked() {
         QString playerName = (currentPlayer == PieceColor::White) ? "白方" : "黑方";
         QString winner = (currentPlayer == PieceColor::White) ? "黑方" : "白方";
         QMessageBox::information(this, "遊戲結束", QString("%1放棄！%2獲勝！").arg(playerName).arg(winner));
+        
+        // 顯示匯出 PGN 按鈕和複製棋譜按鈕
+        if (m_exportPGNButton) {
+            m_exportPGNButton->show();
+        }
+        if (m_copyPGNButton) {
+            m_copyPGNButton->show();
+        }
+        
+        // 詢問是否要匯出或複製棋譜
+        QMessageBox exportDialog(this);
+        exportDialog.setWindowTitle("棋譜操作");
+        exportDialog.setText("是否要匯出或複製本局棋譜？");
+        exportDialog.setIcon(QMessageBox::Question);
+        
+        QPushButton* exportButton = exportDialog.addButton("匯出 PGN", QMessageBox::ActionRole);
+        QPushButton* copyButton = exportDialog.addButton("複製棋譜", QMessageBox::ActionRole);
+        exportDialog.addButton("稍後再說", QMessageBox::RejectRole);
+        
+        exportDialog.exec();
+        
+        if (exportDialog.clickedButton() == exportButton) {
+            exportPGN();
+        } else if (exportDialog.clickedButton() == copyButton) {
+            copyPGN();
+        }
     }
 }
 
