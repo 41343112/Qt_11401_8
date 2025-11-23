@@ -2,39 +2,49 @@
 
 ## 概述 / Overview
 
-此功能實現了在遊戲進行中使用回放功能的能力，允許玩家在對局期間回顧之前的棋步，而不會影響當前遊戲狀態或計時器。
+此功能實現了在遊戲進行中使用回放功能的能力，允許玩家在對局期間回顧之前的棋步。計時器會繼續運行，但時間控制設定被禁用以防止修改。玩家可以通過點擊棋盤快速返回當前遊戲狀態。
 
-This feature implements the ability to use replay functionality during an active game, allowing players to review previous moves during a match without affecting the current game state or timer.
+This feature implements the ability to use replay functionality during an active game, allowing players to review previous moves during a match. The timer continues running, but time control settings are disabled to prevent modifications. Players can quickly return to the current game state by clicking on the chessboard.
 
 ## 問題陳述 / Problem Statement
 
-原始問題：**遊戲中也可以使用回放功能**
+**當棋局進行時使用回放 時間繼續 但是不能更改 左鍵點擊棋盤回到當前的位置**
 
-Original Issue: Replay functionality should also be available during the game.
-
-之前的實現僅允許在遊戲結束後使用回放功能。這限制了玩家在對局期間分析和學習的能力。
-
-The previous implementation only allowed replay functionality after the game ended. This limited players' ability to analyze and learn during an ongoing match.
+When using replay during game, time continues but cannot be changed, left-clicking the chessboard returns to current position.
 
 ## 解決方案 / Solution
 
 ### 核心改變 / Core Changes
 
-1. **移除遊戲狀態檢查 / Removed Game State Checks**
-   - 移除了 `updateReplayButtons()` 中禁用回放按鈕的 `m_gameStarted` 檢查
-   - 移除了所有回放按鈕處理器中的 `m_gameStarted` 檢查
-   - 移除了棋譜列表雙擊處理器中的 `m_gameStarted` 檢查
+1. **計時器持續運行 / Timer Continues Running**
+   - 進入回放模式時計時器不再暫停
+   - 時間繼續計數，確保遊戲節奏不被打斷
+   - Timer no longer pauses when entering replay mode
+   - Time continues counting, ensuring game pace is not interrupted
 
-2. **計時器管理 / Timer Management**
-   - 新增 `m_savedTimerWasActive` 成員變數來保存計時器狀態
-   - 進入回放模式時自動暫停計時器
-   - 退出回放模式時自動恢復計時器
-   - 正確檢查 `m_timerStarted` 和 `m_gameTimer->isActive()` 兩個條件
+2. **時間控制設定禁用 / Time Control Settings Disabled**
+   - 進入回放模式時禁用所有時間控制滑桿（白方、黑方時間限制和增量）
+   - 防止玩家在回放過程中修改時間設定
+   - 退出回放模式時重新啟用滑桿
+   - All time control sliders (white/black time limit and increment) are disabled when entering replay mode
+   - Prevents players from modifying time settings during replay
+   - Sliders are re-enabled when exiting replay mode
 
-3. **退出回放按鈕 / Exit Replay Button**
-   - 重新加入 `m_exitReplayButton` 成員
+3. **點擊棋盤退出回放 / Click Chessboard to Exit Replay**
+   - 在回放模式中，左鍵點擊棋盤上的任意格子會立即退出回放模式
+   - 自動恢復到當前遊戲狀態
+   - 提供快速直觀的方式返回遊戲
+   - In replay mode, left-clicking any square on the chessboard immediately exits replay mode
+   - Automatically restores to the current game state
+   - Provides a quick and intuitive way to return to the game
+
+4. **退出回放按鈕 / Exit Replay Button**
+   - 保留 `m_exitReplayButton` 成員
    - 只在遊戲進行中回放時顯示
-   - 允許玩家快速返回當前遊戲狀態
+   - 作為退出回放的替代方式
+   - Retains the `m_exitReplayButton` member
+   - Only shown during replay in an active game
+   - Serves as an alternative way to exit replay
 
 ### 技術實現細節 / Technical Implementation Details
 
@@ -50,12 +60,10 @@ void Qt_Chess::enterReplayMode() {
     // 儲存當前棋盤狀態
     saveBoardState();
     
-    // 如果遊戲正在進行且計時器正在運行，暫停它
-    // 檢查 m_timerStarted 和 m_gameTimer->isActive() 以確保計時器真的在運行
-    m_savedTimerWasActive = (m_timerStarted && m_gameTimer && m_gameTimer->isActive());
-    if (m_savedTimerWasActive) {
-        stopTimer();
-    }
+    // 在回放模式中，計時器繼續運行，但禁用時間控制滑桿以防止更改
+    if (m_whiteTimeLimitSlider) m_whiteTimeLimitSlider->setEnabled(false);
+    if (m_blackTimeLimitSlider) m_blackTimeLimitSlider->setEnabled(false);
+    if (m_incrementSlider) m_incrementSlider->setEnabled(false);
     
     // 如果遊戲正在進行，顯示退出回放按鈕
     if (m_gameStarted && m_exitReplayButton) {
@@ -75,11 +83,10 @@ void Qt_Chess::exitReplayMode() {
     // 恢復棋盤狀態
     restoreBoardState();
     
-    // 如果計時器之前正在運行，恢復它
-    if (m_savedTimerWasActive) {
-        startTimer();
-        m_savedTimerWasActive = false;
-    }
+    // 重新啟用時間控制滑桿
+    if (m_whiteTimeLimitSlider) m_whiteTimeLimitSlider->setEnabled(true);
+    if (m_blackTimeLimitSlider) m_blackTimeLimitSlider->setEnabled(true);
+    if (m_incrementSlider) m_incrementSlider->setEnabled(true);
     
     // 隱藏退出回放按鈕
     if (m_exitReplayButton) {
@@ -94,10 +101,33 @@ void Qt_Chess::exitReplayMode() {
 }
 ```
 
-**updateReplayButtons()**
+**mousePressEvent()**
 ```cpp
-void Qt_Chess::updateReplayButtons() {
-    const std::vector<MoveRecord>& moveHistory = m_chessBoard.getMoveHistory();
+void Qt_Chess::mousePressEvent(QMouseEvent *event) {
+    // 如果在回放模式中，左鍵點擊棋盤會退出回放模式
+    if (m_isReplayMode) {
+        if (event->button() == Qt::LeftButton) {
+            QPoint displaySquare = getSquareAtPosition(event->pos());
+            // 檢查點擊是否在棋盤範圍內
+            if (displaySquare.x() >= 0 && displaySquare.y() >= 0 && 
+                displaySquare.x() < 8 && displaySquare.y() < 8) {
+                exitReplayMode();
+                return;
+            }
+        }
+        QMainWindow::mousePressEvent(event);
+        return;
+    }
+    // ... 其餘的滑鼠處理邏輯
+}
+```
+
+### 移除的成員變數 / Removed Member Variables
+
+```cpp
+// qt_chess.h - 已移除
+bool m_savedTimerWasActive;  // 不再需要，因為計時器不再暫停
+```
     
     // 如果沒有棋步歷史，停用所有按鈕
     if (moveHistory.empty()) {
