@@ -2267,7 +2267,7 @@ void Qt_Chess::enterReplayMode() {
     
     m_isReplayMode = true;
     
-    // 暫停計時器（如果正在進行中）
+    // 暫停計時器
     stopTimer();
     
     // 儲存當前棋盤狀態
