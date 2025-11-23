@@ -122,6 +122,17 @@ private:
     QPushButton* m_copyPGNButton;
     QWidget* m_moveListPanel;
     
+    // 回放控制
+    QPushButton* m_replayFirstButton;
+    QPushButton* m_replayPrevButton;
+    QPushButton* m_replayNextButton;
+    QPushButton* m_replayLastButton;
+    QPushButton* m_exitReplayButton;
+    bool m_isReplayMode;
+    int m_replayMoveIndex;  // 當前回放的棋步索引（-1 表示初始狀態）
+    std::vector<std::vector<ChessPiece>> m_savedBoardState;  // 儲存進入回放前的棋盤狀態
+    PieceColor m_savedCurrentPlayer;  // 儲存進入回放前的當前玩家
+    
     void setupUI();
     void setupMenuBar();
     void updateBoard();
@@ -181,5 +192,18 @@ private:
     void exportPGN();
     void copyPGN();
     QString generatePGN() const;
+    
+    // 回放功能
+    void enterReplayMode();
+    void exitReplayMode();
+    void replayToMove(int moveIndex);
+    void onReplayFirstClicked();
+    void onReplayPrevClicked();
+    void onReplayNextClicked();
+    void onReplayLastClicked();
+    void onExitReplayClicked();
+    void updateReplayButtons();
+    void saveBoardState();
+    void restoreBoardState();
 };
 #endif // QT_CHESS_H
