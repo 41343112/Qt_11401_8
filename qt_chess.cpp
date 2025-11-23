@@ -1928,7 +1928,7 @@ void Qt_Chess::onIncrementChanged(int value) {
 void Qt_Chess::onGameTimerTick() {
     if (!m_timeControlEnabled) return;
     
-    // 在回放模式中不要更新時間
+    // 在回放模式中不要更新時間，因為回放只是查看歷史棋步，不應影響實際的遊戲時間
     if (m_isReplayMode) return;
     
     // 減少當前玩家的時間
@@ -2339,6 +2339,10 @@ void Qt_Chess::exitReplayMode() {
     restoreBoardState();
     
     // 恢復計時器運行狀態
+    // 只有在以下條件都滿足時才重啟計時器：
+    // 1. 進入回放前計時器正在運行 (m_savedTimerRunning)
+    // 2. 時間控制功能已啟用 (m_timeControlEnabled)
+    // 3. 計時器已被手動啟動 (m_timerStarted)
     if (m_savedTimerRunning && m_timeControlEnabled && m_timerStarted) {
         startTimer();
     }
