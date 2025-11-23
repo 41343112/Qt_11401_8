@@ -44,6 +44,7 @@ void ChessBoard::initializeBoard() {
     
     m_currentPlayer = PieceColor::White;
     m_enPassantTarget = QPoint(-1, -1);
+    m_moveHistory.clear();
 }
 
 const ChessPiece& ChessBoard::getPiece(int row, int col) const {
@@ -165,8 +166,17 @@ bool ChessBoard::movePiece(const QPoint& from, const QPoint& to) {
     PieceType pieceType = piece.getType();
     PieceColor pieceColor = piece.getColor();
     
+    // 檢查是否為吃子、王車易位或吃過路兵
+    bool isCapture = m_board[to.y()][to.x()].getType() != PieceType::None;
+    bool isCastling = (pieceType == PieceType::King && abs(to.x() - from.x()) == 2);
+    bool isEnPassant = (pieceType == PieceType::Pawn && to == m_enPassantTarget && m_enPassantTarget.x() >= 0);
+    
+    if (isEnPassant) {
+        isCapture = true;  // 吃過路兵也是吃子
+    }
+    
     // 處理王車易位
-    if (pieceType == PieceType::King && abs(to.x() - from.x()) == 2) {
+    if (isCastling) {
         // 王翼易位
         if (to.x() > from.x()) {
             // 將車從 h 列移到 f 列
@@ -186,7 +196,7 @@ bool ChessBoard::movePiece(const QPoint& from, const QPoint& to) {
     }
     
     // 處理吃過路兵
-    if (pieceType == PieceType::Pawn && to == m_enPassantTarget && m_enPassantTarget.x() >= 0) {
+    if (isEnPassant) {
         // 移除被吃掉的兵
         int capturedPawnRow = (pieceColor == PieceColor::White) ? to.y() + 1 : to.y() - 1;
         m_board[capturedPawnRow][to.x()] = ChessPiece(PieceType::None, PieceColor::None);
@@ -207,6 +217,9 @@ bool ChessBoard::movePiece(const QPoint& from, const QPoint& to) {
     m_board[to.y()][to.x()] = piece;
     m_board[to.y()][to.x()].setMoved(true);
     m_board[from.y()][from.x()] = ChessPiece(PieceType::None, PieceColor::None);
+    
+    // 記錄移動（在切換玩家之前，因為 recordMove 需要檢查對手是否被將軍）
+    recordMove(from, to, isCapture, isCastling, isEnPassant);
     
     switchPlayer();
     return true;
@@ -310,6 +323,14 @@ void ChessBoard::promotePawn(const QPoint& pos, PieceType newType) {
     PieceColor color = piece.getColor();
     m_board[pos.y()][pos.x()] = ChessPiece(newType, color);
     m_board[pos.y()][pos.x()].setMoved(true);
+    
+    // 更新最後一個移動記錄以包含升變信息
+    if (!m_moveHistory.empty()) {
+        MoveRecord& lastMove = m_moveHistory.back();
+        lastMove.isPromotion = true;
+        lastMove.promotionType = newType;
+        lastMove.algebraicNotation = generateAlgebraicNotation(lastMove);
+    }
 }
 
 bool ChessBoard::isInsufficientMaterial() const {
@@ -387,4 +408,183 @@ bool ChessBoard::isInsufficientMaterial() const {
     }
     
     return false;
+}
+
+// 棋譜記錄輔助函數實現
+void ChessBoard::clearMoveHistory() {
+    m_moveHistory.clear();
+}
+
+QString ChessBoard::getMoveNotation(int moveIndex) const {
+    if (moveIndex < 0 || moveIndex >= static_cast<int>(m_moveHistory.size())) {
+        return QString();
+    }
+    return m_moveHistory[moveIndex].algebraicNotation;
+}
+
+QStringList ChessBoard::getAllMoveNotations() const {
+    QStringList notations;
+    for (size_t i = 0; i < m_moveHistory.size(); ++i) {
+        notations.append(m_moveHistory[i].algebraicNotation);
+    }
+    return notations;
+}
+
+QString ChessBoard::pieceTypeToNotation(PieceType type) const {
+    switch (type) {
+        case PieceType::King:   return "K";
+        case PieceType::Queen:  return "Q";
+        case PieceType::Rook:   return "R";
+        case PieceType::Bishop: return "B";
+        case PieceType::Knight: return "N";
+        case PieceType::Pawn:   return "";
+        default:                return "";
+    }
+}
+
+QString ChessBoard::squareToNotation(const QPoint& square) const {
+    // 將坐標轉換為代數記法（例如 e4）
+    // QPoint(x, y) 其中 x = 列（0-7），y = 行（0-7）
+    // a-h 對應於列 0-7，1-8 對應於行 7-0（行 0 是第 8 行）
+    char file = 'a' + square.x();
+    char rank = '8' - square.y();
+    return QString("%1%2").arg(file).arg(rank);
+}
+
+bool ChessBoard::isAmbiguousMove(const QPoint& from, const QPoint& to) const {
+    // 檢查是否有多個同類型的棋子可以移動到同一目標
+    const ChessPiece& movingPiece = m_board[from.y()][from.x()];
+    PieceType pieceType = movingPiece.getType();
+    PieceColor pieceColor = movingPiece.getColor();
+    
+    // 兵、國王移動通常不會模糊
+    if (pieceType == PieceType::Pawn || pieceType == PieceType::King) {
+        return false;
+    }
+    
+    // 檢查是否有其他相同類型和顏色的棋子可以移動到同一目標
+    for (int row = 0; row < 8; ++row) {
+        for (int col = 0; col < 8; ++col) {
+            QPoint otherPos(col, row);
+            if (otherPos == from) continue;
+            
+            const ChessPiece& piece = m_board[row][col];
+            if (piece.getType() == pieceType && piece.getColor() == pieceColor) {
+                // 檢查這個棋子是否也可以移動到目標
+                if (piece.isValidMove(otherPos, to, m_board, m_enPassantTarget) &&
+                    !wouldBeInCheck(otherPos, to, pieceColor)) {
+                    return true;
+                }
+            }
+        }
+    }
+    
+    return false;
+}
+
+void ChessBoard::recordMove(const QPoint& from, const QPoint& to, bool isCapture, 
+                           bool isCastling, bool isEnPassant, bool isPromotion,
+                           PieceType promotionType) {
+    const ChessPiece& piece = m_board[to.y()][to.x()];
+    PieceColor opponentColor = (piece.getColor() == PieceColor::White) ? 
+                                PieceColor::Black : PieceColor::White;
+    
+    MoveRecord record;
+    record.from = from;
+    record.to = to;
+    record.pieceType = piece.getType();
+    record.pieceColor = piece.getColor();
+    record.isCapture = isCapture;
+    record.isCastling = isCastling;
+    record.isEnPassant = isEnPassant;
+    record.isPromotion = isPromotion;
+    record.promotionType = promotionType;
+    record.isCheck = isInCheck(opponentColor);
+    record.isCheckmate = isCheckmate(opponentColor);
+    record.algebraicNotation = generateAlgebraicNotation(record);
+    
+    m_moveHistory.push_back(record);
+}
+
+QString ChessBoard::generateAlgebraicNotation(const MoveRecord& move) const {
+    QString notation;
+    
+    // 王車易位的特殊記法
+    if (move.isCastling) {
+        // 判斷是王翼還是后翼易位
+        if (move.to.x() > move.from.x()) {
+            notation = "O-O";  // 王翼易位
+        } else {
+            notation = "O-O-O";  // 后翼易位
+        }
+    } else {
+        // 棋子類型（兵不標註）
+        QString pieceNotation = pieceTypeToNotation(move.pieceType);
+        notation += pieceNotation;
+        
+        // 處理消歧義
+        if (!pieceNotation.isEmpty() && isAmbiguousMove(move.from, move.to)) {
+            // 如果列不同，加上起始列
+            bool addFile = true;
+            bool addRank = false;
+            
+            // 檢查是否需要加上行
+            for (int row = 0; row < 8; ++row) {
+                for (int col = 0; col < 8; ++col) {
+                    QPoint otherPos(col, row);
+                    if (otherPos == move.from) continue;
+                    
+                    const ChessPiece& piece = m_board[row][col];
+                    if (piece.getType() == move.pieceType && piece.getColor() == move.pieceColor) {
+                        if (piece.isValidMove(otherPos, move.to, m_board, m_enPassantTarget) &&
+                            !wouldBeInCheck(otherPos, move.to, move.pieceColor)) {
+                            // 如果在同一列，需要加上行號
+                            if (col == move.from.x()) {
+                                addRank = true;
+                            }
+                        }
+                    }
+                }
+            }
+            
+            if (addFile) {
+                notation += QString(QChar('a' + move.from.x()));
+            }
+            if (addRank) {
+                notation += QString(QChar('8' - move.from.y()));
+            }
+        }
+        
+        // 兵吃子需要標註起始列
+        if (move.pieceType == PieceType::Pawn && move.isCapture) {
+            notation += QString(QChar('a' + move.from.x()));
+        }
+        
+        // 吃子標記
+        if (move.isCapture) {
+            notation += "x";
+        }
+        
+        // 目標位置
+        notation += squareToNotation(move.to);
+        
+        // 吃過路兵標記
+        if (move.isEnPassant) {
+            notation += " e.p.";
+        }
+        
+        // 升變標記
+        if (move.isPromotion) {
+            notation += "=" + pieceTypeToNotation(move.promotionType);
+        }
+    }
+    
+    // 將軍或將死標記
+    if (move.isCheckmate) {
+        notation += "#";
+    } else if (move.isCheck) {
+        notation += "+";
+    }
+    
+    return notation;
 }

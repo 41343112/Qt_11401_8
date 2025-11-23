@@ -4,6 +4,23 @@
 #include "chesspiece.h"
 #include <QPoint>
 #include <vector>
+#include <QString>
+#include <QStringList>
+
+struct MoveRecord {
+    QPoint from;
+    QPoint to;
+    PieceType pieceType;
+    PieceColor pieceColor;
+    bool isCapture;
+    bool isCastling;
+    bool isEnPassant;
+    bool isPromotion;
+    PieceType promotionType;
+    bool isCheck;
+    bool isCheckmate;
+    QString algebraicNotation;
+};
 
 class ChessBoard {
 public:
@@ -29,16 +46,32 @@ public:
     bool needsPromotion(const QPoint& to) const;
     void promotePawn(const QPoint& pos, PieceType newType);
     
+    // 棋譜記錄
+    const std::vector<MoveRecord>& getMoveHistory() const { return m_moveHistory; }
+    void clearMoveHistory();
+    QString getMoveNotation(int moveIndex) const;
+    QStringList getAllMoveNotations() const;
+    
 private:
     std::vector<std::vector<ChessPiece>> m_board;
     PieceColor m_currentPlayer;
     QPoint m_enPassantTarget; // 可以進行吃過路兵的位置（如果沒有則為 -1, -1）
+    std::vector<MoveRecord> m_moveHistory; // 棋步歷史記錄
     
     void switchPlayer();
     bool wouldBeInCheck(const QPoint& from, const QPoint& to, PieceColor color) const;
     bool hasAnyValidMoves(PieceColor color) const;
     bool canPieceMove(const QPoint& pos) const;
     bool canCastle(const QPoint& from, const QPoint& to) const;
+    
+    // 棋譜記錄輔助函數
+    void recordMove(const QPoint& from, const QPoint& to, bool isCapture, 
+                   bool isCastling, bool isEnPassant, bool isPromotion = false,
+                   PieceType promotionType = PieceType::None);
+    QString generateAlgebraicNotation(const MoveRecord& move) const;
+    QString pieceTypeToNotation(PieceType type) const;
+    QString squareToNotation(const QPoint& square) const;
+    bool isAmbiguousMove(const QPoint& from, const QPoint& to) const;
 };
 
 #endif // CHESSBOARD_H
