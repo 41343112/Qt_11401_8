@@ -2366,7 +2366,9 @@ void Qt_Chess::onReplayPrevClicked() {
     if (!m_isReplayMode) {
         enterReplayMode();
         if (!moveHistory.empty()) {
-            replayToMove(moveHistory.size() - 2);  // 倒退一步
+            // 從最新一步往上倒退一步
+            int targetIndex = static_cast<int>(moveHistory.size()) - 2;
+            replayToMove(targetIndex);  // 如果只有一步，會顯示初始狀態（-1）
         }
     } else {
         replayToMove(m_replayMoveIndex - 1);
