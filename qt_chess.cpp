@@ -106,6 +106,15 @@ Qt_Chess::Qt_Chess(QWidget *parent)
     , m_exportPGNButton(nullptr)
     , m_copyPGNButton(nullptr)
     , m_moveListPanel(nullptr)
+    , m_replayTitle(nullptr)
+    , m_replayFirstButton(nullptr)
+    , m_replayPrevButton(nullptr)
+    , m_replayNextButton(nullptr)
+    , m_replayLastButton(nullptr)
+    , m_exitReplayButton(nullptr)
+    , m_isReplayMode(false)
+    , m_replayMoveIndex(-1)
+    , m_savedCurrentPlayer(PieceColor::White)
 {
     ui->setupUi(this);
     setWindowTitle("國際象棋 - 雙人對弈");
@@ -162,6 +171,20 @@ void Qt_Chess::setupUI() {
     
     m_moveListWidget = new QListWidget(m_moveListPanel);
     m_moveListWidget->setAlternatingRowColors(true);
+    connect(m_moveListWidget, &QListWidget::itemDoubleClicked, this, [this](QListWidgetItem* item) {
+        if (!m_gameStarted) {  // 只有在遊戲結束後才允許回放
+            int row = m_moveListWidget->row(item);
+            const std::vector<MoveRecord>& moveHistory = m_chessBoard.getMoveHistory();
+            // 每行包含兩步（白方和黑方），點擊某行會跳到該行的最後一步
+            int moveIndex = row * 2 + 1;  
+            // 確保索引不超出範圍
+            if (moveIndex >= static_cast<int>(moveHistory.size())) {
+                moveIndex = moveHistory.size() - 1;
+            }
+            enterReplayMode();
+            replayToMove(moveIndex);
+        }
+    });
     moveListLayout->addWidget(m_moveListWidget);
     
     // 匯出PGN按鈕（初始隱藏）
@@ -175,6 +198,52 @@ void Qt_Chess::setupUI() {
     m_copyPGNButton->hide();
     connect(m_copyPGNButton, &QPushButton::clicked, this, &Qt_Chess::onCopyPGNClicked);
     moveListLayout->addWidget(m_copyPGNButton);
+    
+    // 回放控制按鈕（初始隱藏）
+    m_replayTitle = new QLabel("回放控制", m_moveListPanel);
+    m_replayTitle->setAlignment(Qt::AlignCenter);
+    QFont replayFont;
+    replayFont.setPointSize(10);
+    replayFont.setBold(true);
+    m_replayTitle->setFont(replayFont);
+    m_replayTitle->hide();
+    moveListLayout->addWidget(m_replayTitle);
+    
+    QWidget* replayButtonContainer = new QWidget(m_moveListPanel);
+    QGridLayout* replayButtonLayout = new QGridLayout(replayButtonContainer);
+    replayButtonLayout->setContentsMargins(0, 0, 0, 0);
+    replayButtonLayout->setSpacing(5);
+    
+    m_replayFirstButton = new QPushButton("⏮", replayButtonContainer);
+    m_replayFirstButton->setToolTip("第一步");
+    m_replayFirstButton->hide();
+    connect(m_replayFirstButton, &QPushButton::clicked, this, &Qt_Chess::onReplayFirstClicked);
+    replayButtonLayout->addWidget(m_replayFirstButton, 0, 0);
+    
+    m_replayPrevButton = new QPushButton("◀", replayButtonContainer);
+    m_replayPrevButton->setToolTip("上一步");
+    m_replayPrevButton->hide();
+    connect(m_replayPrevButton, &QPushButton::clicked, this, &Qt_Chess::onReplayPrevClicked);
+    replayButtonLayout->addWidget(m_replayPrevButton, 0, 1);
+    
+    m_replayNextButton = new QPushButton("▶", replayButtonContainer);
+    m_replayNextButton->setToolTip("下一步");
+    m_replayNextButton->hide();
+    connect(m_replayNextButton, &QPushButton::clicked, this, &Qt_Chess::onReplayNextClicked);
+    replayButtonLayout->addWidget(m_replayNextButton, 0, 2);
+    
+    m_replayLastButton = new QPushButton("⏭", replayButtonContainer);
+    m_replayLastButton->setToolTip("最後一步");
+    m_replayLastButton->hide();
+    connect(m_replayLastButton, &QPushButton::clicked, this, &Qt_Chess::onReplayLastClicked);
+    replayButtonLayout->addWidget(m_replayLastButton, 0, 3);
+    
+    moveListLayout->addWidget(replayButtonContainer);
+    
+    m_exitReplayButton = new QPushButton("退出回放", m_moveListPanel);
+    m_exitReplayButton->hide();
+    connect(m_exitReplayButton, &QPushButton::clicked, this, &Qt_Chess::onExitReplayClicked);
+    moveListLayout->addWidget(m_exitReplayButton);
     
     contentLayout->addWidget(m_moveListPanel);
     
@@ -352,13 +421,21 @@ void Qt_Chess::updateStatus() {
     QString playerName = (currentPlayer == PieceColor::White) ? "白方" : "黑方";
     
     if (m_chessBoard.isCheckmate(currentPlayer)) {
+        // 記錄將死結果
+        if (currentPlayer == PieceColor::White) {
+            m_chessBoard.setGameResult(GameResult::BlackWins);
+        } else {
+            m_chessBoard.setGameResult(GameResult::WhiteWins);
+        }
         handleGameEnd();
         QString winner = (currentPlayer == PieceColor::White) ? "黑方" : "白方";
         QMessageBox::information(this, "遊戲結束", QString("將死！%1獲勝！").arg(winner));
     } else if (m_chessBoard.isStalemate(currentPlayer)) {
+        m_chessBoard.setGameResult(GameResult::Draw);
         handleGameEnd();
         QMessageBox::information(this, "遊戲結束", "逼和！對局和棋。");
     } else if (m_chessBoard.isInsufficientMaterial()) {
+        m_chessBoard.setGameResult(GameResult::Draw);
         handleGameEnd();
         QMessageBox::information(this, "遊戲結束", "子力不足以將死！對局和棋。");
     }
@@ -434,6 +511,11 @@ void Qt_Chess::highlightValidMoves() {
 }
 
 void Qt_Chess::onSquareClicked(int displayRow, int displayCol) {
+    // 如果在回放模式中，不允許移動
+    if (m_isReplayMode) {
+        return;
+    }
+    
     // 如果遊戲尚未開始，不允許移動
     if (!m_gameStarted) {
         return;
@@ -565,6 +647,14 @@ void Qt_Chess::onGiveUpClicked() {
     );
     
     if (reply == QMessageBox::Yes) {
+        // 記錄認輸結果
+        PieceColor currentPlayer = m_chessBoard.getCurrentPlayer();
+        if (currentPlayer == PieceColor::White) {
+            m_chessBoard.setGameResult(GameResult::WhiteResigns);
+        } else {
+            m_chessBoard.setGameResult(GameResult::BlackResigns);
+        }
+        
         // 停止遊戲
         m_gameStarted = false;
         stopTimer();
@@ -589,7 +679,6 @@ void Qt_Chess::onGiveUpClicked() {
         }
         
         // 顯示放棄者的訊息
-        PieceColor currentPlayer = m_chessBoard.getCurrentPlayer();
         QString playerName = (currentPlayer == PieceColor::White) ? "白方" : "黑方";
         QString winner = (currentPlayer == PieceColor::White) ? "黑方" : "白方";
         QMessageBox::information(this, "遊戲結束", QString("%1放棄！%2獲勝！").arg(playerName).arg(winner));
@@ -824,6 +913,12 @@ bool Qt_Chess::eventFilter(QObject *obj, QEvent *event) {
 }
 
 void Qt_Chess::mousePressEvent(QMouseEvent *event) {
+    // 如果在回放模式中，不處理滑鼠事件
+    if (m_isReplayMode) {
+        QMainWindow::mousePressEvent(event);
+        return;
+    }
+    
     QPoint displaySquare = getSquareAtPosition(event->pos());
     
     // 右鍵點擊 - 取消任何當前動作
@@ -914,6 +1009,12 @@ void Qt_Chess::mousePressEvent(QMouseEvent *event) {
 }
 
 void Qt_Chess::mouseMoveEvent(QMouseEvent *event) {
+    // 如果在回放模式中，不處理拖動
+    if (m_isReplayMode) {
+        QMainWindow::mouseMoveEvent(event);
+        return;
+    }
+    
     if (m_isDragging && m_dragLabel) {
         m_dragLabel->move(event->pos() - QPoint(m_dragLabel->width() / 2, m_dragLabel->height() / 2));
     }
@@ -922,6 +1023,12 @@ void Qt_Chess::mouseMoveEvent(QMouseEvent *event) {
 }
 
 void Qt_Chess::mouseReleaseEvent(QMouseEvent *event) {
+    // 如果在回放模式中，不處理滑鼠事件
+    if (m_isReplayMode) {
+        QMainWindow::mouseReleaseEvent(event);
+        return;
+    }
+    
     // 右鍵點擊 - 已在 mousePressEvent 中處理
     if (event->button() == Qt::RightButton) {
         QMainWindow::mouseReleaseEvent(event);
@@ -2113,12 +2220,16 @@ QString Qt_Chess::generatePGN() const {
     pgn += QString("[Black \"黑方\"]\n");
     
     // 結果
-    QString result = "*";  // 遊戲正在進行中
-    PieceColor currentPlayer = m_chessBoard.getCurrentPlayer();
-    if (m_chessBoard.isCheckmate(currentPlayer)) {
-        result = (currentPlayer == PieceColor::White) ? "0-1" : "1-0";
-    } else if (m_chessBoard.isStalemate(currentPlayer) || m_chessBoard.isInsufficientMaterial()) {
-        result = "1/2-1/2";
+    QString result = m_chessBoard.getGameResultString();
+    
+    // 如果遊戲結果還未確定，根據當前棋盤狀態檢查
+    if (result == "*") {
+        PieceColor currentPlayer = m_chessBoard.getCurrentPlayer();
+        if (m_chessBoard.isCheckmate(currentPlayer)) {
+            result = (currentPlayer == PieceColor::White) ? "0-1" : "1-0";
+        } else if (m_chessBoard.isStalemate(currentPlayer) || m_chessBoard.isInsufficientMaterial()) {
+            result = "1/2-1/2";
+        }
     }
     pgn += QString("[Result \"%1\"]\n\n").arg(result);
     
@@ -2163,4 +2274,161 @@ void Qt_Chess::copyPGN() {
     clipboard->setText(pgn);
     
     QMessageBox::information(this, "成功", "棋譜已複製到剪貼簿");
+}
+
+void Qt_Chess::enterReplayMode() {
+    if (m_isReplayMode) return;
+    
+    m_isReplayMode = true;
+    
+    // 儲存當前棋盤狀態
+    saveBoardState();
+    
+    // 顯示回放控制按鈕
+    if (m_replayTitle) m_replayTitle->show();
+    if (m_replayFirstButton) m_replayFirstButton->show();
+    if (m_replayPrevButton) m_replayPrevButton->show();
+    if (m_replayNextButton) m_replayNextButton->show();
+    if (m_replayLastButton) m_replayLastButton->show();
+    if (m_exitReplayButton) m_exitReplayButton->show();
+    
+    // 隱藏遊戲控制按鈕
+    if (m_exportPGNButton) m_exportPGNButton->hide();
+    if (m_copyPGNButton) m_copyPGNButton->hide();
+}
+
+void Qt_Chess::exitReplayMode() {
+    if (!m_isReplayMode) return;
+    
+    m_isReplayMode = false;
+    m_replayMoveIndex = -1;
+    
+    // 恢復棋盤狀態
+    restoreBoardState();
+    
+    // 隱藏回放控制按鈕
+    if (m_replayTitle) m_replayTitle->hide();
+    if (m_replayFirstButton) m_replayFirstButton->hide();
+    if (m_replayPrevButton) m_replayPrevButton->hide();
+    if (m_replayNextButton) m_replayNextButton->hide();
+    if (m_replayLastButton) m_replayLastButton->hide();
+    if (m_exitReplayButton) m_exitReplayButton->hide();
+    
+    // 顯示遊戲控制按鈕
+    if (m_exportPGNButton) m_exportPGNButton->show();
+    if (m_copyPGNButton) m_copyPGNButton->show();
+    
+    // 取消棋譜列表的選擇
+    m_moveListWidget->clearSelection();
+}
+
+void Qt_Chess::replayToMove(int moveIndex) {
+    const std::vector<MoveRecord>& moveHistory = m_chessBoard.getMoveHistory();
+    
+    // 限制索引範圍
+    if (moveIndex < -1) moveIndex = -1;
+    if (moveIndex >= static_cast<int>(moveHistory.size())) {
+        moveIndex = moveHistory.size() - 1;
+    }
+    
+    m_replayMoveIndex = moveIndex;
+    
+    // 重新初始化棋盤
+    m_chessBoard.initializeBoard();
+    
+    // 重播棋步直到指定的移動
+    for (int i = 0; i <= moveIndex; ++i) {
+        const MoveRecord& move = moveHistory[i];
+        m_chessBoard.movePiece(move.from, move.to);
+        
+        // 處理升變
+        if (move.isPromotion) {
+            m_chessBoard.promotePawn(move.to, move.promotionType);
+        }
+    }
+    
+    // 更新顯示
+    updateBoard();
+    clearHighlights();
+    updateReplayButtons();
+    
+    // 高亮當前移動在棋譜列表中
+    if (moveIndex >= 0) {
+        int row = moveIndex / 2;
+        m_moveListWidget->setCurrentRow(row);
+    } else {
+        m_moveListWidget->clearSelection();
+    }
+}
+
+void Qt_Chess::onReplayFirstClicked() {
+    replayToMove(-1);  // 初始狀態
+}
+
+void Qt_Chess::onReplayPrevClicked() {
+    replayToMove(m_replayMoveIndex - 1);
+}
+
+void Qt_Chess::onReplayNextClicked() {
+    replayToMove(m_replayMoveIndex + 1);
+}
+
+void Qt_Chess::onReplayLastClicked() {
+    const std::vector<MoveRecord>& moveHistory = m_chessBoard.getMoveHistory();
+    if (!moveHistory.empty()) {
+        replayToMove(moveHistory.size() - 1);
+    }
+}
+
+void Qt_Chess::onExitReplayClicked() {
+    exitReplayMode();
+}
+
+void Qt_Chess::updateReplayButtons() {
+    const std::vector<MoveRecord>& moveHistory = m_chessBoard.getMoveHistory();
+    
+    // 啟用/停用按鈕基於當前位置
+    if (m_replayFirstButton) {
+        m_replayFirstButton->setEnabled(m_replayMoveIndex >= 0);
+    }
+    if (m_replayPrevButton) {
+        m_replayPrevButton->setEnabled(m_replayMoveIndex >= 0);
+    }
+    if (m_replayNextButton) {
+        m_replayNextButton->setEnabled(m_replayMoveIndex < static_cast<int>(moveHistory.size()) - 1);
+    }
+    if (m_replayLastButton) {
+        m_replayLastButton->setEnabled(m_replayMoveIndex < static_cast<int>(moveHistory.size()) - 1);
+    }
+}
+
+void Qt_Chess::saveBoardState() {
+    // 儲存當前棋盤狀態
+    m_savedBoardState.clear();
+    m_savedBoardState.resize(8);
+    for (int row = 0; row < 8; ++row) {
+        m_savedBoardState[row].resize(8);
+        for (int col = 0; col < 8; ++col) {
+            m_savedBoardState[row][col] = m_chessBoard.getPiece(row, col);
+        }
+    }
+    m_savedCurrentPlayer = m_chessBoard.getCurrentPlayer();
+}
+
+void Qt_Chess::restoreBoardState() {
+    // 恢復棋盤狀態
+    if (m_savedBoardState.size() != 8) return;
+    
+    for (int row = 0; row < 8; ++row) {
+        for (int col = 0; col < 8; ++col) {
+            m_chessBoard.setPiece(row, col, m_savedBoardState[row][col]);
+        }
+    }
+    
+    // 恢復當前玩家
+    m_chessBoard.setCurrentPlayer(m_savedCurrentPlayer);
+    
+    // 更新顯示
+    updateBoard();
+    clearHighlights();
 }
