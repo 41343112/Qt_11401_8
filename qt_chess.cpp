@@ -1151,15 +1151,19 @@ void Qt_Chess::keyPressEvent(QKeyEvent *event) {
     
     // 處理左右箭頭鍵
     if (event->key() == Qt::Key_Left) {
-        // 左箭頭：上一步
-        onReplayPrevClicked();
-        event->accept();
-        return;
+        // 左箭頭：上一步（只有在按鈕啟用時才處理）
+        if (m_replayPrevButton && m_replayPrevButton->isEnabled()) {
+            onReplayPrevClicked();
+            event->accept();
+            return;
+        }
     } else if (event->key() == Qt::Key_Right) {
-        // 右箭頭：下一步
-        onReplayNextClicked();
-        event->accept();
-        return;
+        // 右箭頭：下一步（只有在按鈕啟用時才處理）
+        if (m_replayNextButton && m_replayNextButton->isEnabled()) {
+            onReplayNextClicked();
+            event->accept();
+            return;
+        }
     }
     
     // 其他按鍵傳遞給基類處理
@@ -2451,11 +2455,13 @@ void Qt_Chess::updateReplayButtons() {
             m_replayLastButton->setEnabled(m_replayMoveIndex < static_cast<int>(moveHistory.size()) - 1);
         }
     } else {
-        // 不在回放模式且有棋步歷史，啟用所有按鈕以允許進入回放
+        // 不在回放模式，已經在當前棋盤狀態
+        // 啟用「第一步」和「上一步」按鈕以允許進入回放
         if (m_replayFirstButton) m_replayFirstButton->setEnabled(true);
         if (m_replayPrevButton) m_replayPrevButton->setEnabled(true);
-        if (m_replayNextButton) m_replayNextButton->setEnabled(true);
-        if (m_replayLastButton) m_replayLastButton->setEnabled(true);
+        // 停用「下一步」和「最後一步」按鈕，因為已經在最新狀態
+        if (m_replayNextButton) m_replayNextButton->setEnabled(false);
+        if (m_replayLastButton) m_replayLastButton->setEnabled(false);
     }
 }
 
