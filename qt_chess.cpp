@@ -1141,6 +1141,44 @@ void Qt_Chess::resizeEvent(QResizeEvent *event) {
     }
 }
 
+void Qt_Chess::keyPressEvent(QKeyEvent *event) {
+    // 檢查是否在回放模式或有棋譜可回放
+    const std::vector<MoveRecord>& moveHistory = m_chessBoard.getMoveHistory();
+    if (moveHistory.empty()) {
+        QMainWindow::keyPressEvent(event);
+        return;
+    }
+    
+    // 處理左右箭頭鍵
+    if (event->key() == Qt::Key_Left) {
+        // 左箭頭：上一步
+        if (!m_isReplayMode) {
+            // 如果不在回放模式，從最後一步開始倒退
+            onReplayPrevClicked();
+        } else if (m_replayMoveIndex >= 0) {
+            // 已在回放模式，後退一步
+            onReplayPrevClicked();
+        }
+        event->accept();
+        return;
+    } else if (event->key() == Qt::Key_Right) {
+        // 右箭頭：下一步
+        if (!m_isReplayMode) {
+            // 如果不在回放模式，從第一步開始
+            enterReplayMode();
+            replayToMove(0);
+        } else if (m_replayMoveIndex < static_cast<int>(moveHistory.size()) - 1) {
+            // 已在回放模式，前進一步
+            onReplayNextClicked();
+        }
+        event->accept();
+        return;
+    }
+    
+    // 其他按鍵傳遞給基類處理
+    QMainWindow::keyPressEvent(event);
+}
+
 void Qt_Chess::updateSquareSizes() {
     if (!m_boardWidget || m_squares.empty()) return;
     
@@ -2349,12 +2387,8 @@ void Qt_Chess::replayToMove(int moveIndex) {
         m_moveListWidget->clearSelection();
     }
     
-    // 如果已經在最新一步，自動退出回放模式
-    // 注意：moveHistory.empty() 的檢查是必要的，以處理空棋譜的邊界情況
-    // exitReplayMode() 會再次呼叫 updateBoard()，但這是可接受的冗餘，以保持程式碼簡潔性
-    if (m_isReplayMode && !moveHistory.empty() && m_replayMoveIndex == static_cast<int>(moveHistory.size()) - 1) {
-        exitReplayMode();
-    }
+    // 不再自動退出回放模式，即使已經在最新一步
+    // 允許用戶留在回放模式中查看最終狀態
 }
 
 void Qt_Chess::onReplayFirstClicked() {

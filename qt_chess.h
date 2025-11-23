@@ -7,6 +7,7 @@
 #include <QGridLayout>
 #include <QVBoxLayout>
 #include <QMouseEvent>
+#include <QKeyEvent>
 #include <QMap>
 #include <QSoundEffect>
 #include <QMenuBar>
@@ -43,6 +44,7 @@ protected:
     void mouseReleaseEvent(QMouseEvent *event) override;
     bool eventFilter(QObject *obj, QEvent *event) override;
     void resizeEvent(QResizeEvent *event) override;
+    void keyPressEvent(QKeyEvent *event) override;
 
 private slots:
     void onSquareClicked(int row, int col);
