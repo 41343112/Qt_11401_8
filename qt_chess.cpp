@@ -32,6 +32,7 @@ namespace {
     // 視窗大小的佈局常數
     const int LEFT_PANEL_MAX_WIDTH = 200;  // 新遊戲按鈕面板的最大寬度
     const int RIGHT_PANEL_MAX_WIDTH = 600; // 時間控制面板的最大寬度
+    // 以下間距常數設為0以移除所有空白，實現緊湊佈局，特別是在全螢幕模式下
     const int PANEL_SPACING = 0;           // 面板之間的間距（設為0以移除空白）
     const int BASE_MARGINS = 0;            // 基本佈局邊距（設為0以移除空白）
     const int TIME_LABEL_SPACING = 0;      // 時間標籤周圍的間距（設為0以移除空白）
@@ -100,9 +101,8 @@ Qt_Chess::Qt_Chess(QWidget *parent)
     resize(900, 660);  // 增加寬度以容納時間控制面板
     
     // 設置最小視窗大小以確保所有內容都能完整顯示而不被裁切
-    // 寬度計算：最小棋盤 (8*MIN_SQUARE_SIZE+4=244) + 可選時間標籤 (~200) +
-    //       RIGHT_PANEL_MAX_WIDTH (600) + 間距 (0) = ~1044
-    // 高度計算：棋盤 (244) + 選單欄 (~30) + 緩衝空間 (~126) = ~400
+    // 寬度計算：最小棋盤 (244) + 時間標籤 (200) + RIGHT_PANEL_MAX_WIDTH (600) = 1044
+    // 高度計算：棋盤 (244) + 選單欄 (30) + 緩衝空間 (126) = 400
     setMinimumSize(1044, 400);
     
     setMouseTracking(true);
