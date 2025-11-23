@@ -352,13 +352,21 @@ void Qt_Chess::updateStatus() {
     QString playerName = (currentPlayer == PieceColor::White) ? "白方" : "黑方";
     
     if (m_chessBoard.isCheckmate(currentPlayer)) {
+        // 記錄將死結果
+        if (currentPlayer == PieceColor::White) {
+            m_chessBoard.setGameResult(GameResult::BlackWins);
+        } else {
+            m_chessBoard.setGameResult(GameResult::WhiteWins);
+        }
         handleGameEnd();
         QString winner = (currentPlayer == PieceColor::White) ? "黑方" : "白方";
         QMessageBox::information(this, "遊戲結束", QString("將死！%1獲勝！").arg(winner));
     } else if (m_chessBoard.isStalemate(currentPlayer)) {
+        m_chessBoard.setGameResult(GameResult::Draw);
         handleGameEnd();
         QMessageBox::information(this, "遊戲結束", "逼和！對局和棋。");
     } else if (m_chessBoard.isInsufficientMaterial()) {
+        m_chessBoard.setGameResult(GameResult::Draw);
         handleGameEnd();
         QMessageBox::information(this, "遊戲結束", "子力不足以將死！對局和棋。");
     }
@@ -565,6 +573,14 @@ void Qt_Chess::onGiveUpClicked() {
     );
     
     if (reply == QMessageBox::Yes) {
+        // 記錄認輸結果
+        PieceColor currentPlayer = m_chessBoard.getCurrentPlayer();
+        if (currentPlayer == PieceColor::White) {
+            m_chessBoard.setGameResult(GameResult::WhiteResigns);
+        } else {
+            m_chessBoard.setGameResult(GameResult::BlackResigns);
+        }
+        
         // 停止遊戲
         m_gameStarted = false;
         stopTimer();
@@ -589,7 +605,6 @@ void Qt_Chess::onGiveUpClicked() {
         }
         
         // 顯示放棄者的訊息
-        PieceColor currentPlayer = m_chessBoard.getCurrentPlayer();
         QString playerName = (currentPlayer == PieceColor::White) ? "白方" : "黑方";
         QString winner = (currentPlayer == PieceColor::White) ? "黑方" : "白方";
         QMessageBox::information(this, "遊戲結束", QString("%1放棄！%2獲勝！").arg(playerName).arg(winner));
@@ -2113,12 +2128,16 @@ QString Qt_Chess::generatePGN() const {
     pgn += QString("[Black \"黑方\"]\n");
     
     // 結果
-    QString result = "*";  // 遊戲正在進行中
-    PieceColor currentPlayer = m_chessBoard.getCurrentPlayer();
-    if (m_chessBoard.isCheckmate(currentPlayer)) {
-        result = (currentPlayer == PieceColor::White) ? "0-1" : "1-0";
-    } else if (m_chessBoard.isStalemate(currentPlayer) || m_chessBoard.isInsufficientMaterial()) {
-        result = "1/2-1/2";
+    QString result = m_chessBoard.getGameResultString();
+    
+    // 如果遊戲結果還未確定，根據當前棋盤狀態檢查
+    if (result == "*") {
+        PieceColor currentPlayer = m_chessBoard.getCurrentPlayer();
+        if (m_chessBoard.isCheckmate(currentPlayer)) {
+            result = (currentPlayer == PieceColor::White) ? "0-1" : "1-0";
+        } else if (m_chessBoard.isStalemate(currentPlayer) || m_chessBoard.isInsufficientMaterial()) {
+            result = "1/2-1/2";
+        }
     }
     pgn += QString("[Result \"%1\"]\n\n").arg(result);
     

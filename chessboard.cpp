@@ -1,7 +1,7 @@
 #include "chessboard.h"
 
 ChessBoard::ChessBoard()
-    : m_board(8, std::vector<ChessPiece>(8)), m_currentPlayer(PieceColor::White), m_enPassantTarget(-1, -1)
+    : m_board(8, std::vector<ChessPiece>(8)), m_currentPlayer(PieceColor::White), m_enPassantTarget(-1, -1), m_gameResult(GameResult::InProgress)
 {
     initializeBoard();
 }
@@ -45,6 +45,7 @@ void ChessBoard::initializeBoard() {
     m_currentPlayer = PieceColor::White;
     m_enPassantTarget = QPoint(-1, -1);
     m_moveHistory.clear();
+    m_gameResult = GameResult::InProgress;
 }
 
 const ChessPiece& ChessBoard::getPiece(int row, int col) const {
@@ -582,4 +583,22 @@ QString ChessBoard::generateAlgebraicNotation(const MoveRecord& move) const {
     }
     
     return notation;
+}
+
+QString ChessBoard::getGameResultString() const {
+    switch (m_gameResult) {
+        case GameResult::WhiteWins:
+            return "1-0";
+        case GameResult::BlackWins:
+            return "0-1";
+        case GameResult::Draw:
+            return "1/2-1/2";
+        case GameResult::WhiteResigns:
+            return "0-1";  // 白方認輸，黑方獲勝
+        case GameResult::BlackResigns:
+            return "1-0";  // 黑方認輸，白方獲勝
+        case GameResult::InProgress:
+        default:
+            return "*";
+    }
 }

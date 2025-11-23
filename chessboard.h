@@ -7,6 +7,15 @@
 #include <QString>
 #include <QStringList>
 
+enum class GameResult {
+    InProgress,      // 遊戲進行中
+    WhiteWins,       // 白方獲勝
+    BlackWins,       // 黑方獲勝
+    Draw,            // 和局
+    WhiteResigns,    // 白方認輸
+    BlackResigns     // 黑方認輸
+};
+
 struct MoveRecord {
     QPoint from;
     QPoint to;
@@ -52,11 +61,17 @@ public:
     QString getMoveNotation(int moveIndex) const;
     QStringList getAllMoveNotations() const;
     
+    // 遊戲結果管理
+    GameResult getGameResult() const { return m_gameResult; }
+    void setGameResult(GameResult result) { m_gameResult = result; }
+    QString getGameResultString() const;
+    
 private:
     std::vector<std::vector<ChessPiece>> m_board;
     PieceColor m_currentPlayer;
     QPoint m_enPassantTarget; // 可以進行吃過路兵的位置（如果沒有則為 -1, -1）
     std::vector<MoveRecord> m_moveHistory; // 棋步歷史記錄
+    GameResult m_gameResult; // 遊戲結果
     
     void switchPlayer();
     bool wouldBeInCheck(const QPoint& from, const QPoint& to, PieceColor color) const;
