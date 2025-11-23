@@ -111,7 +111,6 @@ Qt_Chess::Qt_Chess(QWidget *parent)
     , m_replayPrevButton(nullptr)
     , m_replayNextButton(nullptr)
     , m_replayLastButton(nullptr)
-    , m_exitReplayButton(nullptr)
     , m_isReplayMode(false)
     , m_replayMoveIndex(-1)
     , m_savedCurrentPlayer(PieceColor::White)
@@ -237,12 +236,6 @@ void Qt_Chess::setupUI() {
     replayButtonLayout->addWidget(m_replayLastButton, 0, 3);
     
     moveListLayout->addWidget(replayButtonContainer);
-    
-    // 退出回放按鈕（只在遊戲進行中回放時顯示）
-    m_exitReplayButton = new QPushButton("退出回放", m_moveListPanel);
-    m_exitReplayButton->hide();  // 初始隱藏
-    connect(m_exitReplayButton, &QPushButton::clicked, this, &Qt_Chess::onExitReplayClicked);
-    moveListLayout->addWidget(m_exitReplayButton);
     
     contentLayout->addWidget(m_moveListPanel);
     
@@ -2294,15 +2287,7 @@ void Qt_Chess::enterReplayMode() {
     // 儲存當前棋盤狀態
     saveBoardState();
     
-    // 在回放模式中，計時器繼續運行，但禁用時間控制滑桿以防止更改
-    if (m_whiteTimeLimitSlider) m_whiteTimeLimitSlider->setEnabled(false);
-    if (m_blackTimeLimitSlider) m_blackTimeLimitSlider->setEnabled(false);
-    if (m_incrementSlider) m_incrementSlider->setEnabled(false);
-    
-    // 如果遊戲正在進行，顯示退出回放按鈕
-    if (m_gameStarted && m_exitReplayButton) {
-        m_exitReplayButton->show();
-    }
+    // 在回放模式中，不再禁用時間控制滑桿
 }
 
 void Qt_Chess::exitReplayMode() {
@@ -2313,16 +2298,6 @@ void Qt_Chess::exitReplayMode() {
     
     // 恢復棋盤狀態
     restoreBoardState();
-    
-    // 重新啟用時間控制滑桿
-    if (m_whiteTimeLimitSlider) m_whiteTimeLimitSlider->setEnabled(true);
-    if (m_blackTimeLimitSlider) m_blackTimeLimitSlider->setEnabled(true);
-    if (m_incrementSlider) m_incrementSlider->setEnabled(true);
-    
-    // 隱藏退出回放按鈕
-    if (m_exitReplayButton) {
-        m_exitReplayButton->hide();
-    }
     
     // 取消棋譜列表的選擇
     m_moveListWidget->clearSelection();
@@ -2385,12 +2360,17 @@ void Qt_Chess::onReplayFirstClicked() {
 }
 
 void Qt_Chess::onReplayPrevClicked() {
-    // 如果尚未進入回放模式，先進入
+    const std::vector<MoveRecord>& moveHistory = m_chessBoard.getMoveHistory();
+    
+    // 如果尚未進入回放模式，從最新的一步開始往上
     if (!m_isReplayMode) {
         enterReplayMode();
+        if (!moveHistory.empty()) {
+            replayToMove(moveHistory.size() - 2);  // 倒退一步
+        }
+    } else {
+        replayToMove(m_replayMoveIndex - 1);
     }
-    
-    replayToMove(m_replayMoveIndex - 1);
 }
 
 void Qt_Chess::onReplayNextClicked() {
@@ -2412,10 +2392,6 @@ void Qt_Chess::onReplayLastClicked() {
     if (!moveHistory.empty()) {
         replayToMove(moveHistory.size() - 1);
     }
-}
-
-void Qt_Chess::onExitReplayClicked() {
-    exitReplayMode();
 }
 
 void Qt_Chess::updateReplayButtons() {
