@@ -178,6 +178,9 @@ void Qt_Chess::setupUI() {
     
     contentLayout->addWidget(m_moveListPanel);
     
+    // 添加伸展以將棋盤置中
+    contentLayout->addStretch(1);
+    
     // 棋盤容器，左右兩側顯示時間
     m_boardContainer = new QWidget(this);
     m_boardContainer->setMouseTracking(true);
@@ -251,10 +254,11 @@ void Qt_Chess::setupUI() {
     m_whiteTimeLabel->hide();  // 初始隱藏
     boardContainerLayout->addWidget(m_whiteTimeLabel, 0, Qt::AlignBottom);
     
-    // 使用相等的伸展因子將棋盤容器置中
-    contentLayout->addStretch(1);  // 左側伸展
-    contentLayout->addWidget(m_boardContainer, 0);  // 棋盤容器不伸展，保持其自然大小
-    contentLayout->addStretch(1);  // 右側伸展
+    // 將棋盤容器添加到內容佈局，不設置伸展因子以保持其自然大小
+    contentLayout->addWidget(m_boardContainer, 0);
+    
+    // 添加伸展以平衡左側的伸展
+    contentLayout->addStretch(1);
     
     // 時間控制的右側面板
     m_timeControlPanel = new QWidget(this);
