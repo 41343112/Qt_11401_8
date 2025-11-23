@@ -212,6 +212,21 @@ void Qt_Chess::setupUI() {
 void Qt_Chess::setupMenuBar() {
     m_menuBar = menuBar();
     
+    // Game menu
+    QMenu* gameMenu = m_menuBar->addMenu("遊戲");
+    
+    // New game action
+    QAction* newGameAction = new QAction("新遊戲", this);
+    connect(newGameAction, &QAction::triggered, this, &Qt_Chess::onNewGameClicked);
+    gameMenu->addAction(newGameAction);
+    
+    gameMenu->addSeparator();
+    
+    // Give up action
+    QAction* giveUpAction = new QAction("放棄", this);
+    connect(giveUpAction, &QAction::triggered, this, &Qt_Chess::onGiveUpClicked);
+    gameMenu->addAction(giveUpAction);
+    
     // Settings menu
     QMenu* settingsMenu = m_menuBar->addMenu("設定");
     
@@ -1719,10 +1734,15 @@ void Qt_Chess::handleGameEnd() {
         m_timeControlPanel->show();
     }
     
+    // Re-enable start button to allow starting a new game
     if (m_startButton) {
-        m_startButton->setText(GAME_ENDED_TEXT);
-        m_startButton->setEnabled(false);
+        m_startButton->setText("開始");
+        m_startButton->setEnabled(true);
     }
+    
+    // Hide time displays
+    if (m_whiteTimeLabel) m_whiteTimeLabel->hide();
+    if (m_blackTimeLabel) m_blackTimeLabel->hide();
 }
 
 void Qt_Chess::loadTimeControlSettings() {
