@@ -83,8 +83,6 @@ Qt_Chess::Qt_Chess(QWidget *parent)
     , m_incrementSlider(nullptr)
     , m_incrementLabel(nullptr)
     , m_incrementTitleLabel(nullptr)
-    , m_whiteTimeLabel(nullptr)
-    , m_blackTimeLabel(nullptr)
     , m_startButton(nullptr)
     , m_gameTimer(nullptr)
     , m_whiteTimeMs(0)
@@ -147,20 +145,6 @@ void Qt_Chess::setupUI() {
                                              BOARD_CONTAINER_MARGIN, BOARD_CONTAINER_MARGIN);
     boardContainerLayout->setSpacing(TIME_LABEL_SPACING);  // 元素之間的一致間距
     
-    // 時間顯示字體
-    QFont timeFont;
-    timeFont.setPointSize(14);
-    timeFont.setBold(true);
-    
-    // 黑方時間標籤（左側 - 對手的時間）- 初始隱藏
-    m_blackTimeLabel = new QLabel("--:--", m_boardContainer);
-    m_blackTimeLabel->setFont(timeFont);
-    m_blackTimeLabel->setAlignment(Qt::AlignCenter);
-    m_blackTimeLabel->setStyleSheet("QLabel { background-color: rgba(51, 51, 51, 200); color: #FFF; padding: 8px; border-radius: 5px; }");
-    m_blackTimeLabel->setMinimumSize(100, 40);
-    m_blackTimeLabel->hide();  // 初始隱藏
-    boardContainerLayout->addWidget(m_blackTimeLabel, 0, Qt::AlignTop);
-    
     // 國際象棋棋盤
     m_boardWidget = new QWidget(m_boardContainer);
     m_boardWidget->setMouseTracking(true);
@@ -200,17 +184,7 @@ void Qt_Chess::setupUI() {
     
     // 將棋盤添加到容器佈局
     // 伸展因子 1 允許棋盤擴展並填充可用的水平空間
-    // 而時間標籤（伸展因子 0）保持其最小大小
     boardContainerLayout->addWidget(m_boardWidget, 1, Qt::AlignCenter);
-    
-    // 白方時間標籤（右側 - 玩家的時間）- 初始隱藏
-    m_whiteTimeLabel = new QLabel("--:--", m_boardContainer);
-    m_whiteTimeLabel->setFont(timeFont);
-    m_whiteTimeLabel->setAlignment(Qt::AlignCenter);
-    m_whiteTimeLabel->setStyleSheet("QLabel { background-color: rgba(51, 51, 51, 200); color: #FFF; padding: 8px; border-radius: 5px; }");
-    m_whiteTimeLabel->setMinimumSize(100, 40);
-    m_whiteTimeLabel->hide();  // 初始隱藏
-    boardContainerLayout->addWidget(m_whiteTimeLabel, 0, Qt::AlignBottom);
     
     contentLayout->addWidget(m_boardContainer, 2);  // 給棋盤更多空間（2:1 比例）
     contentLayout->setAlignment(m_boardContainer, Qt::AlignCenter);  // 將棋盤容器置中
@@ -467,10 +441,6 @@ void Qt_Chess::onNewGameClicked() {
         m_timeControlPanel->show();
     }
     
-    // 隱藏時間顯示
-    if (m_whiteTimeLabel) m_whiteTimeLabel->hide();
-    if (m_blackTimeLabel) m_blackTimeLabel->hide();
-    
     // 隱藏放棄按鈕
     if (m_giveUpButton) m_giveUpButton->hide();
     
@@ -520,10 +490,6 @@ void Qt_Chess::onGiveUpClicked() {
             m_timeControlPanel->show();
         }
         
-        // 隱藏時間顯示
-        if (m_whiteTimeLabel) m_whiteTimeLabel->hide();
-        if (m_blackTimeLabel) m_blackTimeLabel->hide();
-        
         // 隱藏放棄按鈕
         if (m_giveUpButton) m_giveUpButton->hide();
         
@@ -562,12 +528,6 @@ void Qt_Chess::onStartButtonClicked() {
         // 隱藏時間控制面板
         if (m_timeControlPanel) {
             m_timeControlPanel->hide();
-        }
-        
-        // 在棋盤左右兩側顯示時間
-        if (m_whiteTimeLabel && m_blackTimeLabel) {
-            m_whiteTimeLabel->show();
-            m_blackTimeLabel->show();
         }
         
         // 顯示放棄按鈕
@@ -998,17 +958,6 @@ void Qt_Chess::updateSquareSizes() {
     }
     
     // 添加佈局間距的基本邊距（棋盤容器邊距是棋盤元件大小的一部分）
-    reservedWidth += BASE_MARGINS;
-    
-    // 如果可見則考慮時間標籤寬度，加上間距（現在水平定位）
-    if (m_whiteTimeLabel && m_whiteTimeLabel->isVisible()) {
-        reservedWidth += m_whiteTimeLabel->minimumWidth() + TIME_LABEL_SPACING;
-    }
-    if (m_blackTimeLabel && m_blackTimeLabel->isVisible()) {
-        reservedWidth += m_blackTimeLabel->minimumWidth() + TIME_LABEL_SPACING;
-    }
-    
-    // 為佈局邊距和間距添加一些填充
     reservedHeight += BASE_MARGINS;
     
     // 考慮選單欄高度（如果存在）以防止全螢幕時棋盤被裁切
@@ -1054,26 +1003,6 @@ void Qt_Chess::updateSquareSizes() {
     // 更新 the board widget size to fit the squares exactly
     // 添加 4 個額外像素（每側 2px）以防止格子高亮時邊框被裁切
     m_boardWidget->setFixedSize(squareSize * 8 + 4, squareSize * 8 + 4);
-    
-    // 更新 time label font sizes to scale with board size
-    if (m_whiteTimeLabel && m_blackTimeLabel) {
-        int timeFontSize = qMax(MIN_UI_FONT_SIZE, qMin(MAX_UI_FONT_SIZE, squareSize / UI_FONT_SCALE_DIVISOR));
-        QFont timeFont = m_whiteTimeLabel->font();
-        timeFont.setPointSize(timeFontSize);
-        timeFont.setBold(true);
-        m_whiteTimeLabel->setFont(timeFont);
-        m_blackTimeLabel->setFont(timeFont);
-        
-        // 更新 time label minimum heights proportionally
-        int timeLabelHeight = qMax(MIN_TIME_LABEL_HEIGHT, qMin(MAX_TIME_LABEL_HEIGHT, squareSize / 2));
-        m_whiteTimeLabel->setMinimumHeight(timeLabelHeight);
-        m_blackTimeLabel->setMinimumHeight(timeLabelHeight);
-        
-        // 設置 minimum width for horizontal positioning (ensure time text fits)
-        int timeLabelWidth = qMax(MIN_TIME_LABEL_WIDTH, squareSize);  // 至少 MIN_TIME_LABEL_WIDTH 或格子大小
-        m_whiteTimeLabel->setMinimumWidth(timeLabelWidth);
-        m_blackTimeLabel->setMinimumWidth(timeLabelWidth);
-    }
 }
 
 void Qt_Chess::updateTimeControlSizes() {
@@ -1658,73 +1587,8 @@ void Qt_Chess::onBlackTimeLimitChanged(int value) {
 }
 
 void Qt_Chess::updateTimeDisplays() {
-    if (!m_whiteTimeLabel || !m_blackTimeLabel) return;
-    
-    if (!m_timeControlEnabled) {
-        m_whiteTimeLabel->setText("--:--");
-        m_blackTimeLabel->setText("--:--");
-        return;
-    }
-    
-    // 轉換 milliseconds to minutes:seconds or show unlimited
-    // 當時間 < 10 秒時，顯示格式為 0:秒.小數（例如 "0:9.8"）
-    auto formatTime = [](int ms) -> QString {
-        if (ms < 0) {
-            return "不限時";
-        }
-        
-        // 如果少於 LOW_TIME_THRESHOLD_MS（10 秒），顯示格式為 0:秒.小數
-        if (ms < LOW_TIME_THRESHOLD_MS) {
-            double seconds = ms / 1000.0;
-            return QString("0:%1").arg(seconds, 0, 'f', 1);  // 格式：0:9.8
-        }
-        
-        // 否則顯示分鐘:秒格式
-        int totalSeconds = ms / 1000;
-        int minutes = totalSeconds / 60;
-        int seconds = totalSeconds % 60;
-        return QString("%1:%2").arg(minutes, 2, 10, QChar('0')).arg(seconds, 2, 10, QChar('0'));
-    };
-    
-    m_whiteTimeLabel->setText(formatTime(m_whiteTimeMs));
-    m_blackTimeLabel->setText(formatTime(m_blackTimeMs));
-    
-    // 根據當前回合和剩餘時間確定背景顏色
-    // 規則：不是自己的回合時顯示灰色，是自己的回合時根據剩餘時間決定（< 10 秒紅色，否則綠色）
-    PieceColor currentPlayer = m_chessBoard.getCurrentPlayer();
-    
-    QString whiteStyle, blackStyle;
-    
-    // 確定白方標籤樣式
-    // 當不是自己的回合時，顯示灰色，即使時間少於 10 秒
-    if (currentPlayer == PieceColor::White) {
-        // 白方回合：如果時間少於 10 秒顯示紅色，否則顯示綠色
-        if (m_whiteTimeMs > 0 && m_whiteTimeMs < LOW_TIME_THRESHOLD_MS) {
-            whiteStyle = "QLabel { background-color: rgba(220, 53, 69, 200); color: #FFF; padding: 8px; border-radius: 5px; }";
-        } else {
-            whiteStyle = "QLabel { background-color: rgba(76, 175, 80, 200); color: #FFF; padding: 8px; border-radius: 5px; }";
-        }
-    } else {
-        // 不是白方回合：顯示灰色（無論剩餘時間多少）
-        whiteStyle = "QLabel { background-color: rgba(51, 51, 51, 200); color: #FFF; padding: 8px; border-radius: 5px; }";
-    }
-    
-    // 確定黑方標籤樣式
-    // 當不是自己的回合時，顯示灰色，即使時間少於 10 秒
-    if (currentPlayer == PieceColor::Black) {
-        // 黑方回合：如果時間少於 10 秒顯示紅色，否則顯示綠色
-        if (m_blackTimeMs > 0 && m_blackTimeMs < LOW_TIME_THRESHOLD_MS) {
-            blackStyle = "QLabel { background-color: rgba(220, 53, 69, 200); color: #FFF; padding: 8px; border-radius: 5px; }";
-        } else {
-            blackStyle = "QLabel { background-color: rgba(76, 175, 80, 200); color: #FFF; padding: 8px; border-radius: 5px; }";
-        }
-    } else {
-        // 不是黑方回合：顯示灰色（無論剩餘時間多少）
-        blackStyle = "QLabel { background-color: rgba(51, 51, 51, 200); color: #FFF; padding: 8px; border-radius: 5px; }";
-    }
-    
-    m_whiteTimeLabel->setStyleSheet(whiteStyle);
-    m_blackTimeLabel->setStyleSheet(blackStyle);
+    // Time display labels have been removed
+    return;
 }
 
 void Qt_Chess::onIncrementChanged(int value) {
@@ -1819,10 +1683,6 @@ void Qt_Chess::handleGameEnd() {
         m_startButton->setText("開始");
         m_startButton->setEnabled(true);
     }
-    
-    // 隱藏時間顯示
-    if (m_whiteTimeLabel) m_whiteTimeLabel->hide();
-    if (m_blackTimeLabel) m_blackTimeLabel->hide();
 }
 
 void Qt_Chess::loadTimeControlSettings() {
@@ -1927,10 +1787,6 @@ void Qt_Chess::showTimeControlAfterTimeout() {
         m_startButton->setText("開始");
         m_startButton->setEnabled(true);
     }
-    
-    // 隱藏時間顯示 since game is over
-    if (m_whiteTimeLabel) m_whiteTimeLabel->hide();
-    if (m_blackTimeLabel) m_blackTimeLabel->hide();
 }
 
 void Qt_Chess::resetBoardState() {

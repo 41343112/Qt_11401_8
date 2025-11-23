@@ -101,8 +101,7 @@ private:
     QSlider* m_incrementSlider;
     QLabel* m_incrementLabel;
     QLabel* m_incrementTitleLabel;  // 增量的標題標籤
-    QLabel* m_whiteTimeLabel;
-    QLabel* m_blackTimeLabel;
+
     QPushButton* m_startButton;
     QTimer* m_gameTimer;
     int m_whiteTimeMs;  // 白方剩餘時間（毫秒）
