@@ -1876,37 +1876,17 @@ void Qt_Chess::loadTimeControlSettings() {
 void Qt_Chess::saveTimeControlSettings() {
     QSettings settings("Qt_Chess", "TimeControl");
     
-    // 儲存 white time
+    // 儲存 white time (轉換毫秒為秒)
     if (m_whiteTimeLimitSlider) {
-        int sliderValue = m_whiteTimeLimitSlider->value();
-        int seconds = 0;
-        
-        if (sliderValue == 0) {
-            seconds = 0;  // 無限制
-        } else if (sliderValue == 1) {
-            seconds = 30;  // 30 秒
-        } else {
-            // sliderValue 2-31 = 1-30 分鐘
-            seconds = (sliderValue - 1) * 60;
-        }
-        
+        int timeMs = calculateTimeFromSliderValue(m_whiteTimeLimitSlider->value());
+        int seconds = timeMs / 1000;
         settings.setValue("whiteTimeLimitSeconds", seconds);
     }
     
-    // 儲存 black time
+    // 儲存 black time (轉換毫秒為秒)
     if (m_blackTimeLimitSlider) {
-        int sliderValue = m_blackTimeLimitSlider->value();
-        int seconds = 0;
-        
-        if (sliderValue == 0) {
-            seconds = 0;  // 無限制
-        } else if (sliderValue == 1) {
-            seconds = 30;  // 30 秒
-        } else {
-            // sliderValue 2-31 = 1-30 分鐘
-            seconds = (sliderValue - 1) * 60;
-        }
-        
+        int timeMs = calculateTimeFromSliderValue(m_blackTimeLimitSlider->value());
+        int seconds = timeMs / 1000;
         settings.setValue("blackTimeLimitSeconds", seconds);
     }
     
@@ -1973,14 +1953,18 @@ QString Qt_Chess::getTimeTextFromSliderValue(int value) const {
     // 根據滑桿值取得顯示文字
     // 滑桿位置：0=無限制，1=30秒，2-31=1-30分鐘
     
+    // 驗證輸入範圍（與 calculateTimeFromSliderValue 一致）
+    if (value < 0 || value > MAX_SLIDER_POSITION) {
+        return "不限時";  // 無效輸入，返回不限時
+    }
+    
     if (value == 0) {
         return "不限時";
     } else if (value == 1) {
         return "30秒";
-    } else if (value >= 2 && value <= MAX_SLIDER_POSITION) {
+    } else {
+        // 值 2-31 代表 1-30 分鐘
         int minutes = value - 1;
         return QString("%1分鐘").arg(minutes);
-    } else {
-        return "不限時";  // 無效輸入，返回不限時
     }
 }
