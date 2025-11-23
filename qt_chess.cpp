@@ -32,14 +32,14 @@ namespace {
     // 視窗大小的佈局常數
     const int LEFT_PANEL_MAX_WIDTH = 200;  // 新遊戲按鈕面板的最大寬度
     const int RIGHT_PANEL_MAX_WIDTH = 600; // 時間控制面板的最大寬度
-    const int PANEL_SPACING = 0;          // 面板之間的間距
-    const int BASE_MARGINS = 0;           // 基本佈局邊距（不包括棋盤容器的 2*BOARD_CONTAINER_MARGIN）
+    const int PANEL_SPACING = 10;          // 面板之間的間距
+    const int BASE_MARGINS = 10;           // 基本佈局邊距（不包括棋盤容器的 2*BOARD_CONTAINER_MARGIN）
     const int TIME_LABEL_SPACING = 10;     // 時間標籤周圍的間距
-    const int BOARD_CONTAINER_MARGIN = 0;  // 棋盤容器每側的邊距（總水平：2*5=10px）
+    const int BOARD_CONTAINER_MARGIN = 5 ;  // 棋盤容器每側的邊距（總水平：2*5=10px）
     
     // UI 元素的縮放常數
     const int MIN_SQUARE_SIZE = 40;        // 棋盤格子的最小大小
-    const int MAX_SQUARE_SIZE = 180;       // 棋盤格子的最大大小
+    const int MAX_SQUARE_SIZE = 170;       // 棋盤格子的最大大小
     const int MIN_UI_FONT_SIZE = 10;       // UI 元素的最小字體大小
     const int MAX_UI_FONT_SIZE = 20;       // UI 元素的最大字體大小
     const int UI_FONT_SCALE_DIVISOR = 5;   // 根據格子大小縮放 UI 字體的除數
@@ -52,11 +52,11 @@ namespace {
     const int BUTTON_FONT_DIVISOR = 5;           // 縮放按鈕字體的除數
     const int SLIDER_HEIGHT_DIVISOR = 3;         // 縮放滑桿高度的除數
     const int MIN_TIME_CONTROL_FONT = 8;         // 時間控制標籤的最小字體大小
-    const int MAX_TIME_CONTROL_FONT = 14;        // 時間控制標籤的最大字體大小
+    const int MAX_TIME_CONTROL_FONT = 20;        // 時間控制標籤的最大字體大小
     const int MIN_BUTTON_FONT = 10;              // 按鈕的最小字體大小
-    const int MAX_BUTTON_FONT = 14;              // 按鈕的最大字體大小
+    const int MAX_BUTTON_FONT = 20;              // 按鈕的最大字體大小
     const int MIN_SLIDER_HEIGHT = 20;            // 滑桿的最小高度
-    const int MAX_SLIDER_HEIGHT = 40;            // 滑桿的最大高度
+    const int MAX_SLIDER_HEIGHT = 80;            // 滑桿的最大高度
     const int SLIDER_HANDLE_EXTRA = 10;          // 滑桿手柄的額外空間
     const int LOW_TIME_THRESHOLD_MS = 10000;     // 低時間警告的閾值（10 秒）
 }
@@ -104,7 +104,7 @@ Qt_Chess::Qt_Chess(QWidget *parent)
     //       RIGHT_PANEL_MAX_WIDTH (300) + 2*PANEL_SPACING (40) + BASE_MARGINS (30) + 
     //       棋盤容器邊距 (2*BOARD_CONTAINER_MARGIN=10) = 824
     // 高度：棋盤 (244) + 時間標籤 (~80) + 間距 (~60) = ~384，使用 420 以舒適調整大小
-    setMinimumSize(900, 660);
+    setMinimumSize(824, 420);
     
     setMouseTracking(true);
     
