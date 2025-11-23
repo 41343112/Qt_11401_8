@@ -128,11 +128,12 @@ private:
     QPushButton* m_replayPrevButton;
     QPushButton* m_replayNextButton;
     QPushButton* m_replayLastButton;
-    // m_exitReplayButton removed - replay mode stays active until new game
+    QPushButton* m_exitReplayButton;  // 退出回放按鈕（遊戲進行中回放時顯示）
     bool m_isReplayMode;
     int m_replayMoveIndex;  // 當前回放的棋步索引（-1 表示初始狀態）
     std::vector<std::vector<ChessPiece>> m_savedBoardState;  // 儲存進入回放前的棋盤狀態
     PieceColor m_savedCurrentPlayer;  // 儲存進入回放前的當前玩家
+    bool m_savedTimerWasActive;  // 儲存進入回放前計時器是否在運行
     
     void setupUI();
     void setupMenuBar();
@@ -202,7 +203,7 @@ private:
     void onReplayPrevClicked();
     void onReplayNextClicked();
     void onReplayLastClicked();
-    // onExitReplayClicked() removed - replay mode stays active until new game
+    void onExitReplayClicked();
     void updateReplayButtons();
     void saveBoardState();
     void restoreBoardState();

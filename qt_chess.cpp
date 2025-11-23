@@ -111,10 +111,11 @@ Qt_Chess::Qt_Chess(QWidget *parent)
     , m_replayPrevButton(nullptr)
     , m_replayNextButton(nullptr)
     , m_replayLastButton(nullptr)
-    // m_exitReplayButton removed - replay mode stays active until new game
+    , m_exitReplayButton(nullptr)
     , m_isReplayMode(false)
     , m_replayMoveIndex(-1)
     , m_savedCurrentPlayer(PieceColor::White)
+    , m_savedTimerWasActive(false)
 {
     ui->setupUi(this);
     setWindowTitle("國際象棋 - 雙人對弈");
@@ -173,18 +174,16 @@ void Qt_Chess::setupUI() {
     m_moveListWidget = new QListWidget(m_moveListPanel);
     m_moveListWidget->setAlternatingRowColors(true);
     connect(m_moveListWidget, &QListWidget::itemDoubleClicked, this, [this](QListWidgetItem* item) {
-        if (!m_gameStarted) {  // 只有在遊戲結束後才允許回放
-            int row = m_moveListWidget->row(item);
-            const std::vector<MoveRecord>& moveHistory = m_chessBoard.getMoveHistory();
-            // 每行包含兩步（白方和黑方），點擊某行會跳到該行的最後一步
-            int moveIndex = row * 2 + 1;  
-            // 確保索引不超出範圍
-            if (moveIndex >= static_cast<int>(moveHistory.size())) {
-                moveIndex = moveHistory.size() - 1;
-            }
-            enterReplayMode();
-            replayToMove(moveIndex);
+        int row = m_moveListWidget->row(item);
+        const std::vector<MoveRecord>& moveHistory = m_chessBoard.getMoveHistory();
+        // 每行包含兩步（白方和黑方），點擊某行會跳到該行的最後一步
+        int moveIndex = row * 2 + 1;  
+        // 確保索引不超出範圍
+        if (moveIndex >= static_cast<int>(moveHistory.size())) {
+            moveIndex = moveHistory.size() - 1;
         }
+        enterReplayMode();
+        replayToMove(moveIndex);
     });
     moveListLayout->addWidget(m_moveListWidget);
     
@@ -240,7 +239,11 @@ void Qt_Chess::setupUI() {
     
     moveListLayout->addWidget(replayButtonContainer);
     
-    // Note: Exit Replay button removed - replay mode stays active until new game starts
+    // 退出回放按鈕（只在遊戲進行中回放時顯示）
+    m_exitReplayButton = new QPushButton("退出回放", m_moveListPanel);
+    m_exitReplayButton->hide();  // 初始隱藏
+    connect(m_exitReplayButton, &QPushButton::clicked, this, &Qt_Chess::onExitReplayClicked);
+    moveListLayout->addWidget(m_exitReplayButton);
     
     contentLayout->addWidget(m_moveListPanel);
     
@@ -2283,8 +2286,17 @@ void Qt_Chess::enterReplayMode() {
     // 儲存當前棋盤狀態
     saveBoardState();
     
-    // 回放模式將始終保持開啟，因此不再顯示退出回放按鈕
-    // Export/Copy PGN 按鈕在回放模式中也保持可見
+    // 如果遊戲正在進行且計時器正在運行，暫停它
+    // 檢查 m_timerStarted 和 m_gameTimer->isActive() 以確保計時器真的在運行
+    m_savedTimerWasActive = (m_timerStarted && m_gameTimer && m_gameTimer->isActive());
+    if (m_savedTimerWasActive) {
+        stopTimer();
+    }
+    
+    // 如果遊戲正在進行，顯示退出回放按鈕
+    if (m_gameStarted && m_exitReplayButton) {
+        m_exitReplayButton->show();
+    }
 }
 
 void Qt_Chess::exitReplayMode() {
@@ -2296,8 +2308,16 @@ void Qt_Chess::exitReplayMode() {
     // 恢復棋盤狀態
     restoreBoardState();
     
-    // 不再需要隱藏退出回放按鈕或顯示遊戲控制按鈕
-    // Export/Copy PGN 按鈕在回放模式中也保持可見
+    // 如果計時器之前正在運行，恢復它
+    if (m_savedTimerWasActive) {
+        startTimer();
+        m_savedTimerWasActive = false;
+    }
+    
+    // 隱藏退出回放按鈕
+    if (m_exitReplayButton) {
+        m_exitReplayButton->hide();
+    }
     
     // 取消棋譜列表的選擇
     m_moveListWidget->clearSelection();
@@ -2351,9 +2371,6 @@ void Qt_Chess::replayToMove(int moveIndex) {
 }
 
 void Qt_Chess::onReplayFirstClicked() {
-    // 如果遊戲正在進行，不允許回放
-    if (m_gameStarted) return;
-    
     // 如果尚未進入回放模式，先進入
     if (!m_isReplayMode) {
         enterReplayMode();
@@ -2363,9 +2380,6 @@ void Qt_Chess::onReplayFirstClicked() {
 }
 
 void Qt_Chess::onReplayPrevClicked() {
-    // 如果遊戲正在進行，不允許回放
-    if (m_gameStarted) return;
-    
     // 如果尚未進入回放模式，先進入
     if (!m_isReplayMode) {
         enterReplayMode();
@@ -2375,9 +2389,6 @@ void Qt_Chess::onReplayPrevClicked() {
 }
 
 void Qt_Chess::onReplayNextClicked() {
-    // 如果遊戲正在進行，不允許回放
-    if (m_gameStarted) return;
-    
     // 如果尚未進入回放模式，先進入
     if (!m_isReplayMode) {
         enterReplayMode();
@@ -2387,9 +2398,6 @@ void Qt_Chess::onReplayNextClicked() {
 }
 
 void Qt_Chess::onReplayLastClicked() {
-    // 如果遊戲正在進行，不允許回放
-    if (m_gameStarted) return;
-    
     // 如果尚未進入回放模式，先進入
     if (!m_isReplayMode) {
         enterReplayMode();
@@ -2401,19 +2409,12 @@ void Qt_Chess::onReplayLastClicked() {
     }
 }
 
-// onExitReplayClicked() removed - replay mode stays active until new game
+void Qt_Chess::onExitReplayClicked() {
+    exitReplayMode();
+}
 
 void Qt_Chess::updateReplayButtons() {
     const std::vector<MoveRecord>& moveHistory = m_chessBoard.getMoveHistory();
-    
-    // 如果遊戲正在進行，停用所有回放按鈕
-    if (m_gameStarted) {
-        if (m_replayFirstButton) m_replayFirstButton->setEnabled(false);
-        if (m_replayPrevButton) m_replayPrevButton->setEnabled(false);
-        if (m_replayNextButton) m_replayNextButton->setEnabled(false);
-        if (m_replayLastButton) m_replayLastButton->setEnabled(false);
-        return;
-    }
     
     // 如果沒有棋步歷史，停用所有按鈕
     if (moveHistory.empty()) {
@@ -2439,7 +2440,7 @@ void Qt_Chess::updateReplayButtons() {
             m_replayLastButton->setEnabled(m_replayMoveIndex < static_cast<int>(moveHistory.size()) - 1);
         }
     } else {
-        // 不在回放模式但遊戲已結束，啟用所有按鈕以允許進入回放
+        // 不在回放模式且有棋步歷史，啟用所有按鈕以允許進入回放
         if (m_replayFirstButton) m_replayFirstButton->setEnabled(true);
         if (m_replayPrevButton) m_replayPrevButton->setEnabled(true);
         if (m_replayNextButton) m_replayNextButton->setEnabled(true);
