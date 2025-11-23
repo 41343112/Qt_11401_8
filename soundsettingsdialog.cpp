@@ -16,7 +16,7 @@ SoundSettingsDialog::SoundSettingsDialog(QWidget *parent)
     
     setupUI();
     
-    // Load saved settings or use defaults
+    // 載入已儲存的設定或使用預設值
     SoundSettings defaults = getDefaultSettings();
     QSettings settings("QtChess", "SoundSettings");
     m_settings.moveSound = settings.value("moveSound", defaults.moveSound).toString();
@@ -54,52 +54,52 @@ void SoundSettingsDialog::createSoundRow(QGridLayout* gridLayout, int& row, cons
                                          void (SoundSettingsDialog::*previewSlot)(),
                                          void (SoundSettingsDialog::*resetSlot)())
 {
-    // Label
+    // 標籤
     QLabel* nameLabel = new QLabel(label, this);
     gridLayout->addWidget(nameLabel, row, 0);
     
-    // Enable checkbox
+    // 啟用核取方塊
     soundCheckBox = new QCheckBox("啟用", this);
     soundCheckBox->setChecked(true);
     gridLayout->addWidget(soundCheckBox, row, 1);
     
-    // File path edit
+    // 檔案路徑編輯
     soundEdit = new QLineEdit(this);
     soundEdit->setReadOnly(true);
     gridLayout->addWidget(soundEdit, row, 2);
     
-    // Browse button
+    // 瀏覽按鈕
     browseButton = new QPushButton("瀏覽...", this);
     connect(browseButton, &QPushButton::clicked, this, browseSlot);
     gridLayout->addWidget(browseButton, row, 3);
     
-    // Volume label
+    // 音量標籤
     QLabel* volLabel = new QLabel("音量:", this);
     gridLayout->addWidget(volLabel, row, 4);
     
-    // Volume slider
+    // 音量滑桿
     volumeSlider = new QSlider(Qt::Horizontal, this);
     volumeSlider->setRange(0, 100);
     volumeSlider->setValue(50);
     volumeSlider->setFixedWidth(100);
     gridLayout->addWidget(volumeSlider, row, 5);
     
-    // Volume percentage label
+    // 音量百分比標籤
     volumeLabel = new QLabel("50%", this);
     volumeLabel->setFixedWidth(40);
     gridLayout->addWidget(volumeLabel, row, 6);
     
-    // Connect slider to update label
+    // 連接滑桿以更新標籤
     connect(volumeSlider, &QSlider::valueChanged, [volumeLabel](int value) {
         volumeLabel->setText(QString("%1%").arg(value));
     });
     
-    // Preview button
+    // 預覽按鈕
     previewButton = new QPushButton("預覽", this);
     connect(previewButton, &QPushButton::clicked, this, previewSlot);
     gridLayout->addWidget(previewButton, row, 7);
     
-    // Reset button
+    // 重置按鈕
     resetButton = new QPushButton("重設", this);
     connect(resetButton, &QPushButton::clicked, this, resetSlot);
     gridLayout->addWidget(resetButton, row, 8);
@@ -111,7 +111,7 @@ void SoundSettingsDialog::setupUI()
 {
     QVBoxLayout* mainLayout = new QVBoxLayout(this);
     
-    // Add informational label about supported formats
+    // 添加關於支援格式的資訊標籤
     QLabel* infoLabel = new QLabel(
         "支援的音檔格式：WAV (推薦)、MP3、OGG\n"
         "注意：WAV 格式具有最佳的相容性，建議使用 WAV 格式的音效檔案。", 
@@ -120,19 +120,19 @@ void SoundSettingsDialog::setupUI()
     infoLabel->setStyleSheet("QLabel { color: #555; font-size: 10pt; padding: 5px; background-color: #f0f0f0; border-radius: 3px; }");
     mainLayout->addWidget(infoLabel);
     
-    // Master enable/disable checkbox
+    // 主啟用/禁用核取方塊
     m_allSoundsCheckBox = new QCheckBox("啟用所有音效", this);
     m_allSoundsCheckBox->setChecked(true);
     connect(m_allSoundsCheckBox, &QCheckBox::toggled, this, &SoundSettingsDialog::onAllSoundsToggled);
     mainLayout->addWidget(m_allSoundsCheckBox);
     
-    // Create a group box for all sound settings
+    // 為所有音效設定創建群組框
     QGroupBox* soundsGroupBox = new QGroupBox("音效設定", this);
     QGridLayout* gridLayout = new QGridLayout(soundsGroupBox);
     
     int row = 0;
     
-    // Create rows for each sound type
+    // 為每種音效類型創建行
     createSoundRow(gridLayout, row, "移動音效:", m_moveSoundEdit, m_moveSoundCheckBox, 
                    m_moveVolumeSlider, m_moveVolumeLabel, m_moveBrowseButton, m_movePreviewButton,
                    m_moveResetButton,
@@ -165,7 +165,7 @@ void SoundSettingsDialog::setupUI()
     
     mainLayout->addWidget(soundsGroupBox);
     
-    // Buttons at bottom
+    // 底部的按鈕
     QHBoxLayout* buttonLayout = new QHBoxLayout();
     buttonLayout->addStretch();
     
@@ -298,7 +298,7 @@ void SoundSettingsDialog::onResetToDefaults()
 
 void SoundSettingsDialog::onAccept()
 {
-    // Collect settings from UI
+    // 從 UI 收集設定
     m_settings.allSoundsEnabled = m_allSoundsCheckBox->isChecked();
     
     m_settings.moveSound = m_moveSoundEdit->text();
@@ -321,7 +321,7 @@ void SoundSettingsDialog::onAccept()
     m_settings.checkmateSoundEnabled = m_checkmateSoundCheckBox->isChecked();
     m_settings.checkmateVolume = m_checkmateVolumeSlider->value() / 100.0;
     
-    // Save settings
+    // 儲存設定
     QSettings settings("QtChess", "SoundSettings");
     settings.setValue("moveSound", m_settings.moveSound);
     settings.setValue("captureSound", m_settings.captureSound);
@@ -365,7 +365,7 @@ void SoundSettingsDialog::previewSound(const QString& soundFile, double volume)
     
     m_previewSound.stop();
     
-    // Handle both qrc: URLs and file paths
+    // 處理 qrc: URL 和檔案路徑
     if (soundFile.startsWith("qrc:")) {
         m_previewSound.setSource(QUrl(soundFile));
     } else {

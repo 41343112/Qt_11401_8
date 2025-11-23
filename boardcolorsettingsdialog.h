@@ -13,7 +13,7 @@ class BoardColorSettingsDialog : public QDialog
 {
     Q_OBJECT
 
-    // UI Constants
+    // UI 常數
     static constexpr int PREVIEW_BUTTON_WIDTH = 80;
     static constexpr int PREVIEW_BUTTON_HEIGHT = 95;
     static constexpr int PREVIEW_SQUARE_SIZE = 30;
@@ -23,27 +23,27 @@ public:
     ~BoardColorSettingsDialog();
 
     enum class ColorScheme {
-        Classic,      // Classic brown/beige (default)
-        BlueGray,     // Blue and gray
-        GreenWhite,   // Green and white
-        PurplePink,   // Purple and pink
-        WoodDark,     // Wood and dark
-        OceanBlue,    // Ocean blue
-        LightTheme,   // Light pastel colors
-        Custom1,      // Custom user-selected colors slot 1
-        Custom2,      // Custom user-selected colors slot 2
-        Custom3,      // Custom user-selected colors slot 3
-        Custom4,      // Custom user-selected colors slot 4
-        Custom5,      // Custom user-selected colors slot 5
-        Custom6,      // Custom user-selected colors slot 6
-        Custom7       // Custom user-selected colors slot 7
+        Classic,      // 經典棕色/米色（預設）
+        BlueGray,     // 藍色和灰色
+        GreenWhite,   // 綠色和白色
+        PurplePink,   // 紫色和粉色
+        WoodDark,     // 木色和深色
+        OceanBlue,    // 海藍色
+        LightTheme,   // 淺色柔和色
+        Custom1,      // 自訂使用者選擇的顏色插槽 1
+        Custom2,      // 自訂使用者選擇的顏色插槽 2
+        Custom3,      // 自訂使用者選擇的顏色插槽 3
+        Custom4,      // 自訂使用者選擇的顏色插槽 4
+        Custom5,      // 自訂使用者選擇的顏色插槽 5
+        Custom6,      // 自訂使用者選擇的顏色插槽 6
+        Custom7       // 自訂使用者選擇的顏色插槽 7
     };
 
     struct BoardColorSettings {
         QColor lightSquareColor;
         QColor darkSquareColor;
         ColorScheme scheme;
-        QString customName;  // Name for custom color schemes
+        QString customName;  // 自訂配色方案的名稱
     };
 
     BoardColorSettings getSettings() const;
@@ -65,10 +65,10 @@ private:
     QPushButton* m_lightColorButton;
     QPushButton* m_darkColorButton;
     QWidget* m_previewWidget;
-    QLabel* m_previewSquares[2][2];  // 2x2 preview grid
-    QWidget* m_customColorWidget;  // Widget containing custom color controls
+    QLabel* m_previewSquares[2][2];  // 2x2 預覽格線
+    QWidget* m_customColorWidget;  // 包含自訂顏色控制的元件
     
-    // Custom color slots storage
+    // 自訂顏色插槽儲存
     BoardColorSettings m_customSlots[7];
     
     void setupUI();

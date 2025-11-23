@@ -24,11 +24,11 @@ public:
     ~PieceIconSettingsDialog();
 
     enum class IconSetType {
-        Unicode,      // Default Unicode symbols
-        Preset1,      // Preset icon set 1
-        Preset2,      // Preset icon set 2
-        Preset3,      // Preset icon set 3
-        Custom        // Custom user-selected icons
+        Unicode,      // 預設 Unicode 符號
+        Preset1,      // 預設圖示集 1
+        Preset2,      // 預設圖示集 2
+        Preset3,      // 預設圖示集 3
+        Custom        // 自訂使用者選擇的圖示
     };
 
     struct PieceIconSettings {
@@ -46,7 +46,7 @@ public:
         QString blackPawnIcon;
         bool useCustomIcons;
         IconSetType iconSetType;
-        int pieceScale;  // Scale factor in percentage (60-100), default 80
+        int pieceScale;  // 百分比縮放因子（60-100），預設 80
     };
 
     PieceIconSettings getSettings() const;
@@ -108,7 +108,7 @@ private:
     QSlider* m_pieceScaleSlider;
     QLabel* m_pieceScaleLabel;
     
-    // White pieces
+    // 白色棋子
     QLineEdit* m_whiteKingEdit;
     QPushButton* m_whiteKingBrowseButton;
     QPushButton* m_whiteKingPreviewButton;
@@ -139,7 +139,7 @@ private:
     QPushButton* m_whitePawnPreviewButton;
     QPushButton* m_whitePawnResetButton;
     
-    // Black pieces
+    // 黑色棋子
     QLineEdit* m_blackKingEdit;
     QPushButton* m_blackKingBrowseButton;
     QPushButton* m_blackKingPreviewButton;
