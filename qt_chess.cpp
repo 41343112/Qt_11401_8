@@ -111,7 +111,7 @@ Qt_Chess::Qt_Chess(QWidget *parent)
     , m_replayPrevButton(nullptr)
     , m_replayNextButton(nullptr)
     , m_replayLastButton(nullptr)
-    , m_exitReplayButton(nullptr)
+    // m_exitReplayButton removed - replay mode stays active until new game
     , m_isReplayMode(false)
     , m_replayMoveIndex(-1)
     , m_savedCurrentPlayer(PieceColor::White)
@@ -240,11 +240,7 @@ void Qt_Chess::setupUI() {
     
     moveListLayout->addWidget(replayButtonContainer);
     
-    // 移除退出回放按鈕 - 回放模式將始終保持開啟
-    // m_exitReplayButton = new QPushButton("退出回放", m_moveListPanel);
-    // m_exitReplayButton->hide();
-    // connect(m_exitReplayButton, &QPushButton::clicked, this, &Qt_Chess::onExitReplayClicked);
-    // moveListLayout->addWidget(m_exitReplayButton);
+    // Note: Exit Replay button removed - replay mode stays active until new game starts
     
     contentLayout->addWidget(m_moveListPanel);
     
@@ -2400,9 +2396,7 @@ void Qt_Chess::onReplayLastClicked() {
     }
 }
 
-void Qt_Chess::onExitReplayClicked() {
-    exitReplayMode();
-}
+// onExitReplayClicked() removed - replay mode stays active until new game
 
 void Qt_Chess::updateReplayButtons() {
     const std::vector<MoveRecord>& moveHistory = m_chessBoard.getMoveHistory();
