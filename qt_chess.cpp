@@ -554,6 +554,12 @@ void Qt_Chess::onGiveUpClicked() {
 
 void Qt_Chess::onStartButtonClicked() {
     if (m_timeControlEnabled && !m_timerStarted) {
+        // 重置棋盤到初始狀態
+        m_chessBoard.initializeBoard();
+        m_pieceSelected = false;
+        updateBoard();
+        clearHighlights();
+        
         m_timerStarted = true;
         m_gameStarted = true;  // 標記遊戲已開始
         startTimer();
@@ -581,6 +587,12 @@ void Qt_Chess::onStartButtonClicked() {
             m_startButton->setText("進行中");
         }
     } else if (!m_timeControlEnabled && !m_gameStarted) {
+        // 重置棋盤到初始狀態（即使沒有時間控制）
+        m_chessBoard.initializeBoard();
+        m_pieceSelected = false;
+        updateBoard();
+        clearHighlights();
+        
         // 即使沒有時間控制也允許遊戲開始
         m_gameStarted = true;
         
@@ -1699,16 +1711,18 @@ void Qt_Chess::updateTimeDisplays() {
     }
     
     // 轉換 milliseconds to minutes:seconds or show unlimited
-    // 當時間 < 10 秒時，顯示小數點（例如 "9.8"）
+    // 當時間 < 10 秒時，顯示格式為 0:秒.小數（例如 "0:9.8"）
     auto formatTime = [](int ms) -> QString {
         if (ms < 0) {
             return "不限時";
         }
         
-        // 如果少於 LOW_TIME_THRESHOLD_MS（10 秒），顯示小數格式
+        // 如果少於 LOW_TIME_THRESHOLD_MS（10 秒），顯示格式為 0:秒.小數
         if (ms < LOW_TIME_THRESHOLD_MS) {
             double seconds = ms / 1000.0;
-            return QString::number(seconds, 'f', 1);  // 顯示 1 decimal place
+            int wholeSeconds = static_cast<int>(seconds);
+            double decimalPart = seconds - wholeSeconds;
+            return QString("0:%1").arg(seconds, 0, 'f', 1);  // 格式：0:9.8
         }
         
         // 否則顯示分鐘:秒格式
@@ -1722,12 +1736,13 @@ void Qt_Chess::updateTimeDisplays() {
     m_blackTimeLabel->setText(formatTime(m_blackTimeMs));
     
     // 根據剩餘時間確定背景顏色
-    // 當時間 < 10 秒時，使用紅色背景
+    // 當時間 < 10 秒時，使用紅色背景（等待中的狀態）
     PieceColor currentPlayer = m_chessBoard.getCurrentPlayer();
     
     QString whiteStyle, blackStyle;
     
     // 確定白方標籤樣式
+    // 優先顯示紅色背景當時間 < 10 秒（等待中的狀態）
     if (m_whiteTimeMs > 0 && m_whiteTimeMs < LOW_TIME_THRESHOLD_MS) {  // 少於 10 秒
         whiteStyle = "QLabel { background-color: rgba(220, 53, 69, 200); color: #FFF; padding: 8px; border-radius: 5px; }";
     } else if (currentPlayer == PieceColor::White) {
@@ -1737,6 +1752,7 @@ void Qt_Chess::updateTimeDisplays() {
     }
     
     // 確定黑方標籤樣式
+    // 優先顯示紅色背景當時間 < 10 秒（等待中的狀態）
     if (m_blackTimeMs > 0 && m_blackTimeMs < LOW_TIME_THRESHOLD_MS) {  // 少於 10 秒
         blackStyle = "QLabel { background-color: rgba(220, 53, 69, 200); color: #FFF; padding: 8px; border-radius: 5px; }";
     } else if (currentPlayer == PieceColor::Black) {
