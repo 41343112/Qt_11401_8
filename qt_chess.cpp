@@ -46,6 +46,19 @@ namespace {
     const int MIN_TIME_LABEL_HEIGHT = 30;  // Minimum height for time labels
     const int MAX_TIME_LABEL_HEIGHT = 50;  // Maximum height for time labels
     const int MIN_TIME_LABEL_WIDTH = 0;  // Minimum width for time labels (horizontal positioning)
+    
+    // Time control UI scaling constants
+    const int TIME_CONTROL_FONT_DIVISOR = 6;     // Divisor for scaling time control label fonts
+    const int BUTTON_FONT_DIVISOR = 5;           // Divisor for scaling button fonts
+    const int SLIDER_HEIGHT_DIVISOR = 3;         // Divisor for scaling slider heights
+    const int MIN_TIME_CONTROL_FONT = 8;         // Minimum font size for time control labels
+    const int MAX_TIME_CONTROL_FONT = 14;        // Maximum font size for time control labels
+    const int MIN_BUTTON_FONT = 10;              // Minimum font size for buttons
+    const int MAX_BUTTON_FONT = 14;              // Maximum font size for buttons
+    const int MIN_SLIDER_HEIGHT = 20;            // Minimum slider height
+    const int MAX_SLIDER_HEIGHT = 40;            // Maximum slider height
+    const int SLIDER_HANDLE_EXTRA = 10;          // Extra space for slider handle
+    const int LOW_TIME_THRESHOLD_MS = 10000;     // Threshold for low time warning (10 seconds)
 }
 
 Qt_Chess::Qt_Chess(QWidget *parent)
@@ -62,10 +75,13 @@ Qt_Chess::Qt_Chess(QWidget *parent)
     , m_isBoardFlipped(false)
     , m_whiteTimeLimitSlider(nullptr)
     , m_whiteTimeLimitLabel(nullptr)
+    , m_whiteTimeLimitTitleLabel(nullptr)
     , m_blackTimeLimitSlider(nullptr)
     , m_blackTimeLimitLabel(nullptr)
+    , m_blackTimeLimitTitleLabel(nullptr)
     , m_incrementSlider(nullptr)
     , m_incrementLabel(nullptr)
+    , m_incrementTitleLabel(nullptr)
     , m_whiteTimeLabel(nullptr)
     , m_blackTimeLabel(nullptr)
     , m_startButton(nullptr)
@@ -944,6 +960,7 @@ void Qt_Chess::mouseReleaseEvent(QMouseEvent *event) {
 void Qt_Chess::resizeEvent(QResizeEvent *event) {
     QMainWindow::resizeEvent(event);
     updateSquareSizes();
+    updateTimeControlSizes();  // Update time control UI sizes when window is resized
     
     // Reapply highlights after resize
     if (m_pieceSelected) {
@@ -1041,6 +1058,57 @@ void Qt_Chess::updateSquareSizes() {
         m_whiteTimeLabel->setMinimumWidth(timeLabelWidth);
         m_blackTimeLabel->setMinimumWidth(timeLabelWidth);
     }
+}
+
+void Qt_Chess::updateTimeControlSizes() {
+    if (!m_boardWidget || m_squares.empty()) return;
+    
+    // Get a reference square size to base scaling on
+    int squareSize = m_squares[0][0]->width();
+    if (squareSize <= 0) {
+        squareSize = m_squares[0][0]->minimumWidth();
+        if (squareSize <= 0) {
+            squareSize = MIN_SQUARE_SIZE;
+        }
+    }
+    
+    // Calculate font sizes based on square size
+    int controlLabelFontSize = qMax(MIN_TIME_CONTROL_FONT, qMin(MAX_TIME_CONTROL_FONT, squareSize / TIME_CONTROL_FONT_DIVISOR));
+    
+    // Update time control panel label fonts
+    QFont controlLabelFont;
+    controlLabelFont.setPointSize(controlLabelFontSize);
+    
+    if (m_whiteTimeLimitTitleLabel) m_whiteTimeLimitTitleLabel->setFont(controlLabelFont);
+    if (m_whiteTimeLimitLabel) m_whiteTimeLimitLabel->setFont(controlLabelFont);
+    if (m_blackTimeLimitTitleLabel) m_blackTimeLimitTitleLabel->setFont(controlLabelFont);
+    if (m_blackTimeLimitLabel) m_blackTimeLimitLabel->setFont(controlLabelFont);
+    if (m_incrementTitleLabel) m_incrementTitleLabel->setFont(controlLabelFont);
+    if (m_incrementLabel) m_incrementLabel->setFont(controlLabelFont);
+    
+    // Update slider heights based on square size
+    int sliderHeight = qMax(MIN_SLIDER_HEIGHT, qMin(MAX_SLIDER_HEIGHT, squareSize / SLIDER_HEIGHT_DIVISOR));
+    
+    // Helper lambda to set slider height
+    auto setSliderHeight = [sliderHeight](QSlider* slider) {
+        if (slider) {
+            slider->setMinimumHeight(sliderHeight);
+            slider->setMaximumHeight(sliderHeight + SLIDER_HANDLE_EXTRA);
+        }
+    };
+    
+    setSliderHeight(m_whiteTimeLimitSlider);
+    setSliderHeight(m_blackTimeLimitSlider);
+    setSliderHeight(m_incrementSlider);
+    
+    // Update button fonts
+    int buttonFontSize = qMax(MIN_BUTTON_FONT, qMin(MAX_BUTTON_FONT, squareSize / BUTTON_FONT_DIVISOR));
+    QFont buttonFont;
+    buttonFont.setPointSize(buttonFontSize);
+    buttonFont.setBold(true);
+    
+    if (m_startButton) m_startButton->setFont(buttonFont);
+    if (m_giveUpButton) m_giveUpButton->setFont(buttonFont);
 }
 
 void Qt_Chess::initializeSounds() {
@@ -1441,9 +1509,9 @@ void Qt_Chess::setupTimeControlUI(QVBoxLayout* timeControlPanelLayout) {
     labelFont.setPointSize(10);
     
     // White time label and slider
-    QLabel* whiteTimeLimitTitleLabel = new QLabel("白方時間:", this);
-    whiteTimeLimitTitleLabel->setFont(labelFont);
-    timeControlLayout->addWidget(whiteTimeLimitTitleLabel);
+    m_whiteTimeLimitTitleLabel = new QLabel("白方時間:", this);
+    m_whiteTimeLimitTitleLabel->setFont(labelFont);
+    timeControlLayout->addWidget(m_whiteTimeLimitTitleLabel);
     
     m_whiteTimeLimitLabel = new QLabel("不限時", this);
     m_whiteTimeLimitLabel->setFont(labelFont);
@@ -1462,9 +1530,9 @@ void Qt_Chess::setupTimeControlUI(QVBoxLayout* timeControlPanelLayout) {
     timeControlLayout->addWidget(m_whiteTimeLimitSlider);
     
     // Black time label and slider
-    QLabel* blackTimeLimitTitleLabel = new QLabel("黑方時間:", this);
-    blackTimeLimitTitleLabel->setFont(labelFont);
-    timeControlLayout->addWidget(blackTimeLimitTitleLabel);
+    m_blackTimeLimitTitleLabel = new QLabel("黑方時間:", this);
+    m_blackTimeLimitTitleLabel->setFont(labelFont);
+    timeControlLayout->addWidget(m_blackTimeLimitTitleLabel);
     
     m_blackTimeLimitLabel = new QLabel("不限時", this);
     m_blackTimeLimitLabel->setFont(labelFont);
@@ -1482,9 +1550,9 @@ void Qt_Chess::setupTimeControlUI(QVBoxLayout* timeControlPanelLayout) {
     timeControlLayout->addWidget(m_blackTimeLimitSlider);
     
     // Increment label and slider
-    QLabel* incrementTitleLabel = new QLabel("每著加秒:", this);
-    incrementTitleLabel->setFont(labelFont);
-    timeControlLayout->addWidget(incrementTitleLabel);
+    m_incrementTitleLabel = new QLabel("每著加秒:", this);
+    m_incrementTitleLabel->setFont(labelFont);
+    timeControlLayout->addWidget(m_incrementTitleLabel);
     
     m_incrementLabel = new QLabel("0秒", this);
     m_incrementLabel->setFont(labelFont);
@@ -1623,10 +1691,19 @@ void Qt_Chess::updateTimeDisplays() {
     }
     
     // Convert milliseconds to minutes:seconds or show unlimited
+    // When time < 10 seconds, show decimal points (e.g., "9.8")
     auto formatTime = [](int ms) -> QString {
-        if (ms <= 0) {
+        if (ms < 0) {
             return "不限時";
         }
+        
+        // If less than LOW_TIME_THRESHOLD_MS (10 seconds), show decimal format
+        if (ms < LOW_TIME_THRESHOLD_MS) {
+            double seconds = ms / 1000.0;
+            return QString::number(seconds, 'f', 1);  // Show 1 decimal place
+        }
+        
+        // Otherwise show minutes:seconds format
         int totalSeconds = ms / 1000;
         int minutes = totalSeconds / 60;
         int seconds = totalSeconds % 60;
@@ -1636,15 +1713,32 @@ void Qt_Chess::updateTimeDisplays() {
     m_whiteTimeLabel->setText(formatTime(m_whiteTimeMs));
     m_blackTimeLabel->setText(formatTime(m_blackTimeMs));
     
-    // Highlight the active player's timer
+    // Determine background colors based on time remaining
+    // When time < 10 seconds, use red background
     PieceColor currentPlayer = m_chessBoard.getCurrentPlayer();
-    if (currentPlayer == PieceColor::White) {
-        m_whiteTimeLabel->setStyleSheet("QLabel { background-color: rgba(76, 175, 80, 200); color: #FFF; padding: 8px; border-radius: 5px; }");
-        m_blackTimeLabel->setStyleSheet("QLabel { background-color: rgba(51, 51, 51, 200); color: #FFF; padding: 8px; border-radius: 5px; }");
+    
+    QString whiteStyle, blackStyle;
+    
+    // Determine white label style
+    if (m_whiteTimeMs > 0 && m_whiteTimeMs < LOW_TIME_THRESHOLD_MS) {  // Less than 10 seconds
+        whiteStyle = "QLabel { background-color: rgba(220, 53, 69, 200); color: #FFF; padding: 8px; border-radius: 5px; }";
+    } else if (currentPlayer == PieceColor::White) {
+        whiteStyle = "QLabel { background-color: rgba(76, 175, 80, 200); color: #FFF; padding: 8px; border-radius: 5px; }";
     } else {
-        m_blackTimeLabel->setStyleSheet("QLabel { background-color: rgba(76, 175, 80, 200); color: #FFF; padding: 8px; border-radius: 5px; }");
-        m_whiteTimeLabel->setStyleSheet("QLabel { background-color: rgba(51, 51, 51, 200); color: #FFF; padding: 8px; border-radius: 5px; }");
+        whiteStyle = "QLabel { background-color: rgba(51, 51, 51, 200); color: #FFF; padding: 8px; border-radius: 5px; }";
     }
+    
+    // Determine black label style
+    if (m_blackTimeMs > 0 && m_blackTimeMs < LOW_TIME_THRESHOLD_MS) {  // Less than 10 seconds
+        blackStyle = "QLabel { background-color: rgba(220, 53, 69, 200); color: #FFF; padding: 8px; border-radius: 5px; }";
+    } else if (currentPlayer == PieceColor::Black) {
+        blackStyle = "QLabel { background-color: rgba(76, 175, 80, 200); color: #FFF; padding: 8px; border-radius: 5px; }";
+    } else {
+        blackStyle = "QLabel { background-color: rgba(51, 51, 51, 200); color: #FFF; padding: 8px; border-radius: 5px; }";
+    }
+    
+    m_whiteTimeLabel->setStyleSheet(whiteStyle);
+    m_blackTimeLabel->setStyleSheet(blackStyle);
 }
 
 void Qt_Chess::onIncrementChanged(int value) {
