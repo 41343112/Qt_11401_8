@@ -185,7 +185,7 @@ void Qt_Chess::setupUI() {
         enterReplayMode();
             replayToMove(moveIndex);
         }
-    });
+    };
     moveListLayout->addWidget(m_moveListWidget);
     
     // 匯出PGN按鈕（初始隱藏）
