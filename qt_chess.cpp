@@ -2116,8 +2116,8 @@ QString Qt_Chess::generatePGN() const {
             pgn += QString(" %1").arg(moveHistory[i].algebraicNotation);
             moveNumber++;
             
-            // 每 PGN_MOVES_PER_LINE 步換行以提高可讀性
-            if (moveNumber % PGN_MOVES_PER_LINE == 1 && i + 1 < moveHistory.size()) {
+            // 每 PGN_MOVES_PER_LINE 個回合換行以提高可讀性
+            if (moveNumber > 1 && (moveNumber - 1) % PGN_MOVES_PER_LINE == 0 && i + 1 < moveHistory.size()) {
                 pgn += "\n";
             }
         }
