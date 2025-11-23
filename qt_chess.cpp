@@ -1686,29 +1686,37 @@ void Qt_Chess::updateTimeDisplays() {
     m_whiteTimeLabel->setText(formatTime(m_whiteTimeMs));
     m_blackTimeLabel->setText(formatTime(m_blackTimeMs));
     
-    // 根據剩餘時間確定背景顏色
-    // 當時間 < 10 秒時，使用紅色背景（等待中的狀態）
+    // 根據當前回合和剩餘時間確定背景顏色
+    // 規則：不是自己的回合時顯示灰色，是自己的回合時根據剩餘時間決定（< 10 秒紅色，否則綠色）
     PieceColor currentPlayer = m_chessBoard.getCurrentPlayer();
     
     QString whiteStyle, blackStyle;
     
     // 確定白方標籤樣式
-    // 優先顯示紅色背景當時間 < 10 秒（等待中的狀態）
-    if (m_whiteTimeMs > 0 && m_whiteTimeMs < LOW_TIME_THRESHOLD_MS) {  // 少於 10 秒
-        whiteStyle = "QLabel { background-color: rgba(220, 53, 69, 200); color: #FFF; padding: 8px; border-radius: 5px; }";
-    } else if (currentPlayer == PieceColor::White) {
-        whiteStyle = "QLabel { background-color: rgba(76, 175, 80, 200); color: #FFF; padding: 8px; border-radius: 5px; }";
+    // 當不是自己的回合時，顯示灰色，即使時間少於 10 秒
+    if (currentPlayer == PieceColor::White) {
+        // 白方回合：如果時間少於 10 秒顯示紅色，否則顯示綠色
+        if (m_whiteTimeMs > 0 && m_whiteTimeMs < LOW_TIME_THRESHOLD_MS) {
+            whiteStyle = "QLabel { background-color: rgba(220, 53, 69, 200); color: #FFF; padding: 8px; border-radius: 5px; }";
+        } else {
+            whiteStyle = "QLabel { background-color: rgba(76, 175, 80, 200); color: #FFF; padding: 8px; border-radius: 5px; }";
+        }
     } else {
+        // 不是白方回合：顯示灰色（無論剩餘時間多少）
         whiteStyle = "QLabel { background-color: rgba(51, 51, 51, 200); color: #FFF; padding: 8px; border-radius: 5px; }";
     }
     
     // 確定黑方標籤樣式
-    // 優先顯示紅色背景當時間 < 10 秒（等待中的狀態）
-    if (m_blackTimeMs > 0 && m_blackTimeMs < LOW_TIME_THRESHOLD_MS) {  // 少於 10 秒
-        blackStyle = "QLabel { background-color: rgba(220, 53, 69, 200); color: #FFF; padding: 8px; border-radius: 5px; }";
-    } else if (currentPlayer == PieceColor::Black) {
-        blackStyle = "QLabel { background-color: rgba(76, 175, 80, 200); color: #FFF; padding: 8px; border-radius: 5px; }";
+    // 當不是自己的回合時，顯示灰色，即使時間少於 10 秒
+    if (currentPlayer == PieceColor::Black) {
+        // 黑方回合：如果時間少於 10 秒顯示紅色，否則顯示綠色
+        if (m_blackTimeMs > 0 && m_blackTimeMs < LOW_TIME_THRESHOLD_MS) {
+            blackStyle = "QLabel { background-color: rgba(220, 53, 69, 200); color: #FFF; padding: 8px; border-radius: 5px; }";
+        } else {
+            blackStyle = "QLabel { background-color: rgba(76, 175, 80, 200); color: #FFF; padding: 8px; border-radius: 5px; }";
+        }
     } else {
+        // 不是黑方回合：顯示灰色（無論剩餘時間多少）
         blackStyle = "QLabel { background-color: rgba(51, 51, 51, 200); color: #FFF; padding: 8px; border-radius: 5px; }";
     }
     
