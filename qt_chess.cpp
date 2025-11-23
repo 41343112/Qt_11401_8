@@ -32,10 +32,11 @@ namespace {
     // 視窗大小的佈局常數
     const int LEFT_PANEL_MAX_WIDTH = 200;  // 新遊戲按鈕面板的最大寬度
     const int RIGHT_PANEL_MAX_WIDTH = 600; // 時間控制面板的最大寬度
-    const int PANEL_SPACING = 10;          // 面板之間的間距
-    const int BASE_MARGINS = 10;           // 基本佈局邊距（不包括棋盤容器的 2*BOARD_CONTAINER_MARGIN）
-    const int TIME_LABEL_SPACING = 10;     // 時間標籤周圍的間距
-    const int BOARD_CONTAINER_MARGIN = 5 ;  // 棋盤容器每側的邊距（總水平：2*5=10px）
+    // 以下間距常數設為0以移除所有空白，實現緊湊佈局，特別是在全螢幕模式下
+    const int PANEL_SPACING = 0;           // 面板之間的間距（設為0以移除空白）
+    const int BASE_MARGINS = 0;            // 基本佈局邊距（設為0以移除空白）
+    const int TIME_LABEL_SPACING = 0;      // 時間標籤周圍的間距（設為0以移除空白）
+    const int BOARD_CONTAINER_MARGIN = 0;  // 棋盤容器每側的邊距（設為0以移除空白）
     
     // UI 元素的縮放常數
     const int MIN_SQUARE_SIZE = 40;        // 棋盤格子的最小大小
@@ -100,11 +101,9 @@ Qt_Chess::Qt_Chess(QWidget *parent)
     resize(900, 660);  // 增加寬度以容納時間控制面板
     
     // 設置最小視窗大小以確保所有內容都能完整顯示而不被裁切
-    // 計算：LEFT_PANEL_MAX_WIDTH (200) + 最小棋盤 (8*MIN_SQUARE_SIZE+4=244) + 
-    //       RIGHT_PANEL_MAX_WIDTH (300) + 2*PANEL_SPACING (40) + BASE_MARGINS (30) + 
-    //       棋盤容器邊距 (2*BOARD_CONTAINER_MARGIN=10) = 824
-    // 高度：棋盤 (244) + 時間標籤 (~80) + 間距 (~60) = ~384，使用 420 以舒適調整大小
-    setMinimumSize(824, 420);
+    // 寬度計算：最小棋盤 (244) + 時間標籤 (200) + RIGHT_PANEL_MAX_WIDTH (600) = 1044
+    // 高度計算：棋盤 (244) + 選單欄 (30) + 緩衝空間 (126) = 400
+    setMinimumSize(1044, 400);
     
     setMouseTracking(true);
     
@@ -130,9 +129,13 @@ Qt_Chess::~Qt_Chess()
 void Qt_Chess::setupUI() {
     QWidget* centralWidget = new QWidget(this);
     QVBoxLayout* mainLayout = new QVBoxLayout(centralWidget);
+    mainLayout->setContentsMargins(0, 0, 0, 0);
+    mainLayout->setSpacing(0);
     
     // 為棋盤和時間控制創建水平佈局
     QHBoxLayout* contentLayout = new QHBoxLayout();
+    contentLayout->setContentsMargins(0, 0, 0, 0);
+    contentLayout->setSpacing(0);
     
     // 移除左側面板 - 沒有新遊戲按鈕後不再需要
     
