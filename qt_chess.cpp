@@ -2310,9 +2310,11 @@ void Qt_Chess::exitReplayMode() {
     if (m_replayLastButton) m_replayLastButton->hide();
     if (m_exitReplayButton) m_exitReplayButton->hide();
     
-    // 顯示遊戲控制按鈕
-    if (m_exportPGNButton) m_exportPGNButton->show();
-    if (m_copyPGNButton) m_copyPGNButton->show();
+    // 只在遊戲結束時顯示匯出/複製按鈕
+    if (!m_gameStarted) {
+        if (m_exportPGNButton) m_exportPGNButton->show();
+        if (m_copyPGNButton) m_copyPGNButton->show();
+    }
     
     // 取消棋譜列表的選擇
     m_moveListWidget->clearSelection();
