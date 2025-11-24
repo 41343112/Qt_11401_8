@@ -2049,14 +2049,15 @@ QString Qt_Chess::renderCapturedPieces(const std::vector<PieceType>& pieces, Pie
     
     // 使用圖標或符號顯示吃掉的棋子
     // QTextDocument (QLabel 的 RichText) 不支持負邊距
-    // 改用相對定位的 span 元素來實現重疊效果
-    QString html = "<html><body style='margin:0; padding:0;'>";
-    html += QString("<div style='position:relative; white-space:nowrap; height:%1px;'>").arg(CONTAINER_HEIGHT);
+    // 改用絕對定位的 span 元素來實現重疊效果
     
     // 用於追蹤相同棋子以實現重疊效果
     PieceType lastPieceType = PieceType::None;
     int sameTypeCount = 0;
     int currentLeft = 0;  // 追蹤當前的水平位置
+    
+    // 建立內容字串
+    QString content;
     
     for (size_t i = 0; i < sortedPieces.size(); ++i) {
         PieceType type = sortedPieces[i];
@@ -2093,7 +2094,7 @@ QString Qt_Chess::renderCapturedPieces(const std::vector<PieceType>& pieces, Pie
                     QString base64 = QString::fromLatin1(byteArray.toBase64().data());
                     
                     // 使用絕對定位來精確控制位置
-                    html += QString("<img src='data:image/png;base64,%1' style='position:absolute; left:%2px; width:%3px; height:%3px;' />")
+                    content += QString("<img src='data:image/png;base64,%1' style='position:absolute; left:%2px; width:%3px; height:%3px;' />")
                                 .arg(base64)
                                 .arg(currentLeft)
                                 .arg(PIECE_WIDTH);
@@ -2115,11 +2116,21 @@ QString Qt_Chess::renderCapturedPieces(const std::vector<PieceType>& pieces, Pie
         }
         
         // 使用絕對定位來精確控制位置
-        html += QString("<span style='position:absolute; left:%1px; font-size:18px;'>%2</span>")
+        content += QString("<span style='position:absolute; left:%1px; font-size:18px;'>%2</span>")
                     .arg(currentLeft)
                     .arg(symbol);
     }
     
+    // 計算容器所需的總寬度
+    // 寬度應該是最後一個棋子的位置加上棋子寬度
+    int containerWidth = sortedPieces.empty() ? 0 : (currentLeft + PIECE_WIDTH);
+    
+    // 組裝最終的 HTML，包含正確的容器寬度
+    QString html = "<html><body style='margin:0; padding:0;'>";
+    html += QString("<div style='position:relative; white-space:nowrap; height:%1px; width:%2px;'>")
+                .arg(CONTAINER_HEIGHT)
+                .arg(containerWidth);
+    html += content;
     html += "</div></body></html>";
     return html;
 }
