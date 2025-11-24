@@ -62,7 +62,7 @@ namespace {
     const int MAX_SLIDER_HEIGHT = 80;            // 滑桿的最大高度
     const int SLIDER_HANDLE_EXTRA = 10;          // 滑桿手柄的額外空間
     const int LOW_TIME_THRESHOLD_MS = 10000;     // 低時間警告的閾值（10 秒）
-    const int MIN_PANEL_WIDTH = 100;              // 左右面板的最小寬度（像素）
+    const int MIN_PANEL_WIDTH = 50;              // 左右面板的最小寬度（像素）
     const int MAX_PANEL_WIDTH = 600;              // 左右面板的最大寬度（像素）
     
     // PGN 格式常數
@@ -255,10 +255,10 @@ void Qt_Chess::setupUI() {
     moveListLayout->addWidget(replayButtonContainer);
     
     // 左側棋譜面板 - 固定寬度，不參與水平伸展
-    m_contentLayout->addWidget(m_moveListPanel, 0);  // 固定寬度不伸展
+    m_contentLayout->addWidget(m_moveListPanel, 1);  // 固定寬度不伸展
     
     // 添加左側伸展以保持棋盤居中並吸收多餘空間
-    m_contentLayout->addStretch(1);
+    m_contentLayout->addStretch(0);
     
     // 棋盤容器，左右兩側顯示時間
     m_boardContainer = new QWidget(this);
@@ -336,11 +336,11 @@ void Qt_Chess::setupUI() {
     // 將棋盤容器添加到內容佈局
     // 使用較大的伸展因子(3)使棋盤在水平放大時優先擴展
     // 相比左右兩側的伸展項(因子為1)，棋盤會獲得3倍的額外空間
-    m_contentLayout->addWidget(m_boardContainer, 3, Qt::AlignCenter);
+    m_contentLayout->addWidget(m_boardContainer, 2, Qt::AlignCenter);
     
     // 添加右側伸展以保持棋盤居中並吸收多餘空間
     m_rightStretchIndex = m_contentLayout->count();  // 記錄伸展項的索引
-    m_contentLayout->addStretch(1);
+    m_contentLayout->addStretch(0);
     
     // 時間控制的右側面板 - 固定寬度，不參與水平伸展
     m_timeControlPanel = new QWidget(this);
@@ -349,7 +349,7 @@ void Qt_Chess::setupUI() {
     QVBoxLayout* rightPanelLayout = new QVBoxLayout(m_timeControlPanel);
     rightPanelLayout->setContentsMargins(0, 0, 0, 0);
     setupTimeControlUI(rightPanelLayout);
-    m_contentLayout->addWidget(m_timeControlPanel, 0);  // 固定寬度不伸展
+    m_contentLayout->addWidget(m_timeControlPanel, 1);  // 固定寬度不伸展
     
     mainLayout->addLayout(m_contentLayout);
     
