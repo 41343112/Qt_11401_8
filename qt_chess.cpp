@@ -326,6 +326,7 @@ void Qt_Chess::setupUI() {
     boardContainerLayout->addWidget(m_whiteTimeLabel, 0, Qt::AlignBottom);
     
     // 將棋盤容器添加到內容佈局，設置較大的伸展因子（10）使其擴展優先於左右面板（伸展因子 1）
+    // 伸展比例：左側面板:棋盤:右側面板 = 1:10:1，棋盤獲得約 83.3% 的額外空間
     contentLayout->addWidget(m_boardContainer, 10);
     
     // 時間控制的右側面板
