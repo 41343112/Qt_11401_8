@@ -2110,21 +2110,18 @@ void Qt_Chess::updateCapturedPiecesDisplay() {
         blackHtml += QString("<span style='color: green; font-weight: bold; margin-left: 8px;'>+%1</span>").arg(-materialDiff);
     }
     
-    // 更新標籤
-    if (whiteCaptured.empty()) {
-        m_whiteCapturedLabel->hide();
-    } else {
+    // 更新標籤 - 當時間控制啟用時總是顯示（即使為空）
+    if (m_timeControlEnabled && m_timerStarted) {
         m_whiteCapturedLabel->setTextFormat(Qt::RichText);
         m_whiteCapturedLabel->setText(whiteHtml);
         m_whiteCapturedLabel->show();
-    }
-    
-    if (blackCaptured.empty()) {
-        m_blackCapturedLabel->hide();
-    } else {
+        
         m_blackCapturedLabel->setTextFormat(Qt::RichText);
         m_blackCapturedLabel->setText(blackHtml);
         m_blackCapturedLabel->show();
+    } else {
+        m_whiteCapturedLabel->hide();
+        m_blackCapturedLabel->hide();
     }
 }
 
