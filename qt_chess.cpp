@@ -672,6 +672,11 @@ void Qt_Chess::onStartButtonClicked() {
         // 重置棋盤到初始狀態
         resetBoardState();
         
+        // 清空棋譜列表
+        if (m_moveListWidget) {
+            m_moveListWidget->clear();
+        }
+        
         // 根據滑桿值重置時間
         if (m_whiteTimeLimitSlider) {
             m_whiteTimeMs = calculateTimeFromSliderValue(m_whiteTimeLimitSlider->value());
@@ -713,6 +718,11 @@ void Qt_Chess::onStartButtonClicked() {
     } else if (!m_timeControlEnabled && !m_gameStarted) {
         // 重置棋盤到初始狀態（即使沒有時間控制）
         resetBoardState();
+        
+        // 清空棋譜列表
+        if (m_moveListWidget) {
+            m_moveListWidget->clear();
+        }
         
         // 重置時間值為 0（無限制）
         m_whiteTimeMs = 0;
@@ -1860,8 +1870,8 @@ void Qt_Chess::updateTimeDisplays() {
     // 轉換 milliseconds to minutes:seconds or show unlimited
     // 當時間 < 10 秒時，顯示格式為 0:秒.小數（例如 "0:9.8"）
     auto formatTime = [](int ms) -> QString {
-        if (ms < 0) {
-            return "不限時";
+        if (ms <= 0) {
+            return "無限制";
         }
         
         // 如果少於 LOW_TIME_THRESHOLD_MS（10 秒），顯示格式為 0:秒.小數
