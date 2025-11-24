@@ -122,8 +122,8 @@ private:
     int m_rightStretchIndex;  // 右側伸展項的索引
     
     // 吃子顯示
-    QLabel* m_whiteCapturedLabel;  // 白方吃掉的子（在黑方時間下方）
-    QLabel* m_blackCapturedLabel;  // 黑方吃掉的子（在白方時間上方）
+    QLabel* m_whiteCapturedLabel;  // 黑方吃掉的子（在黑方時間下方）
+    QLabel* m_blackCapturedLabel;  // 白方吃掉的子（在白方時間上方）
     
     // 棋譜面板
     QListWidget* m_moveListWidget;
@@ -200,7 +200,7 @@ private:
     // 吃子顯示功能
     void updateCapturedPiecesDisplay();  // 更新吃子顯示
     int getPieceValue(PieceType type) const;  // 取得棋子價值
-    QString renderCapturedPieces(const std::vector<PieceType>& pieces, int& materialAdvantage) const;  // 渲染吃子顯示
+    QString renderCapturedPieces(const std::vector<PieceType>& pieces, PieceColor capturedColor, int& materialAdvantage) const;  // 渲染吃子顯示
     
     // 棋譜功能
     void updateMoveList();

@@ -25,6 +25,7 @@
 #include <QTextStream>
 #include <QClipboard>
 #include <QApplication>
+#include <QBuffer>
 
 namespace {
 const QString CHECK_HIGHLIGHT_STYLE = "QPushButton { background-color: #FF6B6B; border: 2px solid #FF0000; }";
@@ -294,7 +295,7 @@ void Qt_Chess::setupUI() {
     m_blackTimeLabel->hide();  // 初始隱藏
     leftLayout->addWidget(m_blackTimeLabel);
     
-    // 白方吃掉的子（在黑方時間下方）
+    // 黑方吃掉的子（在黑方時間下方）
     m_whiteCapturedLabel = new QLabel("", leftContainer);
     m_whiteCapturedLabel->setFont(capturedFont);
     m_whiteCapturedLabel->setAlignment(Qt::AlignCenter);
@@ -357,7 +358,7 @@ void Qt_Chess::setupUI() {
     
     rightLayout->addStretch();
     
-    // 黑方吃掉的子（在白方時間上方）
+    // 白方吃掉的子（在白方時間上方）
     m_blackCapturedLabel = new QLabel("", rightContainer);
     m_blackCapturedLabel->setFont(capturedFont);
     m_blackCapturedLabel->setAlignment(Qt::AlignCenter);
@@ -2024,7 +2025,7 @@ int Qt_Chess::getPieceValue(PieceType type) const {
     }
 }
 
-QString Qt_Chess::renderCapturedPieces(const std::vector<PieceType>& pieces, int& materialAdvantage) const {
+QString Qt_Chess::renderCapturedPieces(const std::vector<PieceType>& pieces, PieceColor capturedColor, int& materialAdvantage) const {
     // 按價值排序（從小到大）
     std::vector<PieceType> sortedPieces = pieces;
     std::sort(sortedPieces.begin(), sortedPieces.end(), 
@@ -2041,7 +2042,7 @@ QString Qt_Chess::renderCapturedPieces(const std::vector<PieceType>& pieces, int
         materialAdvantage += getPieceValue(type);
     }
     
-    // 使用圖標顯示吃掉的棋子
+    // 使用圖標或符號顯示吃掉的棋子
     QString html = "<html><body style='margin:0; padding:0;'>";
     
     // 用於追蹤相同棋子以實現重疊效果
@@ -2059,7 +2060,35 @@ QString Qt_Chess::renderCapturedPieces(const std::vector<PieceType>& pieces, int
             lastPieceType = type;
         }
         
-        // 取得棋子符號（使用Unicode符號）
+        // 對於相同類型的棋子，使用負的左邊距實現部分重疊
+        // 第一個棋子不偏移，後續相同類型的棋子向左偏移
+        int leftMargin = (sameTypeCount > 0) ? -8 : 0;
+        
+        // 使用自訂圖示或 Unicode 符號
+        if (m_pieceIconSettings.useCustomIcons) {
+            // 取得棋子圖示路徑
+            QString iconPath = getPieceIconPath(type, capturedColor);
+            if (!iconPath.isEmpty() && QFile::exists(iconPath)) {
+                // 將圖片轉換為 base64 以嵌入 HTML
+                QPixmap pixmap(iconPath);
+                if (!pixmap.isNull()) {
+                    // 縮放圖示以適應顯示
+                    QPixmap scaledPixmap = pixmap.scaled(18, 18, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+                    QByteArray byteArray;
+                    QBuffer buffer(&byteArray);
+                    buffer.open(QIODevice::WriteOnly);
+                    scaledPixmap.save(&buffer, "PNG");
+                    QString base64 = QString::fromLatin1(byteArray.toBase64().data());
+                    
+                    html += QString("<img src='data:image/png;base64,%1' style='margin-left: %2px; width: 18px; height: 18px; vertical-align: middle;' />")
+                                .arg(base64)
+                                .arg(leftMargin);
+                    continue;
+                }
+            }
+        }
+        
+        // 回退到 Unicode 符號
         QString symbol;
         switch (type) {
             case PieceType::Pawn:   symbol = "♟"; break;
@@ -2070,10 +2099,6 @@ QString Qt_Chess::renderCapturedPieces(const std::vector<PieceType>& pieces, int
             case PieceType::King:   symbol = "♚"; break;
             default: symbol = ""; break;
         }
-        
-        // 對於相同類型的棋子，使用負的左邊距實現部分重疊
-        // 第一個棋子不偏移，後續相同類型的棋子向左偏移
-        int leftMargin = (sameTypeCount > 0) ? -8 : 0;
         
         html += QString("<span style='margin-left: %1px; font-size: 18px;'>%2</span>")
                     .arg(leftMargin)
@@ -2088,6 +2113,8 @@ void Qt_Chess::updateCapturedPiecesDisplay() {
     if (!m_whiteCapturedLabel || !m_blackCapturedLabel) return;
     
     // 取得被吃掉的棋子
+    // whiteCaptured 包含白方吃掉的棋子（黑子）
+    // blackCaptured 包含黑方吃掉的棋子（白子）
     std::vector<PieceType> whiteCaptured = m_chessBoard.getCapturedPiecesByColor(PieceColor::White);
     std::vector<PieceType> blackCaptured = m_chessBoard.getCapturedPiecesByColor(PieceColor::Black);
     
@@ -2095,29 +2122,34 @@ void Qt_Chess::updateCapturedPiecesDisplay() {
     int whiteAdvantage = 0;
     int blackAdvantage = 0;
     
-    QString whiteHtml = renderCapturedPieces(whiteCaptured, whiteAdvantage);
-    QString blackHtml = renderCapturedPieces(blackCaptured, blackAdvantage);
+    // 白方吃掉的子（黑子），所以顯示黑色圖示
+    QString whiteHtml = renderCapturedPieces(whiteCaptured, PieceColor::Black, whiteAdvantage);
+    // 黑方吃掉的子（白子），所以顯示白色圖示
+    QString blackHtml = renderCapturedPieces(blackCaptured, PieceColor::White, blackAdvantage);
     
     // 計算總分差
     int materialDiff = whiteAdvantage - blackAdvantage;
     
     // 在贏子的一方顯示分差
+    // 注意：由於我們交換了標籤顯示，需要將分差加到正確的 HTML 中
     if (materialDiff > 0) {
-        // 白方領先
+        // 白方領先，顯示在白方吃掉的子旁邊（blackCapturedLabel）
         whiteHtml += QString("<span style='color: green; font-weight: bold; margin-left: 8px;'>+%1</span>").arg(materialDiff);
     } else if (materialDiff < 0) {
-        // 黑方領先
+        // 黑方領先，顯示在黑方吃掉的子旁邊（whiteCapturedLabel）
         blackHtml += QString("<span style='color: green; font-weight: bold; margin-left: 8px;'>+%1</span>").arg(-materialDiff);
     }
     
-    // 更新標籤 - 當時間控制啟用時總是顯示（即使為空）
+    // 更新標籤 - 交換顯示位置以修正錯誤
+    // m_whiteCapturedLabel 在黑方時間下方，應該顯示黑方吃掉的子（白子）
+    // m_blackCapturedLabel 在白方時間上方，應該顯示白方吃掉的子（黑子）
     if (m_timeControlEnabled && m_timerStarted) {
         m_whiteCapturedLabel->setTextFormat(Qt::RichText);
-        m_whiteCapturedLabel->setText(whiteHtml);
+        m_whiteCapturedLabel->setText(blackHtml);  // 顯示黑方吃掉的子（白子）
         m_whiteCapturedLabel->show();
         
         m_blackCapturedLabel->setTextFormat(Qt::RichText);
-        m_blackCapturedLabel->setText(blackHtml);
+        m_blackCapturedLabel->setText(whiteHtml);  // 顯示白方吃掉的子（黑子）
         m_blackCapturedLabel->show();
     } else {
         m_whiteCapturedLabel->hide();
