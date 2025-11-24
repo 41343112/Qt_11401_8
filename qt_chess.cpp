@@ -40,7 +40,7 @@ namespace {
     const int PANEL_SPACING = 10;          // 面板之間的間距
     const int BASE_MARGINS = 10;           // 基本佈局邊距（不包括棋盤容器的 2*BOARD_CONTAINER_MARGIN）
     const int TIME_LABEL_SPACING = 0;     // 時間標籤周圍的間距
-    const int BOARD_CONTAINER_MARGIN = 0 ;  // 棋盤容器每側的邊距（總水平：2*0=0px）
+    const int BOARD_CONTAINER_MARGIN = 0;  // 棋盤容器每側的邊距（總水平：2*0=0px）
     
     // UI 元素的縮放常數
     const int MIN_SQUARE_SIZE = 40;        // 棋盤格子的最小大小
