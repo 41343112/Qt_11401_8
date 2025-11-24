@@ -2042,12 +2042,21 @@ QString Qt_Chess::renderCapturedPieces(const std::vector<PieceType>& pieces, Pie
         materialAdvantage += getPieceValue(type);
     }
     
+    // 棋子顯示常數
+    const int PIECE_WIDTH = 18;        // 棋子圖示寬度（像素）
+    const int OVERLAP_OFFSET = 8;      // 相同類型棋子的重疊偏移量（像素）
+    const int CONTAINER_HEIGHT = 20;   // 容器高度（像素）
+    
     // 使用圖標或符號顯示吃掉的棋子
+    // QTextDocument (QLabel 的 RichText) 不支持負邊距
+    // 改用相對定位的 span 元素來實現重疊效果
     QString html = "<html><body style='margin:0; padding:0;'>";
+    html += QString("<div style='position:relative; white-space:nowrap; height:%1px;'>").arg(CONTAINER_HEIGHT);
     
     // 用於追蹤相同棋子以實現重疊效果
     PieceType lastPieceType = PieceType::None;
     int sameTypeCount = 0;
+    int currentLeft = 0;  // 追蹤當前的水平位置
     
     for (size_t i = 0; i < sortedPieces.size(); ++i) {
         PieceType type = sortedPieces[i];
@@ -2055,14 +2064,17 @@ QString Qt_Chess::renderCapturedPieces(const std::vector<PieceType>& pieces, Pie
         // 檢查是否是相同類型的棋子
         if (type == lastPieceType) {
             sameTypeCount++;
+            // 相同類型的棋子重疊：向前移動（棋子寬度 - 重疊偏移量）
+            currentLeft += (PIECE_WIDTH - OVERLAP_OFFSET);
         } else {
             sameTypeCount = 0;
             lastPieceType = type;
+            // 不同類型的棋子，正常間隔（完全不重疊）
+            if (i > 0) {
+                currentLeft += PIECE_WIDTH;
+            }
+            // i == 0 時，currentLeft 保持為 0，即從左邊開始
         }
-        
-        // 對於相同類型的棋子，使用負的左邊距實現部分重疊
-        // 第一個棋子不偏移，後續相同類型的棋子向左偏移
-        int leftMargin = (sameTypeCount > 0) ? -8 : 0;
         
         // 使用自訂圖示或 Unicode 符號
         if (m_pieceIconSettings.useCustomIcons) {
@@ -2073,16 +2085,18 @@ QString Qt_Chess::renderCapturedPieces(const std::vector<PieceType>& pieces, Pie
                 QPixmap pixmap(iconPath);
                 if (!pixmap.isNull()) {
                     // 縮放圖示以適應顯示
-                    QPixmap scaledPixmap = pixmap.scaled(18, 18, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+                    QPixmap scaledPixmap = pixmap.scaled(PIECE_WIDTH, PIECE_WIDTH, Qt::KeepAspectRatio, Qt::SmoothTransformation);
                     QByteArray byteArray;
                     QBuffer buffer(&byteArray);
                     buffer.open(QIODevice::WriteOnly);
                     scaledPixmap.save(&buffer, "PNG");
                     QString base64 = QString::fromLatin1(byteArray.toBase64().data());
                     
-                    html += QString("<img src='data:image/png;base64,%1' style='margin-left: %2px; width: 18px; height: 18px; vertical-align: middle;' />")
+                    // 使用絕對定位來精確控制位置
+                    html += QString("<img src='data:image/png;base64,%1' style='position:absolute; left:%2px; width:%3px; height:%3px;' />")
                                 .arg(base64)
-                                .arg(leftMargin);
+                                .arg(currentLeft)
+                                .arg(PIECE_WIDTH);
                     continue;
                 }
             }
@@ -2100,12 +2114,13 @@ QString Qt_Chess::renderCapturedPieces(const std::vector<PieceType>& pieces, Pie
             default: symbol = ""; break;
         }
         
-        html += QString("<span style='margin-left: %1px; font-size: 18px;'>%2</span>")
-                    .arg(leftMargin)
+        // 使用絕對定位來精確控制位置
+        html += QString("<span style='position:absolute; left:%1px; font-size:18px;'>%2</span>")
+                    .arg(currentLeft)
                     .arg(symbol);
     }
     
-    html += "</body></html>";
+    html += "</div></body></html>";
     return html;
 }
 
