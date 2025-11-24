@@ -35,7 +35,7 @@ This allows the left panel to:
 ### File: qt_chess.cpp
 
 #### Change 1: Remove Maximum Width Constraint
-**Location**: Line 158 (setupUI method)
+**Location**: setupUI method (around line 172)
 
 **Before**:
 ```cpp
@@ -53,7 +53,7 @@ QVBoxLayout* moveListLayout = new QVBoxLayout(m_moveListPanel);
 **Impact**: Removes the 600px width limitation, allowing the panel to grow.
 
 #### Change 2: Add Stretch Factor to Layout
-**Location**: Line 237 (setupUI method)
+**Location**: setupUI method (around line 252)
 
 **Before**:
 ```cpp
@@ -67,8 +67,29 @@ contentLayout->addWidget(m_moveListPanel, 1);  // 添加伸展因子以允許縮
 
 **Impact**: The stretch factor of 1 tells the Qt layout manager to allocate proportional space to the left panel when the window is resized.
 
-#### Change 3: Update Square Size Calculation
-**Location**: Lines 1193-1201 (updateSquareSizes method)
+#### Change 3: Add Helper Function for Panel Width Calculation
+**Location**: Anonymous namespace (lines 73-84)
+
+```cpp
+// 獲取面板的實際寬度，如果尚未渲染則使用後備值的輔助函數
+static int getPanelWidth(QWidget* panel) {
+    if (!panel) return 0;
+    
+    int width = panel->width();
+    if (width <= 0) {
+        width = panel->sizeHint().width();
+        if (width <= 0) {
+            width = MIN_PANEL_FALLBACK_WIDTH;
+        }
+    }
+    return width;
+}
+```
+
+**Impact**: Provides a robust three-tier fallback strategy for getting panel widths.
+
+#### Change 4: Update Square Size Calculation
+**Location**: updateSquareSizes method (around lines 1208-1214)
 
 **Before**:
 ```cpp
@@ -87,17 +108,30 @@ if (m_timeControlPanel && m_timeControlPanel->isVisible()) {
 
 **After**:
 ```cpp
-if (m_moveListPanel) {
-    // 使用面板的實際寬度
-    reservedWidth += m_moveListPanel->width();
-}
+// 考慮左側面板的實際寬度（棋譜面板）- 總是可見
+reservedWidth += getPanelWidth(m_moveListPanel);
 
+// 如果可見則考慮右側面板的實際寬度（時間控制面板）
 if (m_timeControlPanel && m_timeControlPanel->isVisible()) {
-    reservedWidth += m_timeControlPanel->width();
+    reservedWidth += getPanelWidth(m_timeControlPanel);
 }
 ```
 
-**Impact**: The chess board size calculation now correctly accounts for the actual panel widths instead of using capped values.
+**Impact**: The chess board size calculation now correctly accounts for the actual panel widths using the `getPanelWidth()` helper function, which provides robust fallback logic.
+
+## Helper Function Design
+
+The `getPanelWidth()` helper function implements a three-tier fallback strategy:
+
+1. **Primary**: `panel->width()` - Returns the actual rendered width
+2. **Secondary**: `panel->sizeHint().width()` - Returns the widget's preferred size if not yet rendered
+3. **Tertiary**: `MIN_PANEL_FALLBACK_WIDTH` (200px) - A safe minimum value as last resort
+
+This design ensures:
+- Accurate calculations during normal operation
+- Graceful handling of initialization edge cases
+- Prevention of division-by-zero or invalid size calculations
+- No code duplication between left and right panel width calculations
 
 ## Layout Structure
 

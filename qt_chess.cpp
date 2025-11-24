@@ -70,7 +70,7 @@ namespace {
     const int PGN_MOVES_PER_LINE = 6;            // PGN 檔案中每行的移動回合數
     
     // 獲取面板的實際寬度，如果尚未渲染則使用後備值的輔助函數
-    int getPanelWidth(QWidget* panel) {
+    static int getPanelWidth(QWidget* panel) {
         if (!panel) return 0;
         
         int width = panel->width();
