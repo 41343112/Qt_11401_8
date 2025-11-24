@@ -2118,17 +2118,33 @@ void Qt_Chess::updateCapturedPiecesDisplay() {
     std::vector<PieceType> whiteCaptured = m_chessBoard.getCapturedPiecesByColor(PieceColor::White);
     std::vector<PieceType> blackCaptured = m_chessBoard.getCapturedPiecesByColor(PieceColor::Black);
     
-    // 計算物質優勢
-    int whiteAdvantage = 0;
-    int blackAdvantage = 0;
+    // 渲染被吃掉的棋子（不用於計算物質優勢）
+    int unusedAdvantage = 0;
     
     // 白方吃掉的子（黑子），所以顯示黑色圖示
-    QString whiteHtml = renderCapturedPieces(whiteCaptured, PieceColor::Black, whiteAdvantage);
+    QString whiteHtml = renderCapturedPieces(whiteCaptured, PieceColor::Black, unusedAdvantage);
     // 黑方吃掉的子（白子），所以顯示白色圖示
-    QString blackHtml = renderCapturedPieces(blackCaptured, PieceColor::White, blackAdvantage);
+    QString blackHtml = renderCapturedPieces(blackCaptured, PieceColor::White, unusedAdvantage);
     
-    // 計算總分差
-    int materialDiff = whiteAdvantage - blackAdvantage;
+    // 計算場上的總子力 - 遍歷棋盤上的所有棋子
+    int whiteMaterial = 0;
+    int blackMaterial = 0;
+    for (int row = 0; row < 8; ++row) {
+        for (int col = 0; col < 8; ++col) {
+            const ChessPiece& piece = m_chessBoard.getPiece(row, col);
+            if (piece.getType() != PieceType::None) {
+                int value = getPieceValue(piece.getType());
+                if (piece.getColor() == PieceColor::White) {
+                    whiteMaterial += value;
+                } else if (piece.getColor() == PieceColor::Black) {
+                    blackMaterial += value;
+                }
+            }
+        }
+    }
+    
+    // 計算子力差（場上的總子力互減）
+    int materialDiff = whiteMaterial - blackMaterial;
     
     // 在贏子的一方顯示分差
     // 注意：由於我們交換了標籤顯示，需要將分差加到正確的 HTML 中
