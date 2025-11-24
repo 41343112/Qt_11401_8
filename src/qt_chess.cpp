@@ -2139,6 +2139,7 @@ void Qt_Chess::updateCapturedPiecesDisplay() {
                 } else if (piece.getColor() == PieceColor::Black) {
                     blackMaterial += value;
                 }
+                // 注意：PieceColor::None 的情況不需要處理，因為空格的 PieceType 已經是 None
             }
         }
     }
