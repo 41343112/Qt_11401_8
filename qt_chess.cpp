@@ -238,7 +238,7 @@ void Qt_Chess::setupUI() {
     contentLayout->addWidget(m_moveListPanel);
     
     // 添加伸展以將棋盤置中
-    contentLayout->addStretch(1);
+    contentLayout->addStretch(0);
     
     // 棋盤容器，左右兩側顯示時間
     m_boardContainer = new QWidget(this);
@@ -313,15 +313,15 @@ void Qt_Chess::setupUI() {
     m_whiteTimeLabel->hide();  // 初始隱藏
     boardContainerLayout->addWidget(m_whiteTimeLabel, 0, Qt::AlignBottom);
     
-    // 將棋盤容器添加到內容佈局，不設置伸展因子以保持其自然大小
+    // 將棋盤容器添加到內容佈局，設置較大的伸展因子讓它能擴展
     contentLayout->addWidget(m_boardContainer, 0);
     
     // 添加伸展以平衡左側的伸展
-    contentLayout->addStretch(1);
+    contentLayout->addStretch(0);
     
     // 時間控制的右側面板
     m_timeControlPanel = new QWidget(this);
-    m_timeControlPanel->setMaximumWidth(RIGHT_PANEL_MAX_WIDTH);  // 限制面板寬度
+    m_timeControlPanel->setMaximumWidth(800);  // 限制面板寬度
     QVBoxLayout* rightPanelLayout = new QVBoxLayout(m_timeControlPanel);
     rightPanelLayout->setContentsMargins(0, 0, 0, 0);
     setupTimeControlUI(rightPanelLayout);
@@ -1186,29 +1186,38 @@ void Qt_Chess::updateSquareSizes() {
     if (!central) return;
     
     // 計算 available space for the board
-    // 考慮帶有右側面板和面板間距的水平佈局
+    // 考慮帶有左右面板和面板間距的水平佈局
     int reservedWidth = 0;
     int reservedHeight = 0;
     
-    // 如果可見則考慮右側面板寬度（時間控制面板）
-    if (m_timeControlPanel && m_timeControlPanel->isVisible()) {
-        reservedWidth += RIGHT_PANEL_MAX_WIDTH;  // 為時間控制面板保留完整寬度
-        reservedWidth += PANEL_SPACING;          // 右側面板前的間距
+    // 考慮左側面板的實際寬度（棋譜面板）- 總是可見
+    if (m_moveListPanel) {
+        // 使用實際寬度，但至少保留一些空間讓它能正常顯示
+        int leftPanelWidth = m_moveListPanel->sizeHint().width();
+        if (leftPanelWidth <= 0) leftPanelWidth = LEFT_PANEL_MAX_WIDTH;
+        reservedWidth += qMin(leftPanelWidth, LEFT_PANEL_MAX_WIDTH);
     }
     
-    // 添加佈局間距的基本邊距（棋盤容器邊距是棋盤元件大小的一部分）
-    reservedWidth += BASE_MARGINS;
+    // 如果可見則考慮右側面板的實際寬度（時間控制面板）
+    if (m_timeControlPanel && m_timeControlPanel->isVisible()) {
+        int rightPanelWidth = m_timeControlPanel->sizeHint().width();
+        if (rightPanelWidth <= 0) rightPanelWidth = RIGHT_PANEL_MAX_WIDTH;
+        reservedWidth += qMin(rightPanelWidth, RIGHT_PANEL_MAX_WIDTH);
+    }
     
-    // 如果可見則考慮時間標籤寬度，加上間距（現在水平定位）
+    // 添加佈局間距和邊距
+    reservedWidth += BASE_MARGINS * 4;  // 適度的邊距
+    
+    // 如果可見則考慮時間標籤寬度（現在水平定位）
     if (m_whiteTimeLabel && m_whiteTimeLabel->isVisible()) {
-        reservedWidth += m_whiteTimeLabel->minimumWidth() + TIME_LABEL_SPACING;
+        reservedWidth += m_whiteTimeLabel->width() + TIME_LABEL_SPACING;
     }
     if (m_blackTimeLabel && m_blackTimeLabel->isVisible()) {
-        reservedWidth += m_blackTimeLabel->minimumWidth() + TIME_LABEL_SPACING;
+        reservedWidth += m_blackTimeLabel->width() + TIME_LABEL_SPACING;
     }
     
     // 為佈局邊距和間距添加一些填充
-    reservedHeight += BASE_MARGINS;
+    reservedHeight += BASE_MARGINS * 2;  // 上下各一邊的邊距
     
     // 考慮選單欄高度（如果存在）以防止全螢幕時棋盤被裁切
     if (m_menuBar && m_menuBar->isVisible()) {
