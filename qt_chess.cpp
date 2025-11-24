@@ -521,7 +521,7 @@ void Qt_Chess::updateCapturedPiecesDisplay() {
     // 獲取白方吃掉的棋子（顯示在白方時間上面）
     const std::vector<PieceType>& whiteCaptured = m_chessBoard.getWhiteCapturedPieces();
     QString whiteCapturedText;
-    for (PieceType pieceType : whiteCaptured) {
+    for (const PieceType& pieceType : whiteCaptured) {
         ChessPiece piece(pieceType, PieceColor::Black);  // 白方吃掉的是黑方的棋子
         whiteCapturedText += piece.getSymbol();
     }
@@ -529,7 +529,7 @@ void Qt_Chess::updateCapturedPiecesDisplay() {
     // 獲取黑方吃掉的棋子（顯示在黑方時間下面）
     const std::vector<PieceType>& blackCaptured = m_chessBoard.getBlackCapturedPieces();
     QString blackCapturedText;
-    for (PieceType pieceType : blackCaptured) {
+    for (const PieceType& pieceType : blackCaptured) {
         ChessPiece piece(pieceType, PieceColor::White);  // 黑方吃掉的是白方的棋子
         blackCapturedText += piece.getSymbol();
     }
