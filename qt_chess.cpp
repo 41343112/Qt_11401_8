@@ -2058,9 +2058,8 @@ void Qt_Chess::handleGameEnd() {
         m_startButton->setEnabled(true);
     }
     
-    // 隱藏時間顯示
-    if (m_whiteTimeLabel) m_whiteTimeLabel->hide();
-    if (m_blackTimeLabel) m_blackTimeLabel->hide();
+    // 保持時間顯示可見，以便玩家可以看到遊戲結束時的最終時間
+    // 時間標籤在遊戲結束時不再隱藏
     
     // 顯示匯出 PGN 按鈕和複製棋譜按鈕
     if (m_exportPGNButton) {
@@ -2180,9 +2179,8 @@ void Qt_Chess::showTimeControlAfterTimeout() {
         m_startButton->setEnabled(true);
     }
     
-    // 隱藏時間顯示 since game is over
-    if (m_whiteTimeLabel) m_whiteTimeLabel->hide();
-    if (m_blackTimeLabel) m_blackTimeLabel->hide();
+    // 保持時間顯示可見，以便玩家可以看到超時時的最終時間
+    // 時間標籤在超時時不再隱藏
     
     // 當遊戲超時結束時，將右側伸展設為 0
     setRightPanelStretch(0);
