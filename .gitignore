@@ -72,7 +72,7 @@ moc_predefs.h
 # Binaries
 # --------
 *.dll
-#*.exe
+*.exe
 Qt_Chess
 
 # Placeholder files for icon sets (actual icons to be provided by user)
