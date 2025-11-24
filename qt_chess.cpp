@@ -165,6 +165,8 @@ Qt_Chess::~Qt_Chess()
 void Qt_Chess::setupUI() {
     QWidget* centralWidget = new QWidget(this);
     QVBoxLayout* mainLayout = new QVBoxLayout(centralWidget);
+    mainLayout->setContentsMargins(0, 0, 0, 0);
+    mainLayout->setSpacing(0);
     
     // 為棋盤和時間控制創建水平佈局
     m_contentLayout = new QHBoxLayout();
