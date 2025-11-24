@@ -116,6 +116,8 @@ Qt_Chess::Qt_Chess(QWidget *parent)
     , m_timerStarted(false)
     , m_boardContainer(nullptr)
     , m_timeControlPanel(nullptr)
+    , m_contentLayout(nullptr)
+    , m_rightStretchIndex(-1)
     , m_moveListWidget(nullptr)
     , m_exportPGNButton(nullptr)
     , m_copyPGNButton(nullptr)
@@ -165,7 +167,7 @@ void Qt_Chess::setupUI() {
     QVBoxLayout* mainLayout = new QVBoxLayout(centralWidget);
     
     // 為棋盤和時間控制創建水平佈局
-    QHBoxLayout* contentLayout = new QHBoxLayout();
+    m_contentLayout = new QHBoxLayout();
     
     // 左側棋譜面板
     m_moveListPanel = new QWidget(this);
@@ -250,10 +252,10 @@ void Qt_Chess::setupUI() {
     
     moveListLayout->addWidget(replayButtonContainer);
     
-    contentLayout->addWidget(m_moveListPanel, 1);  // 添加伸展因子以允許縮放
+    m_contentLayout->addWidget(m_moveListPanel, 1);  // 添加伸展因子以允許縮放
     
     // 添加左側伸展以保持棋盤居中
-    contentLayout->addStretch(0);
+    m_contentLayout->addStretch(0);
     
     // 棋盤容器，左右兩側顯示時間
     m_boardContainer = new QWidget(this);
@@ -329,10 +331,12 @@ void Qt_Chess::setupUI() {
     boardContainerLayout->addWidget(m_whiteTimeLabel, 0, Qt::AlignBottom);
     
     // 將棋盤容器添加到內容佈局，設置為 0 伸展因子並居中對齊以保持棋盤居中
-    contentLayout->addWidget(m_boardContainer, 0, Qt::AlignCenter);
+    m_contentLayout->addWidget(m_boardContainer, 0, Qt::AlignCenter);
     
     // 添加右側伸展以保持棋盤居中
-    contentLayout->addStretch(1);
+    // 當遊戲還沒開始時設為 0，當遊戲開始時設為 1
+    m_rightStretchIndex = m_contentLayout->count();  // 記錄伸展項的索引
+    m_contentLayout->addStretch(0);  // 初始設為 0
     
     // 時間控制的右側面板
     m_timeControlPanel = new QWidget(this);
@@ -341,9 +345,9 @@ void Qt_Chess::setupUI() {
     QVBoxLayout* rightPanelLayout = new QVBoxLayout(m_timeControlPanel);
     rightPanelLayout->setContentsMargins(0, 0, 0, 0);
     setupTimeControlUI(rightPanelLayout);
-    contentLayout->addWidget(m_timeControlPanel, 1);  // 添加伸展因子以允許縮放
+    m_contentLayout->addWidget(m_timeControlPanel, 1);  // 添加伸展因子以允許縮放
     
-    mainLayout->addLayout(contentLayout);
+    mainLayout->addLayout(m_contentLayout);
     
     setCentralWidget(centralWidget);
 }
@@ -647,6 +651,11 @@ void Qt_Chess::onNewGameClicked() {
     // 更新回放按鈕狀態（新遊戲沒有移動歷史）
     updateReplayButtons();
     
+    // 當遊戲還沒開始時，將右側伸展設為 0
+    if (m_contentLayout && m_rightStretchIndex >= 0) {
+        m_contentLayout->setStretch(m_rightStretchIndex, 0);
+    }
+    
     // 清除任何殘留的高亮顯示（例如選中的棋子、有效移動、將軍警告）
     clearHighlights();
 }
@@ -729,6 +738,11 @@ void Qt_Chess::onStartButtonClicked() {
         
         // 更新回放按鈕狀態（遊戲開始時停用）
         updateReplayButtons();
+        
+        // 當遊戲開始時，將右側伸展設為 1
+        if (m_contentLayout && m_rightStretchIndex >= 0) {
+            m_contentLayout->setStretch(m_rightStretchIndex, 1);
+        }
     } else if (!m_timeControlEnabled && !m_gameStarted) {
         // 重置棋盤到初始狀態（即使沒有時間控制）
         resetBoardState();
@@ -762,6 +776,11 @@ void Qt_Chess::onStartButtonClicked() {
         
         // 更新回放按鈕狀態（遊戲開始時停用）
         updateReplayButtons();
+        
+        // 當遊戲開始時，將右側伸展設為 1
+        if (m_contentLayout && m_rightStretchIndex >= 0) {
+            m_contentLayout->setStretch(m_rightStretchIndex, 1);
+        }
     }
 }
 
@@ -2055,6 +2074,11 @@ void Qt_Chess::handleGameEnd() {
     
     // 更新回放按鈕狀態（遊戲結束後可以回放）
     updateReplayButtons();
+    
+    // 當遊戲結束時，將右側伸展設為 0
+    if (m_contentLayout && m_rightStretchIndex >= 0) {
+        m_contentLayout->setStretch(m_rightStretchIndex, 0);
+    }
 }
 
 void Qt_Chess::loadTimeControlSettings() {
@@ -2163,6 +2187,11 @@ void Qt_Chess::showTimeControlAfterTimeout() {
     // 隱藏時間顯示 since game is over
     if (m_whiteTimeLabel) m_whiteTimeLabel->hide();
     if (m_blackTimeLabel) m_blackTimeLabel->hide();
+    
+    // 當遊戲超時結束時，將右側伸展設為 0
+    if (m_contentLayout && m_rightStretchIndex >= 0) {
+        m_contentLayout->setStretch(m_rightStretchIndex, 0);
+    }
 }
 
 void Qt_Chess::resetBoardState() {

@@ -6,6 +6,7 @@
 #include <QLabel>
 #include <QGridLayout>
 #include <QVBoxLayout>
+#include <QHBoxLayout>
 #include <QMouseEvent>
 #include <QKeyEvent>
 #include <QMap>
@@ -117,6 +118,8 @@ private:
     bool m_timerStarted;  // 追蹤計時器是否已手動啟動
     QWidget* m_boardContainer;  // 帶有疊加時間顯示的棋盤容器
     QWidget* m_timeControlPanel;  // 時間控制設定面板
+    QHBoxLayout* m_contentLayout;  // 主內容佈局，用於調整伸展因子
+    int m_rightStretchIndex;  // 右側伸展項的索引
     
     // 棋譜面板
     QListWidget* m_moveListWidget;
