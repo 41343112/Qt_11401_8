@@ -328,7 +328,7 @@ void Qt_Chess::setupUI() {
     m_whiteTimeLabel->hide();  // 初始隱藏
     boardContainerLayout->addWidget(m_whiteTimeLabel, 0, Qt::AlignBottom);
     
-    // 將棋盤容器添加到內容佈局，設置為 0 伸展因子以保持固定大小
+    // 將棋盤容器添加到內容佈局，設置為 0 伸展因子並居中對齊以保持棋盤居中
     contentLayout->addWidget(m_boardContainer, 0, Qt::AlignCenter);
     
     // 添加右側伸展以保持棋盤居中
