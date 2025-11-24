@@ -230,13 +230,17 @@ To verify the implementation:
 
 From qt_chess.cpp:
 ```cpp
-const int LEFT_PANEL_MAX_WIDTH = 600;  // No longer used for m_moveListPanel
-const int RIGHT_PANEL_MAX_WIDTH = 600; // Still used for m_timeControlPanel
+// These panel width constants have been removed as both panels now scale dynamically
+// const int LEFT_PANEL_MAX_WIDTH = 600;  // REMOVED
+// const int RIGHT_PANEL_MAX_WIDTH = 600; // REMOVED
+
+// Still used constants:
 const int MIN_SQUARE_SIZE = 40;
 const int MAX_SQUARE_SIZE = 170;
+const int MIN_PANEL_FALLBACK_WIDTH = 200; // Used by getPanelWidth() helper function
 ```
 
-Note: `LEFT_PANEL_MAX_WIDTH` constant is still defined but no longer applied to the left panel. It may be removed in future cleanup.
+Note: Both `LEFT_PANEL_MAX_WIDTH` and `RIGHT_PANEL_MAX_WIDTH` constants have been removed. Both left and right panels now scale dynamically with the window size. The `MIN_PANEL_FALLBACK_WIDTH` constant remains as it's actively used by the `getPanelWidth()` helper function for fallback calculations.
 
 ## Summary
 

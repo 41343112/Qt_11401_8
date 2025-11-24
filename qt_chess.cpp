@@ -35,8 +35,6 @@ namespace {
     const QString GAME_ENDED_TEXT = "遊戲結束"; // 遊戲結束時顯示的文字
     
     // 視窗大小的佈局常數
-    const int LEFT_PANEL_MAX_WIDTH = 600;  // 新遊戲按鈕面板的最大寬度
-    const int RIGHT_PANEL_MAX_WIDTH = 600; // 時間控制面板的最大寬度
     const int PANEL_SPACING = 10;          // 面板之間的間距
     const int BASE_MARGINS = 10;           // 基本佈局邊距（不包括棋盤容器的 2*BOARD_CONTAINER_MARGIN）
     const int TIME_LABEL_SPACING = 0;     // 時間標籤周圍的間距（已禁用）
@@ -335,11 +333,10 @@ void Qt_Chess::setupUI() {
     
     // 時間控制的右側面板
     m_timeControlPanel = new QWidget(this);
-    m_timeControlPanel->setMaximumWidth(RIGHT_PANEL_MAX_WIDTH);  // 限制面板寬度
     QVBoxLayout* rightPanelLayout = new QVBoxLayout(m_timeControlPanel);
     rightPanelLayout->setContentsMargins(0, 0, 0, 0);
     setupTimeControlUI(rightPanelLayout);
-    contentLayout->addWidget(m_timeControlPanel, 1);  // 控制面板佔較少空間
+    contentLayout->addWidget(m_timeControlPanel, 1);  // 添加伸展因子以允許縮放
     
     mainLayout->addLayout(contentLayout);
     
