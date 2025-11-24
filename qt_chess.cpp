@@ -64,9 +64,24 @@ namespace {
     const int MAX_SLIDER_HEIGHT = 80;            // 滑桿的最大高度
     const int SLIDER_HANDLE_EXTRA = 10;          // 滑桿手柄的額外空間
     const int LOW_TIME_THRESHOLD_MS = 10000;     // 低時間警告的閾值（10 秒）
+    const int MIN_PANEL_FALLBACK_WIDTH = 200;    // 面板寬度的最小後備值（像素）
     
     // PGN 格式常數
     const int PGN_MOVES_PER_LINE = 6;            // PGN 檔案中每行的移動回合數
+    
+    // 獲取面板的實際寬度，如果尚未渲染則使用後備值的輔助函數
+    int getPanelWidth(QWidget* panel) {
+        if (!panel) return 0;
+        
+        int width = panel->width();
+        if (width <= 0) {
+            width = panel->sizeHint().width();
+            if (width <= 0) {
+                width = MIN_PANEL_FALLBACK_WIDTH;
+            }
+        }
+        return width;
+    }
 }
 
 Qt_Chess::Qt_Chess(QWidget *parent)
@@ -1190,24 +1205,11 @@ void Qt_Chess::updateSquareSizes() {
     int reservedHeight = 0;
     
     // 考慮左側面板的實際寬度（棋譜面板）- 總是可見
-    if (m_moveListPanel) {
-        // 使用面板的實際寬度，如果尚未渲染則使用 sizeHint
-        int leftPanelWidth = m_moveListPanel->width();
-        if (leftPanelWidth <= 0) {
-            leftPanelWidth = m_moveListPanel->sizeHint().width();
-            if (leftPanelWidth <= 0) leftPanelWidth = 200;  // 最小後備寬度
-        }
-        reservedWidth += leftPanelWidth;
-    }
+    reservedWidth += getPanelWidth(m_moveListPanel);
     
     // 如果可見則考慮右側面板的實際寬度（時間控制面板）
     if (m_timeControlPanel && m_timeControlPanel->isVisible()) {
-        int rightPanelWidth = m_timeControlPanel->width();
-        if (rightPanelWidth <= 0) {
-            rightPanelWidth = m_timeControlPanel->sizeHint().width();
-            if (rightPanelWidth <= 0) rightPanelWidth = 200;  // 最小後備寬度
-        }
-        reservedWidth += rightPanelWidth;
+        reservedWidth += getPanelWidth(m_timeControlPanel);
     }
     
     // 添加佈局間距和邊距
