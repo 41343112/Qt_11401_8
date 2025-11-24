@@ -130,6 +130,8 @@ Qt_Chess::Qt_Chess(QWidget *parent)
     , m_isReplayMode(false)
     , m_replayMoveIndex(-1)
     , m_savedCurrentPlayer(PieceColor::White)
+    , m_whiteScoreLabel(nullptr)
+    , m_blackScoreLabel(nullptr)
 {
     ui->setupUi(this);
     setWindowTitle("國際象棋 - 雙人對弈");
@@ -419,6 +421,9 @@ void Qt_Chess::updateBoard() {
         }
     }
     
+    // 更新吃子分數顯示
+    updateScoreDisplay();
+    
     // 如果被將軍，將國王高亮為紅色
     applyCheckHighlight();
     // 如果選擇了棋子，重新應用高亮
@@ -449,6 +454,13 @@ void Qt_Chess::updateStatus() {
         m_chessBoard.setGameResult(GameResult::Draw);
         handleGameEnd();
         QMessageBox::information(this, "遊戲結束", "子力不足以將死！對局和棋。");
+    }
+}
+
+void Qt_Chess::updateScoreDisplay() {
+    if (m_whiteScoreLabel && m_blackScoreLabel) {
+        m_whiteScoreLabel->setText(QString("白方: %1").arg(m_chessBoard.getWhiteScore()));
+        m_blackScoreLabel->setText(QString("黑方: %1").arg(m_chessBoard.getBlackScore()));
     }
 }
 
@@ -1748,6 +1760,30 @@ void Qt_Chess::onFlipBoardClicked() {
 }
 
 void Qt_Chess::setupTimeControlUI(QVBoxLayout* timeControlPanelLayout) {
+    // 吃子分數群組框
+    QGroupBox* scoreGroup = new QGroupBox("吃子分數", this);
+    QVBoxLayout* scoreLayout = new QVBoxLayout(scoreGroup);
+    
+    QFont scoreFont;
+    scoreFont.setPointSize(12);
+    scoreFont.setBold(true);
+    
+    // 白方分數標籤
+    m_whiteScoreLabel = new QLabel("白方: 0", this);
+    m_whiteScoreLabel->setFont(scoreFont);
+    m_whiteScoreLabel->setAlignment(Qt::AlignCenter);
+    m_whiteScoreLabel->setStyleSheet("QLabel { padding: 5px; background-color: #f0f0f0; border-radius: 3px; }");
+    scoreLayout->addWidget(m_whiteScoreLabel);
+    
+    // 黑方分數標籤
+    m_blackScoreLabel = new QLabel("黑方: 0", this);
+    m_blackScoreLabel->setFont(scoreFont);
+    m_blackScoreLabel->setAlignment(Qt::AlignCenter);
+    m_blackScoreLabel->setStyleSheet("QLabel { padding: 5px; background-color: #f0f0f0; border-radius: 3px; }");
+    scoreLayout->addWidget(m_blackScoreLabel);
+    
+    timeControlPanelLayout->addWidget(scoreGroup, 0);  // 伸展因子 0 以保持固定大小
+    
     // 時間控制群組框
     QGroupBox* timeControlGroup = new QGroupBox("時間控制", this);
     QVBoxLayout* timeControlLayout = new QVBoxLayout(timeControlGroup);

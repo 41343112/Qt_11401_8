@@ -69,14 +69,22 @@ public:
     void setGameResult(GameResult result) { m_gameResult = result; }
     QString getGameResultString() const;
     
+    // 吃子分數管理
+    int getWhiteScore() const { return m_whiteScore; }
+    int getBlackScore() const { return m_blackScore; }
+    void resetScores();
+    
 private:
     std::vector<std::vector<ChessPiece>> m_board;
     PieceColor m_currentPlayer;
     QPoint m_enPassantTarget; // 可以進行吃過路兵的位置（如果沒有則為 -1, -1）
     std::vector<MoveRecord> m_moveHistory; // 棋步歷史記錄
     GameResult m_gameResult; // 遊戲結果
+    int m_whiteScore; // 白方吃子分數
+    int m_blackScore; // 黑方吃子分數
     
     void switchPlayer();
+    int getPieceValue(PieceType type) const;
     bool wouldBeInCheck(const QPoint& from, const QPoint& to, PieceColor color) const;
     bool hasAnyValidMoves(PieceColor color) const;
     bool canPieceMove(const QPoint& pos) const;

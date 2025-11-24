@@ -138,6 +138,10 @@ private:
     std::vector<std::vector<ChessPiece>> m_savedBoardState;  // 儲存進入回放前的棋盤狀態
     PieceColor m_savedCurrentPlayer;  // 儲存進入回放前的當前玩家
     
+    // 吃子分數顯示
+    QLabel* m_whiteScoreLabel;
+    QLabel* m_blackScoreLabel;
+    
     void setupUI();
     void setupMenuBar();
     void updateBoard();
@@ -192,6 +196,9 @@ private:
     int calculateTimeFromSliderValue(int value) const;  // 根據滑桿值計算時間（毫秒）的輔助函數
     QString getTimeTextFromSliderValue(int value) const;  // 根據滑桿值取得顯示文字的輔助函數
     void setRightPanelStretch(int stretch);  // 設置右側面板伸展因子的輔助函數
+    
+    // 吃子分數功能
+    void updateScoreDisplay();  // 更新分數顯示的輔助函數
     
     // 棋譜功能
     void updateMoveList();

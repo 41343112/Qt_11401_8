@@ -1,7 +1,7 @@
 #include "chessboard.h"
 
 ChessBoard::ChessBoard()
-    : m_board(8, std::vector<ChessPiece>(8)), m_currentPlayer(PieceColor::White), m_enPassantTarget(-1, -1), m_gameResult(GameResult::InProgress)
+    : m_board(8, std::vector<ChessPiece>(8)), m_currentPlayer(PieceColor::White), m_enPassantTarget(-1, -1), m_gameResult(GameResult::InProgress), m_whiteScore(0), m_blackScore(0)
 {
     initializeBoard();
 }
@@ -46,6 +46,8 @@ void ChessBoard::initializeBoard() {
     m_enPassantTarget = QPoint(-1, -1);
     m_moveHistory.clear();
     m_gameResult = GameResult::InProgress;
+    m_whiteScore = 0;
+    m_blackScore = 0;
 }
 
 const ChessPiece& ChessBoard::getPiece(int row, int col) const {
@@ -178,6 +180,14 @@ bool ChessBoard::movePiece(const QPoint& from, const QPoint& to) {
     bool isCastling = (pieceType == PieceType::King && abs(to.x() - from.x()) == 2);
     bool isEnPassant = (pieceType == PieceType::Pawn && to == m_enPassantTarget && m_enPassantTarget.x() >= 0);
     
+    // 記錄被吃的棋子以計算分數
+    PieceType capturedPieceType = PieceType::None;
+    if (isCapture && !isEnPassant) {
+        capturedPieceType = m_board[to.y()][to.x()].getType();
+    } else if (isEnPassant) {
+        capturedPieceType = PieceType::Pawn;
+    }
+    
     if (isEnPassant) {
         isCapture = true;  // 吃過路兵也是吃子
     }
@@ -224,6 +234,16 @@ bool ChessBoard::movePiece(const QPoint& from, const QPoint& to) {
     m_board[to.y()][to.x()] = piece;
     m_board[to.y()][to.x()].setMoved(true);
     m_board[from.y()][from.x()] = ChessPiece(PieceType::None, PieceColor::None);
+    
+    // 更新吃子分數
+    if (capturedPieceType != PieceType::None) {
+        int pieceValue = getPieceValue(capturedPieceType);
+        if (pieceColor == PieceColor::White) {
+            m_whiteScore += pieceValue;
+        } else {
+            m_blackScore += pieceValue;
+        }
+    }
     
     // 記錄移動（在切換玩家之前，因為 recordMove 需要檢查對手是否被將軍）
     recordMove(from, to, isCapture, isCastling, isEnPassant);
@@ -611,4 +631,28 @@ QString ChessBoard::getGameResultString() const {
         default:
             return "*";
     }
+}
+
+int ChessBoard::getPieceValue(PieceType type) const {
+    switch (type) {
+        case PieceType::Pawn:
+            return 1;
+        case PieceType::Knight:
+            return 3;
+        case PieceType::Bishop:
+            return 3;
+        case PieceType::Rook:
+            return 5;
+        case PieceType::Queen:
+            return 9;
+        case PieceType::King:
+            return 0; // 國王不計分
+        default:
+            return 0;
+    }
+}
+
+void ChessBoard::resetScores() {
+    m_whiteScore = 0;
+    m_blackScore = 0;
 }
