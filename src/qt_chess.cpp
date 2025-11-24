@@ -300,7 +300,7 @@ void Qt_Chess::setupUI() {
     m_whiteCapturedLabel->setFont(capturedFont);
     m_whiteCapturedLabel->setAlignment(Qt::AlignCenter);
     m_whiteCapturedLabel->setWordWrap(true);
-    m_whiteCapturedLabel->setStyleSheet("QLabel { background-color: rgba(255, 255, 255, 150); color: #000; padding: 5px; border-radius: 3px; }");
+    m_whiteCapturedLabel->setStyleSheet("QLabel { color: #000; padding: 5px; }");
     m_whiteCapturedLabel->setMinimumSize(100, 30);
     m_whiteCapturedLabel->hide();  // 初始隱藏
     leftLayout->addWidget(m_whiteCapturedLabel);
@@ -363,7 +363,7 @@ void Qt_Chess::setupUI() {
     m_blackCapturedLabel->setFont(capturedFont);
     m_blackCapturedLabel->setAlignment(Qt::AlignCenter);
     m_blackCapturedLabel->setWordWrap(true);
-    m_blackCapturedLabel->setStyleSheet("QLabel { background-color: rgba(0, 0, 0, 150); color: #FFF; padding: 5px; border-radius: 3px; }");
+    m_blackCapturedLabel->setStyleSheet("QLabel { color: #FFF; padding: 5px; }");
     m_blackCapturedLabel->setMinimumSize(100, 30);
     m_blackCapturedLabel->hide();  // 初始隱藏
     rightLayout->addWidget(m_blackCapturedLabel);
