@@ -132,6 +132,8 @@ Qt_Chess::Qt_Chess(QWidget *parent)
     , m_savedCurrentPlayer(PieceColor::White)
     , m_whiteScoreLabel(nullptr)
     , m_blackScoreLabel(nullptr)
+    , m_whiteCapturedPiecesLabel(nullptr)
+    , m_blackCapturedPiecesLabel(nullptr)
 {
     ui->setupUi(this);
     setWindowTitle("國際象棋 - 雙人對弈");
@@ -274,14 +276,38 @@ void Qt_Chess::setupUI() {
     timeFont.setPointSize(14);
     timeFont.setBold(true);
     
+    // 被吃棋子顯示字體
+    QFont capturedPiecesFont;
+    capturedPiecesFont.setPointSize(16);
+    
+    // 左側面板（黑方時間和被吃棋子）
+    QWidget* leftPanel = new QWidget(m_boardContainer);
+    QVBoxLayout* leftPanelLayout = new QVBoxLayout(leftPanel);
+    leftPanelLayout->setContentsMargins(0, 0, 0, 0);
+    leftPanelLayout->setSpacing(5);
+    
     // 黑方時間標籤（左側 - 對手的時間）- 初始隱藏
-    m_blackTimeLabel = new QLabel("--:--", m_boardContainer);
+    m_blackTimeLabel = new QLabel("--:--", leftPanel);
     m_blackTimeLabel->setFont(timeFont);
     m_blackTimeLabel->setAlignment(Qt::AlignCenter);
     m_blackTimeLabel->setStyleSheet("QLabel { background-color: rgba(51, 51, 51, 200); color: #FFF; padding: 8px; border-radius: 5px; }");
     m_blackTimeLabel->setMinimumSize(100, 40);
     m_blackTimeLabel->hide();  // 初始隱藏
-    boardContainerLayout->addWidget(m_blackTimeLabel, 0, Qt::AlignTop);
+    leftPanelLayout->addWidget(m_blackTimeLabel, 0, Qt::AlignTop);
+    
+    // 黑方被吃棋子標籤（顯示在黑方時間下面）
+    m_blackCapturedPiecesLabel = new QLabel("", leftPanel);
+    m_blackCapturedPiecesLabel->setFont(capturedPiecesFont);
+    m_blackCapturedPiecesLabel->setAlignment(Qt::AlignCenter);
+    m_blackCapturedPiecesLabel->setStyleSheet("QLabel { background-color: rgba(255, 255, 255, 180); color: #000; padding: 5px; border-radius: 3px; }");
+    m_blackCapturedPiecesLabel->setWordWrap(true);
+    m_blackCapturedPiecesLabel->setMinimumSize(100, 20);
+    m_blackCapturedPiecesLabel->hide();  // 初始隱藏
+    leftPanelLayout->addWidget(m_blackCapturedPiecesLabel, 0, Qt::AlignTop);
+    
+    leftPanelLayout->addStretch(1);  // 添加伸展以將內容推到頂部
+    
+    boardContainerLayout->addWidget(leftPanel, 0, Qt::AlignTop);
     
     // 國際象棋棋盤
     m_boardWidget = new QWidget(m_boardContainer);
@@ -325,14 +351,34 @@ void Qt_Chess::setupUI() {
     // 而時間標籤（伸展因子 0）保持其最小大小
     boardContainerLayout->addWidget(m_boardWidget, 1, Qt::AlignCenter);
     
+    // 右側面板（白方被吃棋子和時間）
+    QWidget* rightPanel = new QWidget(m_boardContainer);
+    QVBoxLayout* rightPanelLayout = new QVBoxLayout(rightPanel);
+    rightPanelLayout->setContentsMargins(0, 0, 0, 0);
+    rightPanelLayout->setSpacing(5);
+    
+    rightPanelLayout->addStretch(1);  // 添加伸展以將內容推到底部
+    
+    // 白方被吃棋子標籤（顯示在白方時間上面）
+    m_whiteCapturedPiecesLabel = new QLabel("", rightPanel);
+    m_whiteCapturedPiecesLabel->setFont(capturedPiecesFont);
+    m_whiteCapturedPiecesLabel->setAlignment(Qt::AlignCenter);
+    m_whiteCapturedPiecesLabel->setStyleSheet("QLabel { background-color: rgba(255, 255, 255, 180); color: #000; padding: 5px; border-radius: 3px; }");
+    m_whiteCapturedPiecesLabel->setWordWrap(true);
+    m_whiteCapturedPiecesLabel->setMinimumSize(100, 20);
+    m_whiteCapturedPiecesLabel->hide();  // 初始隱藏
+    rightPanelLayout->addWidget(m_whiteCapturedPiecesLabel, 0, Qt::AlignBottom);
+    
     // 白方時間標籤（右側 - 玩家的時間）- 初始隱藏
-    m_whiteTimeLabel = new QLabel("--:--", m_boardContainer);
+    m_whiteTimeLabel = new QLabel("--:--", rightPanel);
     m_whiteTimeLabel->setFont(timeFont);
     m_whiteTimeLabel->setAlignment(Qt::AlignCenter);
     m_whiteTimeLabel->setStyleSheet("QLabel { background-color: rgba(51, 51, 51, 200); color: #FFF; padding: 8px; border-radius: 5px; }");
     m_whiteTimeLabel->setMinimumSize(100, 40);
     m_whiteTimeLabel->hide();  // 初始隱藏
-    boardContainerLayout->addWidget(m_whiteTimeLabel, 0, Qt::AlignBottom);
+    rightPanelLayout->addWidget(m_whiteTimeLabel, 0, Qt::AlignBottom);
+    
+    boardContainerLayout->addWidget(rightPanel, 0, Qt::AlignBottom);
     
     // 將棋盤容器添加到內容佈局，設置為 0 伸展因子並居中對齊以保持棋盤居中
     m_contentLayout->addWidget(m_boardContainer, 0, Qt::AlignCenter);
@@ -424,6 +470,9 @@ void Qt_Chess::updateBoard() {
     // 更新吃子分數顯示
     updateScoreDisplay();
     
+    // 更新被吃棋子顯示
+    updateCapturedPiecesDisplay();
+    
     // 如果被將軍，將國王高亮為紅色
     applyCheckHighlight();
     // 如果選擇了棋子，重新應用高亮
@@ -461,6 +510,45 @@ void Qt_Chess::updateScoreDisplay() {
     if (m_whiteScoreLabel && m_blackScoreLabel) {
         m_whiteScoreLabel->setText(QString("白方: %1").arg(m_chessBoard.getWhiteScore()));
         m_blackScoreLabel->setText(QString("黑方: %1").arg(m_chessBoard.getBlackScore()));
+    }
+}
+
+void Qt_Chess::updateCapturedPiecesDisplay() {
+    if (!m_whiteCapturedPiecesLabel || !m_blackCapturedPiecesLabel) {
+        return;
+    }
+    
+    // 獲取白方吃掉的棋子（顯示在白方時間上面）
+    const std::vector<PieceType>& whiteCaptured = m_chessBoard.getWhiteCapturedPieces();
+    QString whiteCapturedText;
+    for (PieceType pieceType : whiteCaptured) {
+        ChessPiece piece(pieceType, PieceColor::Black);  // 白方吃掉的是黑方的棋子
+        whiteCapturedText += piece.getSymbol();
+    }
+    
+    // 獲取黑方吃掉的棋子（顯示在黑方時間下面）
+    const std::vector<PieceType>& blackCaptured = m_chessBoard.getBlackCapturedPieces();
+    QString blackCapturedText;
+    for (PieceType pieceType : blackCaptured) {
+        ChessPiece piece(pieceType, PieceColor::White);  // 黑方吃掉的是白方的棋子
+        blackCapturedText += piece.getSymbol();
+    }
+    
+    // 更新標籤
+    m_whiteCapturedPiecesLabel->setText(whiteCapturedText);
+    m_blackCapturedPiecesLabel->setText(blackCapturedText);
+    
+    // 控制標籤的可見性
+    if (whiteCapturedText.isEmpty()) {
+        m_whiteCapturedPiecesLabel->hide();
+    } else {
+        m_whiteCapturedPiecesLabel->show();
+    }
+    
+    if (blackCapturedText.isEmpty()) {
+        m_blackCapturedPiecesLabel->hide();
+    } else {
+        m_blackCapturedPiecesLabel->show();
     }
 }
 

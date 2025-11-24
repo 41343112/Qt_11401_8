@@ -74,6 +74,10 @@ public:
     int getBlackScore() const { return m_blackScore; }
     void resetScores();
     
+    // 被吃的棋子列表
+    const std::vector<PieceType>& getWhiteCapturedPieces() const { return m_whiteCapturedPieces; }
+    const std::vector<PieceType>& getBlackCapturedPieces() const { return m_blackCapturedPieces; }
+    
 private:
     std::vector<std::vector<ChessPiece>> m_board;
     PieceColor m_currentPlayer;
@@ -82,6 +86,8 @@ private:
     GameResult m_gameResult; // 遊戲結果
     int m_whiteScore; // 白方吃子分數
     int m_blackScore; // 黑方吃子分數
+    std::vector<PieceType> m_whiteCapturedPieces; // 白方吃掉的棋子列表
+    std::vector<PieceType> m_blackCapturedPieces; // 黑方吃掉的棋子列表
     
     void switchPlayer();
     int getPieceValue(PieceType type) const;

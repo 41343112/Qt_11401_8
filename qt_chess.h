@@ -142,6 +142,10 @@ private:
     QLabel* m_whiteScoreLabel;
     QLabel* m_blackScoreLabel;
     
+    // 被吃棋子顯示
+    QLabel* m_whiteCapturedPiecesLabel;  // 白方吃掉的棋子（顯示在白方時間上面）
+    QLabel* m_blackCapturedPiecesLabel;  // 黑方吃掉的棋子（顯示在黑方時間下面）
+    
     void setupUI();
     void setupMenuBar();
     void updateBoard();
@@ -199,6 +203,7 @@ private:
     
     // 吃子分數功能
     void updateScoreDisplay();  // 更新分數顯示的輔助函數
+    void updateCapturedPiecesDisplay();  // 更新被吃棋子顯示的輔助函數
     
     // 棋譜功能
     void updateMoveList();
