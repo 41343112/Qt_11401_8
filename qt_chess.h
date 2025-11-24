@@ -204,6 +204,7 @@ private:
     // 吃子分數功能
     void updateScoreDisplay();  // 更新分數顯示的輔助函數
     void updateCapturedPiecesDisplay();  // 更新被吃棋子顯示的輔助函數
+    int getPieceValue(PieceType type) const;  // 取得棋子價值的輔助函數
     
     // 棋譜功能
     void updateMoveList();
