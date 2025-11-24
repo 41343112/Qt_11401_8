@@ -164,14 +164,15 @@ $ qmake Qt_Chess.pro && make
 ## Future Considerations
 
 ### Potential Enhancements
-1. Make right panel also scalable (currently fixed max width)
+1. ~~Make right panel also scalable (currently fixed max width)~~ **COMPLETED**
 2. Add user preferences for panel sizes
 3. Implement panel resize handles for manual adjustment
 4. Add min/max width constraints based on content
 
 ### Maintenance Notes
-- `LEFT_PANEL_MAX_WIDTH` constant still defined but unused
-- Consider removing in future cleanup
+- ~~`LEFT_PANEL_MAX_WIDTH` constant still defined but unused~~ **REMOVED**
+- ~~Consider removing in future cleanup~~ **COMPLETED**
+- ~~`RIGHT_PANEL_MAX_WIDTH` also removed as right panel now scales~~ **COMPLETED**
 - Helper function pattern can be applied to other widgets
 - Documentation template useful for future features
 
