@@ -104,7 +104,7 @@ def calculate_positions(pieces):
         positions: 每個棋子的left值列表 (list of left values)
     """
     PIECE_WIDTH = 18
-    OVERLAP_OFFSET = 8
+    OVERLAP_OFFSET = 9  # 蓋住舊子一半
     
     positions = []
     last_type = None
@@ -112,7 +112,7 @@ def calculate_positions(pieces):
     
     for i, piece_type in enumerate(pieces):
         if piece_type == last_type:
-            # 相同類型: 重疊
+            # 相同類型: 重疊一半
             current_left += (PIECE_WIDTH - OVERLAP_OFFSET)
         else:
             last_type = piece_type
@@ -129,7 +129,7 @@ def test_single_type():
     """測試單一類型重複"""
     pieces = ['Pawn', 'Pawn', 'Pawn']
     positions = calculate_positions(pieces)
-    expected = [0, 10, 20]
+    expected = [0, 9, 18]
     assert positions == expected, f"Failed: {positions} != {expected}"
     print("✅ Test 1 passed: Single type repetition")
 
@@ -138,7 +138,7 @@ def test_mixed_types():
     """測試混合類型"""
     pieces = ['Pawn', 'Pawn', 'Knight', 'Knight']
     positions = calculate_positions(pieces)
-    expected = [0, 10, 28, 38]
+    expected = [0, 9, 27, 36]
     assert positions == expected, f"Failed: {positions} != {expected}"
     print("✅ Test 2 passed: Mixed types")
 
@@ -156,7 +156,7 @@ def test_all_same():
     """測試全部相同"""
     pieces = ['Queen'] * 5
     positions = calculate_positions(pieces)
-    expected = [0, 10, 20, 30, 40]
+    expected = [0, 9, 18, 27, 36]
     assert positions == expected, f"Failed: {positions} != {expected}"
     print("✅ Test 4 passed: All same type")
 

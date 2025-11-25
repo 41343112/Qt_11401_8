@@ -2044,7 +2044,7 @@ QString Qt_Chess::renderCapturedPieces(const std::vector<PieceType>& pieces, Pie
     
     // 棋子顯示常數
     const int PIECE_WIDTH = 18;        // 棋子圖示寬度（像素）
-    const int OVERLAP_OFFSET = 8;      // 相同類型棋子的重疊偏移量（像素）
+    const int OVERLAP_OFFSET = 9;      // 相同類型棋子的重疊偏移量（像素），即蓋住舊子一半
     const int CONTAINER_HEIGHT = 20;   // 容器高度（像素）
     
     // 使用圖標或符號顯示吃掉的棋子

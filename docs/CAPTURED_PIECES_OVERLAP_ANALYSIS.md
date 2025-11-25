@@ -89,7 +89,7 @@ According to Qt's official documentation, QTextDocument has limited CSS property
 ```cpp
 // 新方法 - 使用絕對定位 (New approach - using absolute positioning)
 const int PIECE_WIDTH = 18;        // 棋子寬度
-const int OVERLAP_OFFSET = 8;      // 重疊偏移量
+const int OVERLAP_OFFSET = 9;      // 重疊偏移量（蓋住舊子一半）
 const int CONTAINER_HEIGHT = 20;   // 容器高度
 
 QString html = "<html><body style='margin:0; padding:0;'>";
@@ -104,7 +104,7 @@ for (size_t i = 0; i < pieces.size(); ++i) {
     
     // 檢查是否是相同類型的棋子
     if (type == lastPieceType) {
-        // 相同類型: 向前移動 (PIECE_WIDTH - OVERLAP_OFFSET) = 10px
+        // 相同類型: 向前移動 (PIECE_WIDTH - OVERLAP_OFFSET) = 9px
         currentLeft += (PIECE_WIDTH - OVERLAP_OFFSET);
     } else {
         lastPieceType = type;
@@ -132,9 +132,9 @@ html += "</div></body></html>";
 #### 2. 明確的位置計算 (Explicit Position Calculation)
 ```
 棋子 #1 (兵):   left: 0px
-棋子 #2 (兵):   left: 0 + 10 = 10px     (與#1重疊8px)
-棋子 #3 (騎士): left: 10 + 18 = 28px    (與#2不重疊)
-棋子 #4 (騎士): left: 28 + 10 = 38px    (與#3重疊8px)
+棋子 #2 (兵):   left: 0 + 9 = 9px       (與#1重疊9px，蓋住一半)
+棋子 #3 (騎士): left: 9 + 18 = 27px     (與#2不重疊)
+棋子 #4 (騎士): left: 27 + 9 = 36px     (與#3重疊9px，蓋住一半)
 ```
 
 #### 3. 相對容器 (Relative Container)
@@ -158,11 +158,11 @@ html += "</div></body></html>";
 ```
 位置計算:
   Pawn:   left: 0px     → 0px
-  Pawn:   left: 10px    → 10px   (重疊!)
-  Knight: left: 28px    → 28px
-  Knight: left: 38px    → 38px   (重疊!)
+  Pawn:   left: 9px     → 9px    (重疊一半!)
+  Knight: left: 27px    → 27px
+  Knight: left: 36px    → 36px   (重疊一半!)
   
-渲染結果: ♟♟  ♞♞ (相同類型重疊，不同類型分開)
+渲染結果: ♟♟  ♞♞ (相同類型重疊一半，不同類型分開)
 ```
 
 ## 技術深入探討 (Technical Deep Dive)

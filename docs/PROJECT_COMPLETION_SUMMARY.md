@@ -42,7 +42,7 @@ Qt's QTextDocument doesn't support negative CSS margins (`margin-left: -8px`), w
 int currentLeft = 0;
 for (each piece) {
     if (same_type) {
-        currentLeft += (PIECE_WIDTH - OVERLAP_OFFSET);  // 10px - 重疊
+        currentLeft += (PIECE_WIDTH - OVERLAP_OFFSET);  // 9px - 重疊一半
     } else {
         currentLeft += PIECE_WIDTH;  // 18px - 不重疊
     }
@@ -105,16 +105,16 @@ for (each piece) {
 ```
 常數 (Constants):
   PIECE_WIDTH = 18px        (棋子寬度)
-  OVERLAP_OFFSET = 8px      (重疊偏移量)
+  OVERLAP_OFFSET = 9px      (重疊偏移量，蓋住一半)
   CONTAINER_HEIGHT = 20px   (容器高度)
 
 計算規則 (Calculation Rules):
-  相同類型 (Same type):    currentLeft += 10px  (重疊8px)
+  相同類型 (Same type):    currentLeft += 9px  (重疊9px，蓋住一半)
   不同類型 (Different type): currentLeft += 18px  (不重疊)
 
 範例 (Example):
   [Pawn, Pawn, Knight, Knight]
-  → [0px, 10px, 28px, 38px]
+  → [0px, 9px, 27px, 36px]
      └重疊┘    └無重疊┘ └重疊┘
 ```
 

@@ -109,14 +109,14 @@ for (auto piece : pieces) {
 
 ```cpp
 const int PIECE_WIDTH = 18;        // 棋子圖示寬度（像素）
-const int OVERLAP_OFFSET = 8;      // 重疊偏移量（像素）
+const int OVERLAP_OFFSET = 9;      // 重疊偏移量（像素），蓋住舊子一半
 const int CONTAINER_HEIGHT = 20;   // 容器高度（像素）
 ```
 
 ## 位置計算公式 (Position Calculation Formula)
 
 ```
-相同類型: currentLeft += (PIECE_WIDTH - OVERLAP_OFFSET) = 10px
+相同類型: currentLeft += (PIECE_WIDTH - OVERLAP_OFFSET) = 9px
 不同類型: currentLeft += PIECE_WIDTH = 18px
 ```
 

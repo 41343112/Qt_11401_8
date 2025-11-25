@@ -22,14 +22,14 @@ html += QString("<span style='margin-left: %1px; ...'>...</span>")
 ### 修改後 (After)
 ```cpp
 const int PIECE_WIDTH = 18;        // 棋子寬度
-const int OVERLAP_OFFSET = 8;      // 重疊偏移量
+const int OVERLAP_OFFSET = 9;      // 重疊偏移量（蓋住舊子一半）
 const int CONTAINER_HEIGHT = 20;   // 容器高度
 
 int currentLeft = 0;  // 追蹤水平位置
 
 // 相同類型的棋子重疊
 if (type == lastPieceType) {
-    currentLeft += (PIECE_WIDTH - OVERLAP_OFFSET);  // 10px
+    currentLeft += (PIECE_WIDTH - OVERLAP_OFFSET);  // 9px
 }
 // 不同類型的棋子不重疊
 else if (i > 0) {
@@ -50,13 +50,13 @@ html += "</div>";
 
 ### 棋子尺寸 (Piece Dimensions)
 - **PIECE_WIDTH**: 18px (棋子圖示寬度)
-- **OVERLAP_OFFSET**: 8px (重疊偏移量)
+- **OVERLAP_OFFSET**: 9px (重疊偏移量，蓋住舊子一半)
 - **CONTAINER_HEIGHT**: 20px (容器高度)
 
 ### 位置計算 (Position Calculation)
 1. **相同類型的棋子 (Same-type pieces)**: 
-   - 間距 = PIECE_WIDTH - OVERLAP_OFFSET = 10px
-   - 視覺效果：重疊 8px
+   - 間距 = PIECE_WIDTH - OVERLAP_OFFSET = 9px
+   - 視覺效果：重疊 9px（蓋住舊子一半）
 
 2. **不同類型的棋子 (Different-type pieces)**:
    - 間距 = PIECE_WIDTH = 18px
@@ -69,9 +69,9 @@ Input: [Pawn, Pawn, Knight, Knight]
 輸出位置 (Output positions):
 ```
 Pawn 1:   left:0px
-Pawn 2:   left:10px   (與 Pawn 1 重疊 8px)
-Knight 1: left:28px   (與 Pawn 2 不重疊，28 = 10 + 18)
-Knight 2: left:38px   (與 Knight 1 重疊 8px，38 = 28 + 10)
+Pawn 2:   left:9px    (與 Pawn 1 重疊 9px，即蓋住一半)
+Knight 1: left:27px   (與 Pawn 2 不重疊，27 = 9 + 18)
+Knight 2: left:36px   (與 Knight 1 重疊 9px，36 = 27 + 9)
 ```
 
 ## 修改的檔案 (Modified Files)
