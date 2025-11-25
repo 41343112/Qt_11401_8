@@ -200,7 +200,7 @@ private:
     // 吃子顯示功能
     void updateCapturedPiecesDisplay();  // 更新吃子顯示
     int getPieceValue(PieceType type) const;  // 取得棋子價值
-    QString renderCapturedPieces(const std::vector<PieceType>& pieces, PieceColor capturedColor, int& materialAdvantage) const;  // 渲染吃子顯示
+    QString renderCapturedPieces(const std::vector<PieceType>& pieces, PieceColor capturedColor, int& materialAdvantage, bool reverseOrder = false) const;  // 渲染吃子顯示
     
     // 棋譜功能
     void updateMoveList();
