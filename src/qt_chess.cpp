@@ -25,6 +25,7 @@
 #include <QTextStream>
 #include <QClipboard>
 #include <QApplication>
+#include <algorithm>
 
 namespace {
 const QString CHECK_HIGHLIGHT_STYLE = "QPushButton { background-color: #FF6B6B; border: 2px solid #FF0000; }";
@@ -2412,16 +2413,26 @@ void Qt_Chess::updateCapturedPiecesDisplay() {
 
     // 被吃掉棋子的大小和間距設定
     const int pieceSize = 24;  // 每個棋子標籤的大小
-    const int overlapOffset = pieceSize / 4;  // 重疊偏移量（覆蓋前一個棋子的一半）
+    const int sameTypeOffset = pieceSize / 4;  // 相同類型棋子的重疊偏移量
+    const int diffTypeOffset = pieceSize;  // 不同類型棋子之間的間距（不重疊）
 
-    // 顯示被吃掉的白色棋子
-    if (m_capturedWhitePanel) {
-        const std::vector<ChessPiece>& capturedWhite = m_chessBoard.getCapturedPieces(PieceColor::White);
+    // 按棋子類型分組並顯示的輔助函數
+    auto displayCapturedPieces = [pieceSize, sameTypeOffset, diffTypeOffset](
+        QWidget* panel, const std::vector<ChessPiece>& capturedPieces, QList<QLabel*>& labels) {
+        if (!panel || capturedPieces.empty()) return;
+
+        // 複製並按棋子類型排序，確保相同類型的棋子放在一起
+        std::vector<ChessPiece> sortedPieces = capturedPieces;
+        std::sort(sortedPieces.begin(), sortedPieces.end(), [](const ChessPiece& a, const ChessPiece& b) {
+            return static_cast<int>(a.getType()) < static_cast<int>(b.getType());
+        });
+
         int xPos = 5;  // 起始 x 位置
+        PieceType lastType = PieceType::None;
 
-        for (size_t i = 0; i < capturedWhite.size(); ++i) {
-            const ChessPiece& piece = capturedWhite[i];
-            QLabel* label = new QLabel(m_capturedWhitePanel);
+        for (size_t i = 0; i < sortedPieces.size(); ++i) {
+            const ChessPiece& piece = sortedPieces[i];
+            QLabel* label = new QLabel(panel);
             label->setText(piece.getSymbol());
             QFont pieceFont;
             pieceFont.setPointSize(16);
@@ -2429,37 +2440,36 @@ void Qt_Chess::updateCapturedPiecesDisplay() {
             label->setFixedSize(pieceSize, pieceSize);
             label->setAlignment(Qt::AlignCenter);
 
+            // 如果不是第一個棋子，根據類型決定間距
+            if (lastType != PieceType::None) {
+                if (piece.getType() == lastType) {
+                    // 相同類型的棋子可以重疊
+                    xPos += sameTypeOffset;
+                } else {
+                    // 不同類型的棋子之間需要間距，不能重疊
+                    xPos += diffTypeOffset;
+                }
+            }
+
             // 放置棋子標籤
             label->move(xPos, 3);
-            xPos += overlapOffset;  // 下一個棋子的位置（半重疊）
+            lastType = piece.getType();
 
             label->show();
-            m_capturedWhiteLabels.append(label);
+            labels.append(label);
         }
+    };
+
+    // 顯示被吃掉的白色棋子
+    if (m_capturedWhitePanel) {
+        const std::vector<ChessPiece>& capturedWhite = m_chessBoard.getCapturedPieces(PieceColor::White);
+        displayCapturedPieces(m_capturedWhitePanel, capturedWhite, m_capturedWhiteLabels);
     }
 
     // 顯示被吃掉的黑色棋子
     if (m_capturedBlackPanel) {
         const std::vector<ChessPiece>& capturedBlack = m_chessBoard.getCapturedPieces(PieceColor::Black);
-        int xPos = 5;  // 起始 x 位置
-
-        for (size_t i = 0; i < capturedBlack.size(); ++i) {
-            const ChessPiece& piece = capturedBlack[i];
-            QLabel* label = new QLabel(m_capturedBlackPanel);
-            label->setText(piece.getSymbol());
-            QFont pieceFont;
-            pieceFont.setPointSize(16);
-            label->setFont(pieceFont);
-            label->setFixedSize(pieceSize, pieceSize);
-            label->setAlignment(Qt::AlignCenter);
-
-            // 放置棋子標籤
-            label->move(xPos, 3);
-            xPos += overlapOffset;  // 下一個棋子的位置（半重疊）
-
-            label->show();
-            m_capturedBlackLabels.append(label);
-        }
+        displayCapturedPieces(m_capturedBlackPanel, capturedBlack, m_capturedBlackLabels);
     }
 }
 
