@@ -318,6 +318,7 @@ void Qt_Chess::setupUI() {
     m_contentLayout->addWidget(m_boardContainer, 2, Qt::AlignCenter);
 
     // 右側時間和被吃棋子面板（在棋盤和時間控制之間）
+    // 佈局順序：上方被吃棋子 -> 時間顯示（中間）-> 下方被吃棋子
     m_rightTimePanel = new QWidget(this);
     m_rightTimePanel->setMinimumWidth(100);
     m_rightTimePanel->setMaximumWidth(150);
@@ -330,16 +331,7 @@ void Qt_Chess::setupUI() {
     timeFont.setPointSize(14);
     timeFont.setBold(true);
 
-    // 黑方時間標籤（上方）- 初始隱藏
-    m_blackTimeLabel = new QLabel("--:--", m_rightTimePanel);
-    m_blackTimeLabel->setFont(timeFont);
-    m_blackTimeLabel->setAlignment(Qt::AlignCenter);
-    m_blackTimeLabel->setStyleSheet("QLabel { background-color: rgba(51, 51, 51, 200); color: #FFF; padding: 8px; border-radius: 5px; }");
-    m_blackTimeLabel->setMinimumSize(100, 40);
-    m_blackTimeLabel->hide();  // 初始隱藏
-    rightTimePanelLayout->addWidget(m_blackTimeLabel, 0, Qt::AlignTop);
-
-    // 被吃掉的黑色棋子面板（黑方時間下方）
+    // 被吃掉的黑色棋子標題和面板（上方）
     QLabel* capturedBlackTitle = new QLabel("被吃黑子", m_rightTimePanel);
     capturedBlackTitle->setAlignment(Qt::AlignCenter);
     QFont capturedFont;
@@ -353,10 +345,31 @@ void Qt_Chess::setupUI() {
     m_capturedBlackPanel->setMaximumHeight(60);
     rightTimePanelLayout->addWidget(m_capturedBlackPanel);
 
-    // 添加伸展以將上下部分分開
+    // 添加伸展以將上方被吃棋子和時間顯示分開
     rightTimePanelLayout->addStretch(1);
 
-    // 被吃掉的白色棋子面板（白方時間上方）
+    // 黑方時間標籤（中間偏上）- 初始隱藏
+    m_blackTimeLabel = new QLabel("--:--", m_rightTimePanel);
+    m_blackTimeLabel->setFont(timeFont);
+    m_blackTimeLabel->setAlignment(Qt::AlignCenter);
+    m_blackTimeLabel->setStyleSheet("QLabel { background-color: rgba(51, 51, 51, 200); color: #FFF; padding: 8px; border-radius: 5px; }");
+    m_blackTimeLabel->setMinimumSize(100, 40);
+    m_blackTimeLabel->hide();  // 初始隱藏
+    rightTimePanelLayout->addWidget(m_blackTimeLabel, 0, Qt::AlignCenter);
+
+    // 白方時間標籤（中間偏下）- 初始隱藏
+    m_whiteTimeLabel = new QLabel("--:--", m_rightTimePanel);
+    m_whiteTimeLabel->setFont(timeFont);
+    m_whiteTimeLabel->setAlignment(Qt::AlignCenter);
+    m_whiteTimeLabel->setStyleSheet("QLabel { background-color: rgba(51, 51, 51, 200); color: #FFF; padding: 8px; border-radius: 5px; }");
+    m_whiteTimeLabel->setMinimumSize(100, 40);
+    m_whiteTimeLabel->hide();  // 初始隱藏
+    rightTimePanelLayout->addWidget(m_whiteTimeLabel, 0, Qt::AlignCenter);
+
+    // 添加伸展以將時間顯示和下方被吃棋子分開
+    rightTimePanelLayout->addStretch(1);
+
+    // 被吃掉的白色棋子標題和面板（下方）
     QLabel* capturedWhiteTitle = new QLabel("被吃白子", m_rightTimePanel);
     capturedWhiteTitle->setAlignment(Qt::AlignCenter);
     capturedWhiteTitle->setFont(capturedFont);
@@ -366,15 +379,6 @@ void Qt_Chess::setupUI() {
     m_capturedWhitePanel->setMinimumHeight(30);
     m_capturedWhitePanel->setMaximumHeight(60);
     rightTimePanelLayout->addWidget(m_capturedWhitePanel);
-
-    // 白方時間標籤（下方）- 初始隱藏
-    m_whiteTimeLabel = new QLabel("--:--", m_rightTimePanel);
-    m_whiteTimeLabel->setFont(timeFont);
-    m_whiteTimeLabel->setAlignment(Qt::AlignCenter);
-    m_whiteTimeLabel->setStyleSheet("QLabel { background-color: rgba(51, 51, 51, 200); color: #FFF; padding: 8px; border-radius: 5px; }");
-    m_whiteTimeLabel->setMinimumSize(100, 40);
-    m_whiteTimeLabel->hide();  // 初始隱藏
-    rightTimePanelLayout->addWidget(m_whiteTimeLabel, 0, Qt::AlignBottom);
 
     // 將右側時間面板添加到內容佈局
     m_contentLayout->addWidget(m_rightTimePanel, 0);
