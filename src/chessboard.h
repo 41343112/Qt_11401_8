@@ -69,12 +69,18 @@ public:
     void setGameResult(GameResult result) { m_gameResult = result; }
     QString getGameResultString() const;
     
+    // 被吃掉的棋子追蹤
+    const std::vector<ChessPiece>& getCapturedPieces(PieceColor color) const;
+    void clearCapturedPieces();
+    
 private:
     std::vector<std::vector<ChessPiece>> m_board;
     PieceColor m_currentPlayer;
     QPoint m_enPassantTarget; // 可以進行吃過路兵的位置（如果沒有則為 -1, -1）
     std::vector<MoveRecord> m_moveHistory; // 棋步歷史記錄
     GameResult m_gameResult; // 遊戲結果
+    std::vector<ChessPiece> m_capturedWhite; // 被吃掉的白色棋子
+    std::vector<ChessPiece> m_capturedBlack; // 被吃掉的黑色棋子
     
     void switchPlayer();
     bool wouldBeInCheck(const QPoint& from, const QPoint& to, PieceColor color) const;

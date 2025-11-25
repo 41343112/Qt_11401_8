@@ -46,6 +46,7 @@ void ChessBoard::initializeBoard() {
     m_enPassantTarget = QPoint(-1, -1);
     m_moveHistory.clear();
     m_gameResult = GameResult::InProgress;
+    clearCapturedPieces();
 }
 
 const ChessPiece& ChessBoard::getPiece(int row, int col) const {
@@ -182,6 +183,17 @@ bool ChessBoard::movePiece(const QPoint& from, const QPoint& to) {
         isCapture = true;  // 吃過路兵也是吃子
     }
     
+    // 追蹤被吃掉的棋子（在移動之前儲存）
+    if (isCapture && !isEnPassant) {
+        // 常規吃子：儲存目標位置的棋子
+        const ChessPiece& capturedPiece = m_board[to.y()][to.x()];
+        if (capturedPiece.getColor() == PieceColor::White) {
+            m_capturedWhite.push_back(capturedPiece);
+        } else if (capturedPiece.getColor() == PieceColor::Black) {
+            m_capturedBlack.push_back(capturedPiece);
+        }
+    }
+    
     // 處理王車易位
     if (isCastling) {
         // 王翼易位
@@ -204,8 +216,15 @@ bool ChessBoard::movePiece(const QPoint& from, const QPoint& to) {
     
     // 處理吃過路兵
     if (isEnPassant) {
-        // 移除被吃掉的兵
+        // 追蹤被吃掉的兵（吃過路兵時，被吃的兵在不同位置）
         int capturedPawnRow = (pieceColor == PieceColor::White) ? to.y() + 1 : to.y() - 1;
+        const ChessPiece& capturedPawn = m_board[capturedPawnRow][to.x()];
+        if (capturedPawn.getColor() == PieceColor::White) {
+            m_capturedWhite.push_back(capturedPawn);
+        } else if (capturedPawn.getColor() == PieceColor::Black) {
+            m_capturedBlack.push_back(capturedPawn);
+        }
+        // 移除被吃掉的兵
         m_board[capturedPawnRow][to.x()] = ChessPiece(PieceType::None, PieceColor::None);
     }
     
@@ -611,4 +630,16 @@ QString ChessBoard::getGameResultString() const {
         default:
             return "*";
     }
+}
+
+const std::vector<ChessPiece>& ChessBoard::getCapturedPieces(PieceColor color) const {
+    if (color == PieceColor::White) {
+        return m_capturedWhite;
+    }
+    return m_capturedBlack;
+}
+
+void ChessBoard::clearCapturedPieces() {
+    m_capturedWhite.clear();
+    m_capturedBlack.clear();
 }

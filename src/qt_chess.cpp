@@ -122,6 +122,8 @@ Qt_Chess::Qt_Chess(QWidget *parent)
     , m_exportPGNButton(nullptr)
     , m_copyPGNButton(nullptr)
     , m_moveListPanel(nullptr)
+    , m_capturedWhitePanel(nullptr)
+    , m_capturedBlackPanel(nullptr)
     , m_replayTitle(nullptr)
     , m_replayFirstButton(nullptr)
     , m_replayPrevButton(nullptr)
@@ -155,6 +157,7 @@ Qt_Chess::Qt_Chess(QWidget *parent)
     updateStatus();
     updateTimeDisplays();
     updateReplayButtons();  // 設置回放按鈕初始狀態
+    updateCapturedPiecesDisplay();  // 初始化被吃掉棋子顯示
 }
 
 Qt_Chess::~Qt_Chess()
@@ -253,6 +256,31 @@ void Qt_Chess::setupUI() {
     replayButtonLayout->addWidget(m_replayLastButton, 0, 3);
 
     moveListLayout->addWidget(replayButtonContainer);
+
+    // 被吃掉的棋子面板 - 白方
+    QLabel* capturedWhiteTitle = new QLabel("被吃白子", m_moveListPanel);
+    capturedWhiteTitle->setAlignment(Qt::AlignCenter);
+    QFont capturedFont;
+    capturedFont.setPointSize(10);
+    capturedFont.setBold(true);
+    capturedWhiteTitle->setFont(capturedFont);
+    moveListLayout->addWidget(capturedWhiteTitle);
+
+    m_capturedWhitePanel = new QWidget(m_moveListPanel);
+    m_capturedWhitePanel->setMinimumHeight(30);
+    m_capturedWhitePanel->setMaximumHeight(40);
+    moveListLayout->addWidget(m_capturedWhitePanel);
+
+    // 被吃掉的棋子面板 - 黑方
+    QLabel* capturedBlackTitle = new QLabel("被吃黑子", m_moveListPanel);
+    capturedBlackTitle->setAlignment(Qt::AlignCenter);
+    capturedBlackTitle->setFont(capturedFont);
+    moveListLayout->addWidget(capturedBlackTitle);
+
+    m_capturedBlackPanel = new QWidget(m_moveListPanel);
+    m_capturedBlackPanel->setMinimumHeight(30);
+    m_capturedBlackPanel->setMaximumHeight(40);
+    moveListLayout->addWidget(m_capturedBlackPanel);
 
     // 左側棋譜面板 - 固定寬度，不參與水平伸展
     m_contentLayout->addWidget(m_moveListPanel, 1);  // 固定寬度不伸展
@@ -428,6 +456,9 @@ void Qt_Chess::updateBoard() {
     if (m_pieceSelected) {
         highlightValidMoves();
     }
+    
+    // 更新被吃掉的棋子顯示
+    updateCapturedPiecesDisplay();
 }
 
 void Qt_Chess::updateStatus() {
@@ -2365,6 +2396,71 @@ void Qt_Chess::copyPGN() {
     clipboard->setText(pgn);
 
     QMessageBox::information(this, "成功", "棋譜已複製到剪貼簿");
+}
+
+void Qt_Chess::updateCapturedPiecesDisplay() {
+    // 清除現有的被吃掉棋子標籤
+    for (QLabel* label : m_capturedWhiteLabels) {
+        delete label;
+    }
+    m_capturedWhiteLabels.clear();
+
+    for (QLabel* label : m_capturedBlackLabels) {
+        delete label;
+    }
+    m_capturedBlackLabels.clear();
+
+    // 被吃掉棋子的大小和間距設定
+    const int pieceSize = 24;  // 每個棋子標籤的大小
+    const int overlapOffset = pieceSize / 4;  // 重疊偏移量（覆蓋前一個棋子的一半）
+
+    // 顯示被吃掉的白色棋子
+    if (m_capturedWhitePanel) {
+        const std::vector<ChessPiece>& capturedWhite = m_chessBoard.getCapturedPieces(PieceColor::White);
+        int xPos = 5;  // 起始 x 位置
+
+        for (size_t i = 0; i < capturedWhite.size(); ++i) {
+            const ChessPiece& piece = capturedWhite[i];
+            QLabel* label = new QLabel(m_capturedWhitePanel);
+            label->setText(piece.getSymbol());
+            QFont pieceFont;
+            pieceFont.setPointSize(16);
+            label->setFont(pieceFont);
+            label->setFixedSize(pieceSize, pieceSize);
+            label->setAlignment(Qt::AlignCenter);
+
+            // 放置棋子標籤
+            label->move(xPos, 3);
+            xPos += overlapOffset;  // 下一個棋子的位置（半重疊）
+
+            label->show();
+            m_capturedWhiteLabels.append(label);
+        }
+    }
+
+    // 顯示被吃掉的黑色棋子
+    if (m_capturedBlackPanel) {
+        const std::vector<ChessPiece>& capturedBlack = m_chessBoard.getCapturedPieces(PieceColor::Black);
+        int xPos = 5;  // 起始 x 位置
+
+        for (size_t i = 0; i < capturedBlack.size(); ++i) {
+            const ChessPiece& piece = capturedBlack[i];
+            QLabel* label = new QLabel(m_capturedBlackPanel);
+            label->setText(piece.getSymbol());
+            QFont pieceFont;
+            pieceFont.setPointSize(16);
+            label->setFont(pieceFont);
+            label->setFixedSize(pieceSize, pieceSize);
+            label->setAlignment(Qt::AlignCenter);
+
+            // 放置棋子標籤
+            label->move(xPos, 3);
+            xPos += overlapOffset;  // 下一個棋子的位置（半重疊）
+
+            label->show();
+            m_capturedBlackLabels.append(label);
+        }
+    }
 }
 
 void Qt_Chess::enterReplayMode() {

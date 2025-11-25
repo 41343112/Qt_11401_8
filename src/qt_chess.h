@@ -127,6 +127,12 @@ private:
     QPushButton* m_copyPGNButton;
     QWidget* m_moveListPanel;
     
+    // 被吃掉的棋子面板
+    QWidget* m_capturedWhitePanel;
+    QWidget* m_capturedBlackPanel;
+    QList<QLabel*> m_capturedWhiteLabels;
+    QList<QLabel*> m_capturedBlackLabels;
+    
     // 回放控制
     QLabel* m_replayTitle;
     QPushButton* m_replayFirstButton;
@@ -198,6 +204,9 @@ private:
     void exportPGN();
     void copyPGN();
     QString generatePGN() const;
+    
+    // 被吃掉的棋子顯示
+    void updateCapturedPiecesDisplay();
     
     // 回放功能
     void enterReplayMode();
