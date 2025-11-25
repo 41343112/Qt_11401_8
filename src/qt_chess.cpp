@@ -2412,7 +2412,7 @@ void Qt_Chess::updateCapturedPiecesDisplay() {
 
     // 被吃掉棋子的大小和間距設定
     const int pieceSize = 24;  // 每個棋子標籤的大小
-    const int overlapOffset = pieceSize / 2;  // 重疊偏移量（覆蓋前一個棋子的一半）
+    const int overlapOffset = pieceSize / 4;  // 重疊偏移量（覆蓋前一個棋子的一半）
 
     // 顯示被吃掉的白色棋子
     if (m_capturedWhitePanel) {
