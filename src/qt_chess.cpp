@@ -344,8 +344,7 @@ void Qt_Chess::setupUI() {
     // 而時間標籤（伸展因子 0）保持其最小大小
     boardContainerLayout->addWidget(m_boardWidget, 1, Qt::AlignCenter);
 
-    // 右側時間標籤容器（垂直佈局，以中間為分割）
-    // setupUI() 函數負責調整時間標籤位置
+    // 右側時間標籤容器（垂直佈局，以棋盤中間為分割點）
     QWidget* timeLabelContainer = new QWidget(m_boardContainer);
     QVBoxLayout* timeLabelLayout = new QVBoxLayout(timeLabelContainer);
     timeLabelLayout->setContentsMargins(0, 0, 0, 0);
@@ -354,7 +353,7 @@ void Qt_Chess::setupUI() {
     // 上方伸展（將黑方時間推向中間上方）
     timeLabelLayout->addStretch(1);
 
-    // 黑方時間標籤（右側上方 - 對手的時間）- 初始隱藏
+    // 黑方時間標籤（右側中上 - 對手的時間）- 初始隱藏
     m_blackTimeLabel = new QLabel("--:--", timeLabelContainer);
     m_blackTimeLabel->setFont(timeFont);
     m_blackTimeLabel->setAlignment(Qt::AlignCenter);
@@ -363,7 +362,7 @@ void Qt_Chess::setupUI() {
     m_blackTimeLabel->hide();  // 初始隱藏
     timeLabelLayout->addWidget(m_blackTimeLabel, 0, Qt::AlignCenter);
 
-    // 白方時間標籤（右側下方 - 玩家的時間）- 初始隱藏
+    // 白方時間標籤（右側中下 - 玩家的時間）- 初始隱藏
     m_whiteTimeLabel = new QLabel("--:--", timeLabelContainer);
     m_whiteTimeLabel->setFont(timeFont);
     m_whiteTimeLabel->setAlignment(Qt::AlignCenter);
