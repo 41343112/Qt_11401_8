@@ -292,71 +292,14 @@ void PieceIconSettingsDialog::previewIcon(const QString& iconFile)
     
     QDialog previewDialog(this);
     previewDialog.setWindowTitle("圖標預覽");
-    previewDialog.resize(400, 500);
+    previewDialog.resize(300, 350);
     QVBoxLayout* layout = new QVBoxLayout(&previewDialog);
     
-    // 帶捲動區域的圖片標籤以進行縮放
-    QScrollArea* scrollArea = new QScrollArea(&previewDialog);
-    scrollArea->setAlignment(Qt::AlignCenter);
-    scrollArea->setWidgetResizable(false);
-    
-    QLabel* imageLabel = new QLabel(scrollArea);
+    // 圖片標籤
+    QLabel* imageLabel = new QLabel(&previewDialog);
     imageLabel->setAlignment(Qt::AlignCenter);
-    scrollArea->setWidget(imageLabel);
-    layout->addWidget(scrollArea, 1);  // 給它更多空間
-    
-    // 縮放控制
-    QHBoxLayout* zoomLayout = new QHBoxLayout();
-    QLabel* zoomLabel = new QLabel("縮放:", &previewDialog);
-    zoomLayout->addWidget(zoomLabel);
-    
-    QPushButton* zoomOutButton = new QPushButton("-", &previewDialog);
-    zoomOutButton->setFixedWidth(30);
-    zoomLayout->addWidget(zoomOutButton);
-    
-    QSlider* zoomSlider = new QSlider(Qt::Horizontal, &previewDialog);
-    zoomSlider->setMinimum(25);   // 25% 縮放
-    zoomSlider->setMaximum(400);  // 400% 縮放
-    zoomSlider->setValue(100);    // 100% 縮放（預設）
-    zoomSlider->setTickPosition(QSlider::TicksBelow);
-    zoomSlider->setTickInterval(25);
-    zoomLayout->addWidget(zoomSlider);
-    
-    QPushButton* zoomInButton = new QPushButton("+", &previewDialog);
-    zoomInButton->setFixedWidth(30);
-    zoomLayout->addWidget(zoomInButton);
-    
-    QLabel* zoomValueLabel = new QLabel("100%", &previewDialog);
-    zoomValueLabel->setFixedWidth(50);
-    zoomValueLabel->setAlignment(Qt::AlignCenter);
-    zoomLayout->addWidget(zoomValueLabel);
-    
-    layout->addLayout(zoomLayout);
-    
-    // +/- 按鈕的縮放步進
-    const int zoomStep = 25;
-    
-    // 更新圖片函數 - 按值捕獲 pixmap 以避免懸空引用
-    auto updateImage = [pixmap, imageLabel, zoomValueLabel](int zoomPercent) {
-        int newWidth = pixmap.width() * zoomPercent / 100;
-        int newHeight = pixmap.height() * zoomPercent / 100;
-        imageLabel->setPixmap(pixmap.scaled(newWidth, newHeight, Qt::KeepAspectRatio, Qt::SmoothTransformation));
-        zoomValueLabel->setText(QString("%1%").arg(zoomPercent));
-    };
-    
-    // 連接縮放控制
-    connect(zoomSlider, &QSlider::valueChanged, updateImage);
-    
-    connect(zoomInButton, &QPushButton::clicked, [zoomSlider, zoomStep]() {
-        zoomSlider->setValue(qMin(zoomSlider->value() + zoomStep, zoomSlider->maximum()));
-    });
-    
-    connect(zoomOutButton, &QPushButton::clicked, [zoomSlider, zoomStep]() {
-        zoomSlider->setValue(qMax(zoomSlider->value() - zoomStep, zoomSlider->minimum()));
-    });
-    
-    // 設置初始顯示
-    updateImage(100);
+    imageLabel->setPixmap(pixmap.scaled(200, 200, Qt::KeepAspectRatio, Qt::SmoothTransformation));
+    layout->addWidget(imageLabel, 1);
     
     // 關閉按鈕
     QPushButton* closeButton = new QPushButton("關閉", &previewDialog);
