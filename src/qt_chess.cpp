@@ -2482,7 +2482,7 @@ void Qt_Chess::updateCapturedPiecesDisplay() {
 
     // 被吃掉棋子的大小和間距設定
     const int pieceSize = 24;  // 每個棋子標籤的大小
-    const int sameTypeOffset = pieceSize / 4;  // 相同類型棋子的重疊偏移量
+    const int sameTypeOffset = pieceSize / 2;  // 相同類型棋子的重疊偏移量（重疊一半）
     const int diffTypeOffset = pieceSize;  // 不同類型棋子之間的間距（不重疊）
 
     // 按棋子類型分組並顯示的輔助函數
