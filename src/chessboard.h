@@ -71,6 +71,7 @@ public:
     
     // 被吃掉的棋子追蹤
     const std::vector<ChessPiece>& getCapturedPieces(PieceColor color) const;
+    void setCapturedPieces(PieceColor color, const std::vector<ChessPiece>& pieces);
     void clearCapturedPieces();
     
 private:

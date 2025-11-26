@@ -639,6 +639,14 @@ const std::vector<ChessPiece>& ChessBoard::getCapturedPieces(PieceColor color) c
     return m_capturedBlack;
 }
 
+void ChessBoard::setCapturedPieces(PieceColor color, const std::vector<ChessPiece>& pieces) {
+    if (color == PieceColor::White) {
+        m_capturedWhite = pieces;
+    } else {
+        m_capturedBlack = pieces;
+    }
+}
+
 void ChessBoard::clearCapturedPieces() {
     m_capturedWhite.clear();
     m_capturedBlack.clear();

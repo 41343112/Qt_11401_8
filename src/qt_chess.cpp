@@ -2721,6 +2721,10 @@ void Qt_Chess::saveBoardState() {
         }
     }
     m_savedCurrentPlayer = m_chessBoard.getCurrentPlayer();
+    
+    // 儲存被吃掉的棋子
+    m_savedCapturedWhite = m_chessBoard.getCapturedPieces(PieceColor::White);
+    m_savedCapturedBlack = m_chessBoard.getCapturedPieces(PieceColor::Black);
 }
 
 void Qt_Chess::restoreBoardState() {
@@ -2735,6 +2739,10 @@ void Qt_Chess::restoreBoardState() {
 
     // 恢復當前玩家
     m_chessBoard.setCurrentPlayer(m_savedCurrentPlayer);
+    
+    // 恢復被吃掉的棋子
+    m_chessBoard.setCapturedPieces(PieceColor::White, m_savedCapturedWhite);
+    m_chessBoard.setCapturedPieces(PieceColor::Black, m_savedCapturedBlack);
 
     // 更新顯示
     updateBoard();
