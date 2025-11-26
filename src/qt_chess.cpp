@@ -2529,16 +2529,30 @@ void Qt_Chess::updateCapturedPiecesDisplay() {
         }
     };
 
-    // 顯示被吃掉的白色棋子
-    if (m_capturedWhitePanel) {
-        const std::vector<ChessPiece>& capturedWhite = m_chessBoard.getCapturedPieces(PieceColor::White);
-        displayCapturedPieces(m_capturedWhitePanel, capturedWhite, m_capturedWhiteLabels);
-    }
-
-    // 顯示被吃掉的黑色棋子
-    if (m_capturedBlackPanel) {
-        const std::vector<ChessPiece>& capturedBlack = m_chessBoard.getCapturedPieces(PieceColor::Black);
-        displayCapturedPieces(m_capturedBlackPanel, capturedBlack, m_capturedBlackLabels);
+    // 根據棋盤翻轉狀態決定哪個面板顯示哪種顏色的被吃棋子
+    // 當棋盤未翻轉時：上方面板顯示白子（被黑方吃掉），下方面板顯示黑子（被白方吃掉）
+    // 當棋盤翻轉時：上方面板顯示黑子（被白方吃掉），下方面板顯示白子（被黑方吃掉）
+    // 這樣可以確保「對方的吃子紀錄」始終顯示在棋盤上方
+    if (m_isBoardFlipped) {
+        // 棋盤翻轉：上方面板顯示黑子，下方面板顯示白子
+        if (m_capturedWhitePanel) {
+            const std::vector<ChessPiece>& capturedBlack = m_chessBoard.getCapturedPieces(PieceColor::Black);
+            displayCapturedPieces(m_capturedWhitePanel, capturedBlack, m_capturedWhiteLabels);
+        }
+        if (m_capturedBlackPanel) {
+            const std::vector<ChessPiece>& capturedWhite = m_chessBoard.getCapturedPieces(PieceColor::White);
+            displayCapturedPieces(m_capturedBlackPanel, capturedWhite, m_capturedBlackLabels);
+        }
+    } else {
+        // 棋盤未翻轉：上方面板顯示白子，下方面板顯示黑子
+        if (m_capturedWhitePanel) {
+            const std::vector<ChessPiece>& capturedWhite = m_chessBoard.getCapturedPieces(PieceColor::White);
+            displayCapturedPieces(m_capturedWhitePanel, capturedWhite, m_capturedWhiteLabels);
+        }
+        if (m_capturedBlackPanel) {
+            const std::vector<ChessPiece>& capturedBlack = m_chessBoard.getCapturedPieces(PieceColor::Black);
+            displayCapturedPieces(m_capturedBlackPanel, capturedBlack, m_capturedBlackLabels);
+        }
     }
 }
 
