@@ -2486,7 +2486,7 @@ void Qt_Chess::updateCapturedPiecesDisplay() {
     const int diffTypeOffset = pieceSize;  // 不同類型棋子之間的間距（不重疊）
 
     // 按棋子類型分組並顯示的輔助函數
-    auto displayCapturedPieces = [pieceSize, sameTypeOffset, diffTypeOffset](
+    auto displayCapturedPieces = [this, pieceSize, sameTypeOffset, diffTypeOffset](
         QWidget* panel, const std::vector<ChessPiece>& capturedPieces, QList<QLabel*>& labels) {
         if (!panel || capturedPieces.empty()) return;
 
@@ -2502,10 +2502,30 @@ void Qt_Chess::updateCapturedPiecesDisplay() {
         for (size_t i = 0; i < sortedPieces.size(); ++i) {
             const ChessPiece& piece = sortedPieces[i];
             QLabel* label = new QLabel(panel);
-            label->setText(piece.getSymbol());
-            QFont pieceFont;
-            pieceFont.setPointSize(16);
-            label->setFont(pieceFont);
+
+            // 設置 Unicode 符號的輔助 lambda
+            auto setUnicodeSymbol = [&label, &piece]() {
+                label->setText(piece.getSymbol());
+                QFont pieceFont;
+                pieceFont.setPointSize(16);
+                label->setFont(pieceFont);
+            };
+
+            // 使用自訂圖示或 Unicode 符號
+            if (m_pieceIconSettings.useCustomIcons) {
+                QPixmap pixmap = getCachedPieceIcon(piece.getType(), piece.getColor());
+                if (!pixmap.isNull()) {
+                    // 縮放圖示到適合被吃掉棋子顯示的大小
+                    label->setPixmap(pixmap.scaled(pieceSize - 2, pieceSize - 2, Qt::KeepAspectRatio, Qt::SmoothTransformation));
+                } else {
+                    // 如果圖示無法載入則回退到 Unicode 符號
+                    setUnicodeSymbol();
+                }
+            } else {
+                // 使用 Unicode 符號
+                setUnicodeSymbol();
+            }
+
             label->setFixedSize(pieceSize, pieceSize);
             label->setAlignment(Qt::AlignCenter);
 
