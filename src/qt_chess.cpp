@@ -37,7 +37,7 @@ const QString GAME_ENDED_TEXT = "遊戲結束"; // 遊戲結束時顯示的文�
 
 // 視窗大小的佈局常數
 const int PANEL_SPACING = 10;          // 面板之間的間距
-const int BASE_MARGINS = 10;           // 基本佈局邊距（不包括棋盤容器的 2*BOARD_CONTAINER_MARGIN）
+const int BASE_MARGINS =   20;           // 基本佈局邊距（不包括棋盤容器的 2*BOARD_CONTAINER_MARGIN）
 const int TIME_LABEL_SPACING = 0;     // 時間標籤周圍的間距（已禁用）
 const int BOARD_CONTAINER_MARGIN = 0;  // 棋盤容器每側的邊距（已禁用）
 
