@@ -2997,7 +2997,8 @@ QString Qt_Chess::getEnginePath() const {
                 << "engine/stockfish-windows-x86-64-avx2.exe";
 #else
     engineNames << "stockfish" << "stockfish-linux" << "stockfish-ubuntu-x86-64-avx2"
-                << "engine/stockfish" << "engine/stockfish-linux";
+                << "engine/stockfish" << "engine/stockfish-linux"
+                << "engine/stockfish-ubuntu-x86-64-avx2";
 #endif
     
     // 在應用程式目錄搜尋
