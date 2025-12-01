@@ -2475,6 +2475,7 @@ void Qt_Chess::updateCapturedPiecesDisplay() {
     m_capturedBlackLabels.clear();
 
     // 被吃掉棋子的大小和間距設定
+    // 相同類型棋子水平重疊顯示，不同類型棋子垂直排列
     const int pieceSize = 24;  // 每個棋子標籤的大小
     const int horizontalOffset = pieceSize / 4;  // 相同類型棋子的水平重疊偏移量
     const int verticalOffset = pieceSize;  // 不同類型棋子之間的垂直間距
