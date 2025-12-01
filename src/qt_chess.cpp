@@ -351,20 +351,23 @@ void Qt_Chess::setupUI() {
     // 使用較大的伸展因子(3)使棋盤在水平放大時優先擴展
     m_contentLayout->addWidget(m_boardContainer, 2, Qt::AlignCenter);
 
-    // 右側時間顯示面板（在棋盤和時間控制之間）
-    // 佈局順序：對方吃子紀錄（上方垂直往下）-> 時間顯示區 -> 我方吃子紀錄（從時間垂直往下）
-    m_rightTimePanel = new QWidget(this);
-    m_rightTimePanel->setMinimumWidth(100);
-    m_rightTimePanel->setMaximumWidth(150);
-    QVBoxLayout* rightTimePanelLayout = new QVBoxLayout(m_rightTimePanel);
-    rightTimePanelLayout->setContentsMargins(5, 5, 5, 5);
-    rightTimePanelLayout->setSpacing(5);
+    // 添加右側伸展以保持棋盤居中並吸收多餘空間
+    m_rightStretchIndex = m_contentLayout->count();  // 記錄伸展項的索引
+    m_contentLayout->addStretch(0);
 
-    // 對方的吃子紀錄從右側棋盤上方垂直往下（白子被黑方吃掉）
-    m_capturedWhitePanel = new QWidget(m_rightTimePanel);
+    // 合併的右側面板 - 包含時間顯示、被吃棋子和時間控制設定
+    m_timeControlPanel = new QWidget(this);
+    m_timeControlPanel->setMinimumWidth(MIN_PANEL_WIDTH);  // 限制最小寬度
+    m_timeControlPanel->setMaximumWidth(MAX_PANEL_WIDTH);  // 限制最大寬度
+    QVBoxLayout* rightPanelLayout = new QVBoxLayout(m_timeControlPanel);
+    rightPanelLayout->setContentsMargins(5, 5, 5, 5);
+    rightPanelLayout->setSpacing(5);
+
+    // 對方的吃子紀錄（白子被黑方吃掉）
+    m_capturedWhitePanel = new QWidget(m_timeControlPanel);
     m_capturedWhitePanel->setMinimumWidth(30);
-    m_capturedWhitePanel->setMinimumHeight(100);
-    rightTimePanelLayout->addWidget(m_capturedWhitePanel, 1);
+    m_capturedWhitePanel->setMinimumHeight(60);
+    rightPanelLayout->addWidget(m_capturedWhitePanel, 0);
 
     // 時間顯示字體
     QFont timeFont;
@@ -372,7 +375,7 @@ void Qt_Chess::setupUI() {
     timeFont.setBold(true);
 
     // 黑方時間進度條 - 放在時間標籤上方，初始隱藏
-    m_blackTimeProgressBar = new QProgressBar(m_rightTimePanel);
+    m_blackTimeProgressBar = new QProgressBar(m_timeControlPanel);
     m_blackTimeProgressBar->setMinimum(0);
     m_blackTimeProgressBar->setMaximum(100);
     m_blackTimeProgressBar->setValue(100);
@@ -384,28 +387,28 @@ void Qt_Chess::setupUI() {
         "QProgressBar::chunk { background-color: #4CAF50; border-radius: 2px; }"
     );
     m_blackTimeProgressBar->hide();  // 初始隱藏
-    rightTimePanelLayout->addWidget(m_blackTimeProgressBar, 0, Qt::AlignCenter);
+    rightPanelLayout->addWidget(m_blackTimeProgressBar, 0, Qt::AlignCenter);
 
     // 黑方時間標籤 - 初始隱藏
-    m_blackTimeLabel = new QLabel("--:--", m_rightTimePanel);
+    m_blackTimeLabel = new QLabel("--:--", m_timeControlPanel);
     m_blackTimeLabel->setFont(timeFont);
     m_blackTimeLabel->setAlignment(Qt::AlignCenter);
     m_blackTimeLabel->setStyleSheet("QLabel { background-color: rgba(51, 51, 51, 200); color: #FFF; padding: 8px; border-radius: 5px; }");
     m_blackTimeLabel->setFixedSize(100, 40);  // 固定大小
     m_blackTimeLabel->hide();  // 初始隱藏
-    rightTimePanelLayout->addWidget(m_blackTimeLabel, 0, Qt::AlignCenter);
+    rightPanelLayout->addWidget(m_blackTimeLabel, 0, Qt::AlignCenter);
 
     // 白方時間標籤 - 初始隱藏
-    m_whiteTimeLabel = new QLabel("--:--", m_rightTimePanel);
+    m_whiteTimeLabel = new QLabel("--:--", m_timeControlPanel);
     m_whiteTimeLabel->setFont(timeFont);
     m_whiteTimeLabel->setAlignment(Qt::AlignCenter);
     m_whiteTimeLabel->setStyleSheet("QLabel { background-color: rgba(51, 51, 51, 200); color: #FFF; padding: 8px; border-radius: 5px; }");
     m_whiteTimeLabel->setFixedSize(100, 40);  // 固定大小
     m_whiteTimeLabel->hide();  // 初始隱藏
-    rightTimePanelLayout->addWidget(m_whiteTimeLabel, 0, Qt::AlignCenter);
+    rightPanelLayout->addWidget(m_whiteTimeLabel, 0, Qt::AlignCenter);
 
     // 白方時間進度條 - 放在時間標籤下方，初始隱藏
-    m_whiteTimeProgressBar = new QProgressBar(m_rightTimePanel);
+    m_whiteTimeProgressBar = new QProgressBar(m_timeControlPanel);
     m_whiteTimeProgressBar->setMinimum(0);
     m_whiteTimeProgressBar->setMaximum(100);
     m_whiteTimeProgressBar->setValue(100);
@@ -417,29 +420,20 @@ void Qt_Chess::setupUI() {
         "QProgressBar::chunk { background-color: #4CAF50; border-radius: 2px; }"
     );
     m_whiteTimeProgressBar->hide();  // 初始隱藏
-    rightTimePanelLayout->addWidget(m_whiteTimeProgressBar, 0, Qt::AlignCenter);
+    rightPanelLayout->addWidget(m_whiteTimeProgressBar, 0, Qt::AlignCenter);
 
-    // 我方的吃子紀錄從時間垂直往下（黑子被白方吃掉）
-    m_capturedBlackPanel = new QWidget(m_rightTimePanel);
+    // 我方的吃子紀錄（黑子被白方吃掉）
+    m_capturedBlackPanel = new QWidget(m_timeControlPanel);
     m_capturedBlackPanel->setMinimumWidth(30);
-    m_capturedBlackPanel->setMinimumHeight(100);
-    rightTimePanelLayout->addWidget(m_capturedBlackPanel, 1);
+    m_capturedBlackPanel->setMinimumHeight(60);
+    rightPanelLayout->addWidget(m_capturedBlackPanel, 0);
 
-    // 將右側時間面板添加到內容佈局
-    m_contentLayout->addWidget(m_rightTimePanel, 0);
-
-    // 添加右側伸展以保持棋盤居中並吸收多餘空間
-    m_rightStretchIndex = m_contentLayout->count();  // 記錄伸展項的索引
-    m_contentLayout->addStretch(0);
-
-    // 時間控制的右側面板 - 固定寬度，不參與水平伸展
-    m_timeControlPanel = new QWidget(this);
-    m_timeControlPanel->setMinimumWidth(MIN_PANEL_WIDTH);  // 限制最小寬度
-    m_timeControlPanel->setMaximumWidth(MAX_PANEL_WIDTH);  // 限制最大寬度
-    QVBoxLayout* rightPanelLayout = new QVBoxLayout(m_timeControlPanel);
-    rightPanelLayout->setContentsMargins(0, 0, 0, 0);
+    // 時間控制和遊戲模式設定
     setupTimeControlUI(rightPanelLayout);
     m_contentLayout->addWidget(m_timeControlPanel, 1);  // 固定寬度不伸展
+
+    // m_rightTimePanel 不再單獨使用，設為 nullptr
+    m_rightTimePanel = nullptr;
 
     mainLayout->addLayout(m_contentLayout);
 
@@ -1400,11 +1394,6 @@ void Qt_Chess::updateSquareSizes() {
     // 如果可見則考慮右側面板的實際寬度（時間控制面板）
     if (m_timeControlPanel && m_timeControlPanel->isVisible()) {
         reservedWidth += getPanelWidth(m_timeControlPanel);
-    }
-
-    // 考慮右側時間面板的寬度（時間和被吃棋子面板）
-    if (m_rightTimePanel && m_rightTimePanel->isVisible()) {
-        reservedWidth += getPanelWidth(m_rightTimePanel);
     }
 
     // 添加佈局間距和邊距
@@ -2980,7 +2969,8 @@ void Qt_Chess::setupEngineUI(QVBoxLayout* layout) {
     m_difficultyLabel->setFont(labelFont);
     engineLayout->addWidget(m_difficultyLabel);
     
-    m_difficultyValueLabel = new QLabel("中等 (10)", this);
+    // 初始 ELO 值：難度 10 對應 ELO = 800 + 9 * 126.3 ≈ 1937
+    m_difficultyValueLabel = new QLabel("ELO 1937", this);
     m_difficultyValueLabel->setFont(labelFont);
     m_difficultyValueLabel->setAlignment(Qt::AlignCenter);
     engineLayout->addWidget(m_difficultyValueLabel);
@@ -3111,19 +3101,13 @@ void Qt_Chess::onGameModeChanged(int id) {
 void Qt_Chess::onDifficultyChanged(int value) {
     if (!m_difficultyValueLabel || !m_chessEngine) return;
     
-    // 更新顯示的難度值
-    QString diffText;
-    if (value <= 3) {
-        diffText = QString("非常簡單 (%1)").arg(value);
-    } else if (value <= 7) {
-        diffText = QString("簡單 (%1)").arg(value);
-    } else if (value <= 12) {
-        diffText = QString("中等 (%1)").arg(value);
-    } else if (value <= 16) {
-        diffText = QString("困難 (%1)").arg(value);
-    } else {
-        diffText = QString("非常困難 (%1)").arg(value);
-    }
+    // 將難度等級(1-20)轉換為 ELO 評分
+    // ELO 範圍：約 800 (最低) 到 3200 (最高)
+    // 使用線性映射：ELO = 800 + (value - 1) * 126.3
+    int elo = 800 + static_cast<int>((value - 1) * 126.3);
+    
+    // 更新顯示的難度值（使用 ELO 評分）
+    QString diffText = QString("ELO %1").arg(elo);
     m_difficultyValueLabel->setText(diffText);
     
     // 更新引擎難度
