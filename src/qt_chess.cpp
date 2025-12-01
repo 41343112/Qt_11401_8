@@ -2474,13 +2474,13 @@ void Qt_Chess::updateCapturedPiecesDisplay() {
     }
     m_capturedBlackLabels.clear();
 
-    // 被吃掉棋子的大小和間距設定（垂直佈局）
+    // 被吃掉棋子的大小和間距設定
     const int pieceSize = 24;  // 每個棋子標籤的大小
-    const int sameTypeOffset = pieceSize / 4;  // 相同類型棋子的重疊偏移量
-    const int diffTypeOffset = pieceSize;  // 不同類型棋子之間的間距（不重疊）
+    const int sameTypeHorizontalOffset = pieceSize / 2;  // 相同類型棋子的水平重疊偏移量
+    const int diffTypeVerticalOffset = pieceSize;  // 不同類型棋子之間的垂直間距（不重疊）
 
-    // 按棋子類型分組並垂直顯示的輔助函數
-    auto displayCapturedPiecesVertical = [pieceSize, sameTypeOffset, diffTypeOffset](
+    // 按棋子類型分組，相同類型水平重疊，不同類型垂直排列的輔助函數
+    auto displayCapturedPiecesVertical = [pieceSize, sameTypeHorizontalOffset, diffTypeVerticalOffset](
         QWidget* panel, const std::vector<ChessPiece>& capturedPieces, QList<QLabel*>& labels) {
         if (!panel || capturedPieces.empty()) return;
 
@@ -2490,15 +2490,15 @@ void Qt_Chess::updateCapturedPiecesDisplay() {
             return static_cast<int>(a.getType()) < static_cast<int>(b.getType());
         });
 
-        int yPos = 5;  // 起始 y 位置（垂直佈局）
+        int yPos = 0;  // 起始 y 位置（與面板頂部貼齊）
         int panelWidth = panel->width();
         // 如果面板寬度尚未計算（初始設置期間），使用最小寬度
         if (panelWidth <= 0) {
             panelWidth = panel->minimumWidth();
             if (panelWidth <= 0) panelWidth = 30;  // 後備最小寬度
         }
-        int xPos = (panelWidth - pieceSize) / 2;  // 水平居中
-        if (xPos < 5) xPos = 5;  // 確保最小邊距
+        int baseXPos = 5;  // 基礎 x 位置（從左側開始）
+        int currentXPos = baseXPos;  // 當前 x 位置（同類型棋子水平偏移用）
         int panelHeight = panel->height();
         // 如果面板高度尚未計算，使用最小高度
         if (panelHeight <= 0) {
@@ -2517,25 +2517,20 @@ void Qt_Chess::updateCapturedPiecesDisplay() {
             label->setFixedSize(pieceSize, pieceSize);
             label->setAlignment(Qt::AlignCenter);
 
-            // 如果不是第一個棋子，根據類型決定間距（垂直方向）
+            // 如果不是第一個棋子，根據類型決定佈局
             if (lastType != PieceType::None) {
                 if (piece.getType() == lastType) {
-                    // 相同類型的棋子可以重疊
-                    yPos += sameTypeOffset;
+                    // 相同類型的棋子水平重疊（向右偏移）
+                    currentXPos += sameTypeHorizontalOffset;
                 } else {
-                    // 不同類型的棋子之間需要間距，不能重疊
-                    yPos += diffTypeOffset;
+                    // 不同類型的棋子換到下一行（垂直向下）
+                    yPos += diffTypeVerticalOffset;
+                    currentXPos = baseXPos;  // 重置 x 位置到左側
                 }
             }
 
-            // 檢查是否超出面板高度範圍
-            if (yPos + pieceSize > panelHeight) {
-                // 如果超出範圍，仍然放置但會被裁切
-                // 這是一個合理的行為，因為在極端情況下（吃了太多棋子）無法完全顯示
-            }
-
-            // 放置棋子標籤（垂直佈局，水平居中）
-            label->move(xPos, yPos);
+            // 放置棋子標籤（相同類型水平重疊，不同類型垂直排列）
+            label->move(currentXPos, yPos);
             lastType = piece.getType();
 
             label->show();
