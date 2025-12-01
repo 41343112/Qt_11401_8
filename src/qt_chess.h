@@ -137,6 +137,8 @@ private:
     QWidget* m_capturedBlackPanel;
     QList<QLabel*> m_capturedWhiteLabels;
     QList<QLabel*> m_capturedBlackLabels;
+    QLabel* m_whiteScoreDiffLabel;  // 白方分差標籤
+    QLabel* m_blackScoreDiffLabel;  // 黑方分差標籤
     QWidget* m_rightTimePanel;  // 右側時間和被吃棋子的容器
     
     // 回放控制
@@ -213,6 +215,7 @@ private:
     
     // 被吃掉的棋子顯示
     void updateCapturedPiecesDisplay();
+    int getPieceValue(PieceType type) const;  // 取得棋子分值的輔助函數
     
     // 回放功能
     void enterReplayMode();

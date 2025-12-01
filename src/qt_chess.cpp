@@ -129,6 +129,8 @@ Qt_Chess::Qt_Chess(QWidget *parent)
     , m_moveListPanel(nullptr)
     , m_capturedWhitePanel(nullptr)
     , m_capturedBlackPanel(nullptr)
+    , m_whiteScoreDiffLabel(nullptr)
+    , m_blackScoreDiffLabel(nullptr)
     , m_rightTimePanel(nullptr)
     , m_replayTitle(nullptr)
     , m_replayFirstButton(nullptr)
@@ -2462,6 +2464,20 @@ void Qt_Chess::copyPGN() {
     QMessageBox::information(this, "成功", "棋譜已複製到剪貼簿");
 }
 
+int Qt_Chess::getPieceValue(PieceType type) const {
+    // 標準國際象棋棋子分值
+    switch (type) {
+        case PieceType::None:   return 0;  // 空格不計分
+        case PieceType::Pawn:   return 1;
+        case PieceType::Knight: return 3;
+        case PieceType::Bishop: return 3;
+        case PieceType::Rook:   return 5;
+        case PieceType::Queen:  return 9;
+        case PieceType::King:   return 0;  // 國王不計分
+    }
+    return 0;  // 防禦性返回
+}
+
 void Qt_Chess::updateCapturedPiecesDisplay() {
     // 清除現有的被吃掉棋子標籤
     for (QLabel* label : m_capturedWhiteLabels) {
@@ -2474,6 +2490,25 @@ void Qt_Chess::updateCapturedPiecesDisplay() {
     }
     m_capturedBlackLabels.clear();
 
+    // 計算雙方被吃掉棋子的總分值
+    const std::vector<ChessPiece>& capturedWhite = m_chessBoard.getCapturedPieces(PieceColor::White);
+    const std::vector<ChessPiece>& capturedBlack = m_chessBoard.getCapturedPieces(PieceColor::Black);
+    
+    int whiteCapturedValue = 0;  // 被吃掉的白色棋子總值（黑方得分）
+    int blackCapturedValue = 0;  // 被吃掉的黑色棋子總值（白方得分）
+    
+    for (const ChessPiece& piece : capturedWhite) {
+        whiteCapturedValue += getPieceValue(piece.getType());
+    }
+    for (const ChessPiece& piece : capturedBlack) {
+        blackCapturedValue += getPieceValue(piece.getType());
+    }
+    
+    // 計算分差：正值表示該方領先
+    // 白方分差 = 白方得分（吃掉的黑子）- 黑方得分（吃掉的白子）
+    int whiteDiff = blackCapturedValue - whiteCapturedValue;
+    int blackDiff = -whiteDiff;  // 黑方分差與白方分差相反
+
     // 被吃掉棋子的大小和間距設定
     // 相同類型棋子水平重疊顯示，不同類型棋子垂直排列
     const int pieceSize = 24;  // 每個棋子標籤的大小
@@ -2482,9 +2517,11 @@ void Qt_Chess::updateCapturedPiecesDisplay() {
 
     // 按棋子類型分組並顯示的輔助函數
     // 相同類型棋子水平重疊，不同類型棋子垂直排列
+    // 返回最終的 y 位置以便放置分差標籤
     auto displayCapturedPieces = [pieceSize, horizontalOffset, verticalOffset](
-        QWidget* panel, const std::vector<ChessPiece>& capturedPieces, QList<QLabel*>& labels) {
-        if (!panel || capturedPieces.empty()) return;
+        QWidget* panel, const std::vector<ChessPiece>& capturedPieces, QList<QLabel*>& labels) -> int {
+        if (!panel) return 0;
+        if (capturedPieces.empty()) return 0;
 
         // 複製並按棋子類型排序，確保相同類型的棋子放在一起
         std::vector<ChessPiece> sortedPieces = capturedPieces;
@@ -2545,18 +2582,51 @@ void Qt_Chess::updateCapturedPiecesDisplay() {
             label->show();
             labels.append(label);
         }
+        
+        // 返回最終的 y 位置（加上最後一行的高度）
+        return yPos + pieceSize;
+    };
+
+    // 更新分差標籤的輔助函數
+    auto updateScoreDiffLabel = [](QLabel*& label, QWidget* panel, int scoreDiff, int yPosition) {
+        if (!panel) return;
+        
+        // 如果標籤不存在，創建它
+        if (!label) {
+            label = new QLabel(panel);
+            QFont scoreFont;
+            scoreFont.setPointSize(12);
+            scoreFont.setBold(true);
+            label->setFont(scoreFont);
+            label->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
+        }
+        
+        // 只有當該方領先時才顯示分差
+        if (scoreDiff > 0) {
+            label->setText(QString("+%1").arg(scoreDiff));
+            label->setStyleSheet("QLabel { color: #4CAF50; }");  // 綠色表示領先
+            label->move(5, yPosition + 5);  // 在棋子下方顯示
+            label->adjustSize();
+            label->show();
+        } else {
+            label->hide();
+        }
     };
 
     // 顯示被吃掉的白色棋子（對方吃子紀錄，從上往下，與棋盤頂部貼齊）
+    // 這裡顯示的是黑方吃掉的白子，所以顯示黑方的分差
+    int whitePanelEndY = 0;
     if (m_capturedWhitePanel) {
-        const std::vector<ChessPiece>& capturedWhite = m_chessBoard.getCapturedPieces(PieceColor::White);
-        displayCapturedPieces(m_capturedWhitePanel, capturedWhite, m_capturedWhiteLabels);
+        whitePanelEndY = displayCapturedPieces(m_capturedWhitePanel, capturedWhite, m_capturedWhiteLabels);
+        updateScoreDiffLabel(m_blackScoreDiffLabel, m_capturedWhitePanel, blackDiff, whitePanelEndY);
     }
 
     // 顯示被吃掉的黑色棋子（我方吃子紀錄，從上往下）
+    // 這裡顯示的是白方吃掉的黑子，所以顯示白方的分差
+    int blackPanelEndY = 0;
     if (m_capturedBlackPanel) {
-        const std::vector<ChessPiece>& capturedBlack = m_chessBoard.getCapturedPieces(PieceColor::Black);
-        displayCapturedPieces(m_capturedBlackPanel, capturedBlack, m_capturedBlackLabels);
+        blackPanelEndY = displayCapturedPieces(m_capturedBlackPanel, capturedBlack, m_capturedBlackLabels);
+        updateScoreDiffLabel(m_whiteScoreDiffLabel, m_capturedBlackPanel, whiteDiff, blackPanelEndY);
     }
 }
 
