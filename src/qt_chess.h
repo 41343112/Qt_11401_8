@@ -169,10 +169,6 @@ private:
     QSlider* m_difficultySlider;
     QLabel* m_difficultyLabel;
     QLabel* m_difficultyValueLabel;
-    // 搜尋深度設定
-    QSlider* m_depthSlider;
-    QLabel* m_depthLabel;
-    QLabel* m_depthValueLabel;
     QLabel* m_thinkingLabel;  // 顯示「電腦思考中...」
     QStringList m_uciMoveHistory;  // UCI 格式的移動歷史
     
@@ -262,7 +258,6 @@ private:
     void onRandomColorClicked();         // 隨機按鈕點擊
     void onBlackColorClicked();          // 執黑按鈕點擊
     void onDifficultyChanged(int value);
-    void onDepthChanged(int value);      // 搜尋深度變更
     void onEngineBestMove(const QString& move);
     void onEngineReady();
     void onEngineError(const QString& error);

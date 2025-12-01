@@ -183,9 +183,6 @@ Qt_Chess::Qt_Chess(QWidget *parent)
     , m_difficultySlider(nullptr)
     , m_difficultyLabel(nullptr)
     , m_difficultyValueLabel(nullptr)
-    , m_depthSlider(nullptr)
-    , m_depthLabel(nullptr)
-    , m_depthValueLabel(nullptr)
     , m_thinkingLabel(nullptr)
 {
     ui->setupUi(this);
@@ -2058,17 +2055,19 @@ void Qt_Chess::setupTimeControlUI(QVBoxLayout* timeControlPanelLayout) {
     QHBoxLayout* colorButtonsLayout = new QHBoxLayout(m_colorSelectionWidget);
     colorButtonsLayout->setContentsMargins(0, 5, 0, 5);
     
+    // 統一的按鈕樣式（灰色未選中，藍色選中）
+    QString colorButtonStyle = 
+        "QPushButton { border: 2px solid #555; border-radius: 5px; padding: 3px; background-color: #9E9E9E; color: #333; }"
+        "QPushButton:checked { background-color: #2196F3; color: white; border-color: #1565C0; }"
+        "QPushButton:hover { background-color: #BDBDBD; }"
+        "QPushButton:checked:hover { background-color: #42A5F5; }";
+    
     // 執白按鈕
     m_whiteButton = new QPushButton("執白", this);
     m_whiteButton->setFont(labelFont);
     m_whiteButton->setCheckable(true);
     m_whiteButton->setMinimumSize(50, 35);
-    m_whiteButton->setStyleSheet(
-        "QPushButton { border: 2px solid #555; border-radius: 5px; padding: 3px; background-color: #9E9E9E; color: #333; }"
-        "QPushButton:checked { background-color: #FFFFFF; color: #333; border-color: #333; }"
-        "QPushButton:hover { background-color: #BDBDBD; }"
-        "QPushButton:checked:hover { background-color: #E0E0E0; }"
-    );
+    m_whiteButton->setStyleSheet(colorButtonStyle);
     connect(m_whiteButton, &QPushButton::clicked, this, &Qt_Chess::onWhiteColorClicked);
     colorButtonsLayout->addWidget(m_whiteButton);
     
@@ -2077,12 +2076,7 @@ void Qt_Chess::setupTimeControlUI(QVBoxLayout* timeControlPanelLayout) {
     m_randomButton->setFont(labelFont);
     m_randomButton->setCheckable(true);
     m_randomButton->setMinimumSize(50, 35);
-    m_randomButton->setStyleSheet(
-        "QPushButton { border: 2px solid #555; border-radius: 5px; padding: 3px; background-color: #9E9E9E; color: #333; }"
-        "QPushButton:checked { background-color: #9C27B0; color: white; border-color: #7B1FA2; }"
-        "QPushButton:hover { background-color: #BDBDBD; }"
-        "QPushButton:checked:hover { background-color: #AB47BC; }"
-    );
+    m_randomButton->setStyleSheet(colorButtonStyle);
     connect(m_randomButton, &QPushButton::clicked, this, &Qt_Chess::onRandomColorClicked);
     colorButtonsLayout->addWidget(m_randomButton);
     
@@ -2091,12 +2085,7 @@ void Qt_Chess::setupTimeControlUI(QVBoxLayout* timeControlPanelLayout) {
     m_blackButton->setFont(labelFont);
     m_blackButton->setCheckable(true);
     m_blackButton->setMinimumSize(50, 35);
-    m_blackButton->setStyleSheet(
-        "QPushButton { border: 2px solid #555; border-radius: 5px; padding: 3px; background-color: #9E9E9E; color: #333; }"
-        "QPushButton:checked { background-color: #333333; color: white; border-color: #000; }"
-        "QPushButton:hover { background-color: #BDBDBD; }"
-        "QPushButton:checked:hover { background-color: #555555; }"
-    );
+    m_blackButton->setStyleSheet(colorButtonStyle);
     connect(m_blackButton, &QPushButton::clicked, this, &Qt_Chess::onBlackColorClicked);
     colorButtonsLayout->addWidget(m_blackButton);
     
@@ -2132,25 +2121,6 @@ void Qt_Chess::setupTimeControlUI(QVBoxLayout* timeControlPanelLayout) {
     connect(m_difficultySlider, &QSlider::valueChanged, this, &Qt_Chess::onDifficultyChanged);
     timeControlLayout->addWidget(m_difficultySlider);
     
-    // 搜尋深度設定
-    m_depthLabel = new QLabel("搜尋深度:", this);
-    m_depthLabel->setFont(labelFont);
-    timeControlLayout->addWidget(m_depthLabel);
-    
-    m_depthValueLabel = new QLabel("1", this);
-    m_depthValueLabel->setFont(labelFont);
-    m_depthValueLabel->setAlignment(Qt::AlignCenter);
-    timeControlLayout->addWidget(m_depthValueLabel);
-    
-    m_depthSlider = new QSlider(Qt::Horizontal, this);
-    m_depthSlider->setMinimum(1);
-    m_depthSlider->setMaximum(30);
-    m_depthSlider->setValue(1);
-    m_depthSlider->setTickPosition(QSlider::TicksBelow);
-    m_depthSlider->setTickInterval(5);
-    connect(m_depthSlider, &QSlider::valueChanged, this, &Qt_Chess::onDepthChanged);
-    timeControlLayout->addWidget(m_depthSlider);
-    
     // 電腦思考中的提示標籤（初始隱藏）
     m_thinkingLabel = new QLabel("電腦思考中...", this);
     m_thinkingLabel->setFont(labelFont);
@@ -2165,9 +2135,6 @@ void Qt_Chess::setupTimeControlUI(QVBoxLayout* timeControlPanelLayout) {
     m_difficultyLabel->setVisible(isVsComputer);
     m_difficultyValueLabel->setVisible(isVsComputer);
     m_difficultySlider->setVisible(isVsComputer);
-    m_depthLabel->setVisible(isVsComputer);
-    m_depthValueLabel->setVisible(isVsComputer);
-    m_depthSlider->setVisible(isVsComputer);
 
     // 添加伸展以填充群組框中的剩餘空間
     timeControlLayout->addStretch();
@@ -3315,13 +3282,10 @@ void Qt_Chess::updateGameModeUI() {
         }
     }
     
-    // 更新難度控制和深度控制的可見性
+    // 更新難度控制的可見性
     if (m_difficultyLabel) m_difficultyLabel->setVisible(!isHumanMode);
     if (m_difficultyValueLabel) m_difficultyValueLabel->setVisible(!isHumanMode);
     if (m_difficultySlider) m_difficultySlider->setVisible(!isHumanMode);
-    if (m_depthLabel) m_depthLabel->setVisible(!isHumanMode);
-    if (m_depthValueLabel) m_depthValueLabel->setVisible(!isHumanMode);
-    if (m_depthSlider) m_depthSlider->setVisible(!isHumanMode);
 }
 
 void Qt_Chess::onDifficultyChanged(int value) {
@@ -3343,18 +3307,10 @@ void Qt_Chess::onDifficultyChanged(int value) {
     int thinkingTime = 50 + (value * 125);  // 50ms 到 2550ms
     m_chessEngine->setThinkingTime(thinkingTime);
     
-    // 儲存設定
-    saveEngineSettings();
-}
-
-void Qt_Chess::onDepthChanged(int value) {
-    if (!m_depthValueLabel || !m_chessEngine) return;
-    
-    // 更新顯示的深度值
-    m_depthValueLabel->setText(QString::number(value));
-    
-    // 更新引擎搜尋深度
-    m_chessEngine->setSearchDepth(value);
+    // 根據難度調整搜尋深度（與難度綁定）
+    // Level 0 (ELO 250) = depth 1, Level 20 (ELO 3250) = depth 21
+    int depth = 1 + value;  // depth 1-21
+    m_chessEngine->setSearchDepth(depth);
     
     // 儲存設定
     saveEngineSettings();
@@ -3494,7 +3450,6 @@ void Qt_Chess::loadEngineSettings() {
     
     int gameMode = settings.value("gameMode", static_cast<int>(GameMode::HumanVsHuman)).toInt();
     int difficulty = settings.value("difficulty", 0).toInt();  // 預設初學者
-    int depth = settings.value("depth", 1).toInt();  // 預設深度 1
     
     // 設定遊戲模式
     m_currentGameMode = static_cast<GameMode>(gameMode);
@@ -3502,12 +3457,7 @@ void Qt_Chess::loadEngineSettings() {
     
     if (m_difficultySlider) {
         m_difficultySlider->setValue(difficulty);
-        onDifficultyChanged(difficulty);  // 更新顯示
-    }
-    
-    if (m_depthSlider) {
-        m_depthSlider->setValue(depth);
-        onDepthChanged(depth);  // 更新顯示
+        onDifficultyChanged(difficulty);  // 更新顯示（同時設定搜尋深度）
     }
 }
 
@@ -3518,10 +3468,6 @@ void Qt_Chess::saveEngineSettings() {
     
     if (m_difficultySlider) {
         settings.setValue("difficulty", m_difficultySlider->value());
-    }
-    
-    if (m_depthSlider) {
-        settings.setValue("depth", m_depthSlider->value());
     }
     
     settings.sync();
