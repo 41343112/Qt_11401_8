@@ -75,6 +75,15 @@ const int MAX_PANEL_WIDTH = 600;              // 左右面板的最大寬度（�
 // PGN 格式常數
 const int PGN_MOVES_PER_LINE = 6;            // PGN 檔案中每行的移動回合數
 
+// ELO 評分常數（用於難度顯示）
+const int ELO_BASE = 800;                    // 最低 ELO 評分（對應 Skill Level 1）
+const double ELO_PER_LEVEL = 126.3;          // 每級增加的 ELO 分數
+
+// 計算 ELO 評分的輔助函數
+static int calculateElo(int skillLevel) {
+    return ELO_BASE + static_cast<int>((skillLevel - 1) * ELO_PER_LEVEL);
+}
+
 // 獲取面板的實際寬度，如果尚未渲染則使用後備值的輔助函數
 static int getPanelWidth(QWidget* panel) {
     if (!panel) return 0;
@@ -1914,9 +1923,6 @@ void Qt_Chess::onFlipBoardClicked() {
 }
 
 void Qt_Chess::setupTimeControlUI(QVBoxLayout* timeControlPanelLayout) {
-    // 遊戲模式群組框（電腦對弈設定）
-    setupEngineUI(timeControlPanelLayout);
-    
     // 時間控制群組框
     QGroupBox* timeControlGroup = new QGroupBox("時間控制", this);
     QVBoxLayout* timeControlLayout = new QVBoxLayout(timeControlGroup);
@@ -1989,6 +1995,9 @@ void Qt_Chess::setupTimeControlUI(QVBoxLayout* timeControlPanelLayout) {
     timeControlLayout->addStretch();
 
     timeControlPanelLayout->addWidget(timeControlGroup, 1);
+    
+    // 遊戲模式群組框（電腦對弈設定）- 放在時間控制下方
+    setupEngineUI(timeControlPanelLayout);
 
     // 開始 button - placed at the bottom of the time control panel, outside the group box
     m_startButton = new QPushButton("開始", this);
@@ -2980,7 +2989,8 @@ void Qt_Chess::setupEngineUI(QVBoxLayout* layout) {
     m_difficultyLabel->setFont(labelFont);
     engineLayout->addWidget(m_difficultyLabel);
     
-    m_difficultyValueLabel = new QLabel("中等 (10)", this);
+    // 初始值為 10，對應 ELO 評分使用 calculateElo 計算
+    m_difficultyValueLabel = new QLabel(QString("ELO %1").arg(calculateElo(10)), this);
     m_difficultyValueLabel->setFont(labelFont);
     m_difficultyValueLabel->setAlignment(Qt::AlignCenter);
     engineLayout->addWidget(m_difficultyValueLabel);
@@ -3111,19 +3121,11 @@ void Qt_Chess::onGameModeChanged(int id) {
 void Qt_Chess::onDifficultyChanged(int value) {
     if (!m_difficultyValueLabel || !m_chessEngine) return;
     
-    // 更新顯示的難度值
-    QString diffText;
-    if (value <= 3) {
-        diffText = QString("非常簡單 (%1)").arg(value);
-    } else if (value <= 7) {
-        diffText = QString("簡單 (%1)").arg(value);
-    } else if (value <= 12) {
-        diffText = QString("中等 (%1)").arg(value);
-    } else if (value <= 16) {
-        diffText = QString("困難 (%1)").arg(value);
-    } else {
-        diffText = QString("非常困難 (%1)").arg(value);
-    }
+    // 使用輔助函數計算 ELO 評分
+    int elo = calculateElo(value);
+    
+    // 更新顯示的難度值（使用 ELO 表示）
+    QString diffText = QString("ELO %1").arg(elo);
     m_difficultyValueLabel->setText(diffText);
     
     // 更新引擎難度
