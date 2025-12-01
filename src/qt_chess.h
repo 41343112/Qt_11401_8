@@ -225,7 +225,6 @@ private:
     void loadTimeControlSettings();
     void saveTimeControlSettings();
     void handleGameEnd();  // 處理遊戲結束狀態的輔助函數
-    void setupEndGamePanels();  // 設置遊戲結束時的上下方面板
     void moveWidgetsForGameEnd();  // 將時間和吃子紀錄移動到棋盤上下方
     void restoreWidgetsFromGameEnd();  // 將時間和吃子紀錄恢復到右側面板
     void showTimeControlAfterTimeout();  // 時間到期後顯示時間控制面板的輔助函數

@@ -73,6 +73,12 @@ const int LOW_TIME_THRESHOLD_MS = 10000;     // 低時間警告的閾值（10 �
 const int MIN_PANEL_WIDTH = 50;              // 左右面板的最小寬度（像素）
 const int MAX_PANEL_WIDTH = 600;              // 左右面板的最大寬度（像素）
 
+// 遊戲結束佈局常數
+const int ENDGAME_PANEL_FALLBACK_WIDTH = 200;   // 遊戲結束面板的後備寬度
+const int ENDGAME_PANEL_FALLBACK_HEIGHT = 50;   // 遊戲結束面板的後備高度
+const int NORMAL_PANEL_FALLBACK_WIDTH = 30;     // 正常面板的後備寬度
+const int NORMAL_PANEL_FALLBACK_HEIGHT = 100;   // 正常面板的後備高度
+
 // PGN 格式常數
 const int PGN_MOVES_PER_LINE = 6;            // PGN 檔案中每行的移動回合數
 
@@ -2483,18 +2489,18 @@ void Qt_Chess::moveWidgetsForGameEnd() {
         // 棋盤翻轉：玩家執黑，對方（白方）在上方，我方（黑方）在下方
         opponentTimeLabel = m_whiteTimeLabel;
         opponentProgressBar = m_whiteTimeProgressBar;
-        opponentCapturedPanel = m_capturedBlackPanel;  // 黑方被吃的棋子（白方吃的）
+        opponentCapturedPanel = m_capturedBlackPanel;  // 對方（白方）吃掉的我方棋子（黑子）
         myTimeLabel = m_blackTimeLabel;
         myProgressBar = m_blackTimeProgressBar;
-        myCapturedPanel = m_capturedWhitePanel;  // 白方被吃的棋子（黑方吃的）
+        myCapturedPanel = m_capturedWhitePanel;  // 我方（黑方）吃掉的對方棋子（白子）
     } else {
         // 棋盤不翻轉：玩家執白，對方（黑方）在上方，我方（白方）在下方
         opponentTimeLabel = m_blackTimeLabel;
         opponentProgressBar = m_blackTimeProgressBar;
-        opponentCapturedPanel = m_capturedWhitePanel;  // 白方被吃的棋子（黑方吃的）
+        opponentCapturedPanel = m_capturedWhitePanel;  // 對方（黑方）吃掉的我方棋子（白子）
         myTimeLabel = m_whiteTimeLabel;
         myProgressBar = m_whiteTimeProgressBar;
-        myCapturedPanel = m_capturedBlackPanel;  // 黑方被吃的棋子（白方吃的）
+        myCapturedPanel = m_capturedBlackPanel;  // 我方（白方）吃掉的對方棋子（黑子）
     }
     
     // 將 widgets 重新設定父物件並添加到新佈局
@@ -2977,11 +2983,11 @@ void Qt_Chess::updateCapturedPiecesDisplay() {
         // 如果面板寬度尚未計算（初始設置期間），使用最小寬度
         if (panelWidth <= 0) {
             panelWidth = panel->minimumWidth();
-            if (panelWidth <= 0) panelWidth = isEndGameLayout ? 200 : 30;  // 後備最小寬度
+            if (panelWidth <= 0) panelWidth = isEndGameLayout ? ENDGAME_PANEL_FALLBACK_WIDTH : NORMAL_PANEL_FALLBACK_WIDTH;
         }
         if (panelHeight <= 0) {
             panelHeight = panel->minimumHeight();
-            if (panelHeight <= 0) panelHeight = isEndGameLayout ? 50 : 100;  // 後備最小高度
+            if (panelHeight <= 0) panelHeight = isEndGameLayout ? ENDGAME_PANEL_FALLBACK_HEIGHT : NORMAL_PANEL_FALLBACK_HEIGHT;
         }
 
         int xPos = leftMargin;
