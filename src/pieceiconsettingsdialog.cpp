@@ -843,37 +843,65 @@ void PieceIconSettingsDialog::onLoadCustomIconSet()
     QTextStream in(&file);
     QString line;
     
+    // 檢查檔案標頭
+    bool headerFound = false;
+    
     while (!in.atEnd()) {
-        line = in.readLine();
+        line = in.readLine().trimmed();
         
-        if (line.startsWith("whiteKingIcon=")) {
-            m_settings.whiteKingIcon = line.mid(14);
-        } else if (line.startsWith("whiteQueenIcon=")) {
-            m_settings.whiteQueenIcon = line.mid(15);
-        } else if (line.startsWith("whiteRookIcon=")) {
-            m_settings.whiteRookIcon = line.mid(14);
-        } else if (line.startsWith("whiteBishopIcon=")) {
-            m_settings.whiteBishopIcon = line.mid(16);
-        } else if (line.startsWith("whiteKnightIcon=")) {
-            m_settings.whiteKnightIcon = line.mid(16);
-        } else if (line.startsWith("whitePawnIcon=")) {
-            m_settings.whitePawnIcon = line.mid(14);
-        } else if (line.startsWith("blackKingIcon=")) {
-            m_settings.blackKingIcon = line.mid(14);
-        } else if (line.startsWith("blackQueenIcon=")) {
-            m_settings.blackQueenIcon = line.mid(15);
-        } else if (line.startsWith("blackRookIcon=")) {
-            m_settings.blackRookIcon = line.mid(14);
-        } else if (line.startsWith("blackBishopIcon=")) {
-            m_settings.blackBishopIcon = line.mid(16);
-        } else if (line.startsWith("blackKnightIcon=")) {
-            m_settings.blackKnightIcon = line.mid(16);
-        } else if (line.startsWith("blackPawnIcon=")) {
-            m_settings.blackPawnIcon = line.mid(14);
+        // 檢查標頭
+        if (line == "[CustomIconSet]") {
+            headerFound = true;
+            continue;
+        }
+        
+        // 跳過空行
+        if (line.isEmpty()) {
+            continue;
+        }
+        
+        // 使用 '=' 分割鍵值對
+        int separatorIndex = line.indexOf('=');
+        if (separatorIndex <= 0) {
+            continue;
+        }
+        
+        QString key = line.left(separatorIndex);
+        QString value = line.mid(separatorIndex + 1);
+        
+        if (key == "whiteKingIcon") {
+            m_settings.whiteKingIcon = value;
+        } else if (key == "whiteQueenIcon") {
+            m_settings.whiteQueenIcon = value;
+        } else if (key == "whiteRookIcon") {
+            m_settings.whiteRookIcon = value;
+        } else if (key == "whiteBishopIcon") {
+            m_settings.whiteBishopIcon = value;
+        } else if (key == "whiteKnightIcon") {
+            m_settings.whiteKnightIcon = value;
+        } else if (key == "whitePawnIcon") {
+            m_settings.whitePawnIcon = value;
+        } else if (key == "blackKingIcon") {
+            m_settings.blackKingIcon = value;
+        } else if (key == "blackQueenIcon") {
+            m_settings.blackQueenIcon = value;
+        } else if (key == "blackRookIcon") {
+            m_settings.blackRookIcon = value;
+        } else if (key == "blackBishopIcon") {
+            m_settings.blackBishopIcon = value;
+        } else if (key == "blackKnightIcon") {
+            m_settings.blackKnightIcon = value;
+        } else if (key == "blackPawnIcon") {
+            m_settings.blackPawnIcon = value;
         }
     }
     
     file.close();
+    
+    if (!headerFound) {
+        QMessageBox::warning(this, "錯誤", "無效的圖標集檔案格式");
+        return;
+    }
     
     // 更新 UI 以顯示載入的路徑
     m_whiteKingEdit->setText(m_settings.whiteKingIcon);
