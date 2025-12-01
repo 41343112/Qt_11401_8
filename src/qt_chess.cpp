@@ -2614,14 +2614,20 @@ void Qt_Chess::updateCapturedPiecesDisplay() {
     // 按棋子類型分組並顯示的輔助函數
     // 相同類型棋子水平重疊，不同類型棋子垂直排列
     // 返回最終的 y 位置以便放置分差標籤
-    auto displayCapturedPieces = [pieceSize, horizontalOffset, verticalOffset](
+    auto displayCapturedPieces = [this, pieceSize, horizontalOffset, verticalOffset](
         QWidget* panel, const std::vector<ChessPiece>& capturedPieces, QList<QLabel*>& labels) -> int {
         if (!panel) return 0;
         if (capturedPieces.empty()) return 0;
 
-        // 複製並按棋子類型排序，確保相同類型的棋子放在一起
+        // 複製並按棋子分值由小到大排序，確保相同分值的棋子放在一起
         std::vector<ChessPiece> sortedPieces = capturedPieces;
-        std::sort(sortedPieces.begin(), sortedPieces.end(), [](const ChessPiece& a, const ChessPiece& b) {
+        std::sort(sortedPieces.begin(), sortedPieces.end(), [this](const ChessPiece& a, const ChessPiece& b) {
+            int valueA = getPieceValue(a.getType());
+            int valueB = getPieceValue(b.getType());
+            if (valueA != valueB) {
+                return valueA < valueB;  // 按分值由小到大排序
+            }
+            // 分值相同時，按類型排序以保持穩定性
             return static_cast<int>(a.getType()) < static_cast<int>(b.getType());
         });
 
