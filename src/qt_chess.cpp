@@ -2491,8 +2491,20 @@ void Qt_Chess::updateCapturedPiecesDisplay() {
         });
 
         int yPos = 5;  // 起始 y 位置（垂直佈局）
-        int xPos = (panel->width() - pieceSize) / 2;  // 水平居中
+        int panelWidth = panel->width();
+        // 如果面板寬度尚未計算（初始設置期間），使用最小寬度
+        if (panelWidth <= 0) {
+            panelWidth = panel->minimumWidth();
+            if (panelWidth <= 0) panelWidth = 30;  // 後備最小寬度
+        }
+        int xPos = (panelWidth - pieceSize) / 2;  // 水平居中
         if (xPos < 5) xPos = 5;  // 確保最小邊距
+        int panelHeight = panel->height();
+        // 如果面板高度尚未計算，使用最小高度
+        if (panelHeight <= 0) {
+            panelHeight = panel->minimumHeight();
+            if (panelHeight <= 0) panelHeight = 100;  // 後備最小高度
+        }
         PieceType lastType = PieceType::None;
 
         for (size_t i = 0; i < sortedPieces.size(); ++i) {
@@ -2514,6 +2526,12 @@ void Qt_Chess::updateCapturedPiecesDisplay() {
                     // 不同類型的棋子之間需要間距，不能重疊
                     yPos += diffTypeOffset;
                 }
+            }
+
+            // 檢查是否超出面板高度範圍
+            if (yPos + pieceSize > panelHeight) {
+                // 如果超出範圍，仍然放置但會被裁切
+                // 這是一個合理的行為，因為在極端情況下（吃了太多棋子）無法完全顯示
             }
 
             // 放置棋子標籤（垂直佈局，水平居中）
