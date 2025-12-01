@@ -28,6 +28,7 @@
 #include <QTextStream>
 #include <QClipboard>
 #include <QApplication>
+#include <QRandomGenerator>
 #include <QDir>
 #include <QCoreApplication>
 #include <QDebug>
@@ -2057,9 +2058,9 @@ void Qt_Chess::setupTimeControlUI(QVBoxLayout* timeControlPanelLayout) {
     m_difficultyLabel->setFont(labelFont);
     timeControlLayout->addWidget(m_difficultyLabel);
     
-    // 初始值為 10，顯示 ELO 和中文難度名稱
-    int initialElo = calculateElo(10);
-    QString initialDiffName = getDifficultyName(10);
+    // 初始值為 0（初學者），顯示 ELO 和中文難度名稱
+    int initialElo = calculateElo(0);
+    QString initialDiffName = getDifficultyName(0);
     m_difficultyValueLabel = new QLabel(QString("%1 (ELO %2)").arg(initialDiffName).arg(initialElo), this);
     m_difficultyValueLabel->setFont(labelFont);
     m_difficultyValueLabel->setAlignment(Qt::AlignCenter);
@@ -2068,7 +2069,7 @@ void Qt_Chess::setupTimeControlUI(QVBoxLayout* timeControlPanelLayout) {
     m_difficultySlider = new QSlider(Qt::Horizontal, this);
     m_difficultySlider->setMinimum(0);
     m_difficultySlider->setMaximum(20);
-    m_difficultySlider->setValue(10);
+    m_difficultySlider->setValue(0);
     m_difficultySlider->setTickPosition(QSlider::TicksBelow);
     m_difficultySlider->setTickInterval(1);
     connect(m_difficultySlider, &QSlider::valueChanged, this, &Qt_Chess::onDifficultyChanged);
@@ -3146,20 +3147,76 @@ void Qt_Chess::onHumanModeClicked() {
 }
 
 void Qt_Chess::onComputerModeClicked() {
-    // 彈出對話框讓用戶選擇執白或執黑
-    QMessageBox msgBox(this);
-    msgBox.setWindowTitle("選擇棋子顏色");
-    msgBox.setText("請選擇您要執的棋子顏色：");
-    QPushButton* whiteButton = msgBox.addButton("執白（先手）", QMessageBox::AcceptRole);
-    QPushButton* blackButton = msgBox.addButton("執黑（後手）", QMessageBox::AcceptRole);
-    msgBox.addButton("取消", QMessageBox::RejectRole);
+    // 建立自訂對話框讓用戶選擇執白、執黑或隨機
+    QDialog dialog(this);
+    dialog.setWindowTitle("選擇棋子顏色");
+    dialog.setModal(true);
     
-    msgBox.exec();
+    QVBoxLayout* layout = new QVBoxLayout(&dialog);
     
-    if (msgBox.clickedButton() == whiteButton) {
+    QLabel* label = new QLabel("請選擇您要執的棋子顏色：", &dialog);
+    label->setAlignment(Qt::AlignCenter);
+    layout->addWidget(label);
+    
+    QHBoxLayout* buttonLayout = new QHBoxLayout();
+    
+    // 執白按鈕（方塊樣式）
+    QPushButton* whiteButton = new QPushButton("執白\n（先手）", &dialog);
+    whiteButton->setMinimumSize(80, 60);
+    whiteButton->setStyleSheet(
+        "QPushButton { border: 2px solid #555; border-radius: 5px; padding: 10px; background-color: #FFFFFF; color: #333; font-weight: bold; }"
+        "QPushButton:hover { background-color: #E0E0E0; border-color: #333; }"
+    );
+    buttonLayout->addWidget(whiteButton);
+    
+    // 隨機按鈕（方塊樣式）
+    QPushButton* randomButton = new QPushButton("隨機", &dialog);
+    randomButton->setMinimumSize(80, 60);
+    randomButton->setStyleSheet(
+        "QPushButton { border: 2px solid #555; border-radius: 5px; padding: 10px; background-color: #9C27B0; color: white; font-weight: bold; }"
+        "QPushButton:hover { background-color: #7B1FA2; border-color: #4A148C; }"
+    );
+    buttonLayout->addWidget(randomButton);
+    
+    // 執黑按鈕（方塊樣式）
+    QPushButton* blackButton = new QPushButton("執黑\n（後手）", &dialog);
+    blackButton->setMinimumSize(80, 60);
+    blackButton->setStyleSheet(
+        "QPushButton { border: 2px solid #555; border-radius: 5px; padding: 10px; background-color: #333333; color: white; font-weight: bold; }"
+        "QPushButton:hover { background-color: #555555; border-color: #000; }"
+    );
+    buttonLayout->addWidget(blackButton);
+    
+    layout->addLayout(buttonLayout);
+    
+    // 取消按鈕
+    QPushButton* cancelButton = new QPushButton("取消", &dialog);
+    cancelButton->setStyleSheet(
+        "QPushButton { border: 2px solid #555; border-radius: 5px; padding: 5px; background-color: #9E9E9E; color: #333; }"
+        "QPushButton:hover { background-color: #BDBDBD; }"
+    );
+    layout->addWidget(cancelButton);
+    
+    int result = -1;  // -1: 取消, 0: 執白, 1: 執黑, 2: 隨機
+    
+    connect(whiteButton, &QPushButton::clicked, [&]() { result = 0; dialog.accept(); });
+    connect(blackButton, &QPushButton::clicked, [&]() { result = 1; dialog.accept(); });
+    connect(randomButton, &QPushButton::clicked, [&]() { result = 2; dialog.accept(); });
+    connect(cancelButton, &QPushButton::clicked, [&]() { dialog.reject(); });
+    
+    dialog.exec();
+    
+    if (result == 0) {
         m_currentGameMode = GameMode::HumanVsComputer;
-    } else if (msgBox.clickedButton() == blackButton) {
+    } else if (result == 1) {
         m_currentGameMode = GameMode::ComputerVsHuman;
+    } else if (result == 2) {
+        // 隨機選擇執白或執黑
+        if (QRandomGenerator::global()->bounded(2) == 0) {
+            m_currentGameMode = GameMode::HumanVsComputer;
+        } else {
+            m_currentGameMode = GameMode::ComputerVsHuman;
+        }
     } else {
         // 用戶取消，保持原來的選擇狀態
         updateGameModeUI();
