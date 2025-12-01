@@ -163,6 +163,8 @@ Qt_Chess::Qt_Chess(QWidget *parent)
     , m_whiteScoreDiffLabel(nullptr)
     , m_blackScoreDiffLabel(nullptr)
     , m_rightTimePanel(nullptr)
+    , m_topEndGamePanel(nullptr)
+    , m_bottomEndGamePanel(nullptr)
     , m_replayTitle(nullptr)
     , m_replayFirstButton(nullptr)
     , m_replayPrevButton(nullptr)
@@ -332,6 +334,17 @@ void Qt_Chess::setupUI() {
                                              BOARD_CONTAINER_MARGIN, BOARD_CONTAINER_MARGIN);
     boardContainerVLayout->setSpacing(5);
 
+    // 遊戲結束時對方的時間和吃子紀錄面板（棋盤上方，初始隱藏）
+    m_topEndGamePanel = new QWidget(m_boardContainer);
+    m_topEndGamePanel->setMinimumHeight(50);
+    m_topEndGamePanel->setMaximumHeight(80);
+    QHBoxLayout* topEndGameLayout = new QHBoxLayout(m_topEndGamePanel);
+    topEndGameLayout->setContentsMargins(5, 0, 5, 0);
+    topEndGameLayout->setSpacing(10);
+    topEndGameLayout->setAlignment(Qt::AlignLeft);  // 靠左對齊
+    m_topEndGamePanel->hide();  // 初始隱藏
+    boardContainerVLayout->addWidget(m_topEndGamePanel, 0);
+
     // 國際象棋棋盤（水平佈局以保持居中）
     QHBoxLayout* boardHLayout = new QHBoxLayout();
     boardHLayout->setContentsMargins(0, 0, 0, 0);
@@ -376,6 +389,17 @@ void Qt_Chess::setupUI() {
     // 將棋盤添加到水平佈局
     boardHLayout->addWidget(m_boardWidget, 1, Qt::AlignCenter);
     boardContainerVLayout->addLayout(boardHLayout, 1);
+
+    // 遊戲結束時我方的時間和吃子紀錄面板（棋盤下方，初始隱藏）
+    m_bottomEndGamePanel = new QWidget(m_boardContainer);
+    m_bottomEndGamePanel->setMinimumHeight(50);
+    m_bottomEndGamePanel->setMaximumHeight(80);
+    QHBoxLayout* bottomEndGameLayout = new QHBoxLayout(m_bottomEndGamePanel);
+    bottomEndGameLayout->setContentsMargins(5, 0, 5, 0);
+    bottomEndGameLayout->setSpacing(10);
+    bottomEndGameLayout->setAlignment(Qt::AlignLeft);  // 靠左對齊
+    m_bottomEndGamePanel->hide();  // 初始隱藏
+    boardContainerVLayout->addWidget(m_bottomEndGamePanel, 0);
 
     // 將棋盤容器添加到內容佈局
     // 使用較大的伸展因子(3)使棋盤在水平放大時優先擴展
@@ -761,6 +785,9 @@ void Qt_Chess::onNewGameClicked() {
         m_chessEngine->stop();
         m_chessEngine->newGame();
     }
+
+    // 將時間和吃子紀錄恢復到右側面板
+    restoreWidgetsFromGameEnd();
 
     // 顯示時間控制面板
     if (m_timeControlPanel) {
@@ -2403,8 +2430,8 @@ void Qt_Chess::handleGameEnd() {
         m_startButton->setEnabled(true);
     }
 
-    // 保持時間顯示可見，以便玩家可以看到遊戲結束時的最終時間
-    // 時間標籤在遊戲結束時不再隱藏
+    // 將時間和吃子紀錄移動到棋盤上下方
+    moveWidgetsForGameEnd();
 
     // 顯示匯出 PGN 按鈕和複製棋譜按鈕
     if (m_exportPGNButton) {
@@ -2419,6 +2446,164 @@ void Qt_Chess::handleGameEnd() {
 
     // 當遊戲結束時，將右側伸展設為 0
     setRightPanelStretch(0);
+}
+
+void Qt_Chess::moveWidgetsForGameEnd() {
+    // 將對方的時間標籤和吃子紀錄移動到棋盤上方
+    // 將我方的時間標籤和吃子紀錄移動到棋盤下方
+    // 根據棋盤是否翻轉來決定誰是對方、誰是我方
+    
+    if (!m_topEndGamePanel || !m_bottomEndGamePanel) return;
+    
+    // 獲取上下方面板的佈局
+    QHBoxLayout* topLayout = qobject_cast<QHBoxLayout*>(m_topEndGamePanel->layout());
+    QHBoxLayout* bottomLayout = qobject_cast<QHBoxLayout*>(m_bottomEndGamePanel->layout());
+    if (!topLayout || !bottomLayout) return;
+    
+    // 清空現有佈局中的 widgets（但不刪除它們）
+    while (topLayout->count() > 0) {
+        topLayout->takeAt(0);
+    }
+    while (bottomLayout->count() > 0) {
+        bottomLayout->takeAt(0);
+    }
+    
+    // 根據棋盤翻轉狀態決定對方和我方
+    // 當棋盤翻轉時（玩家執黑），黑方在下方，白方在上方
+    // 當棋盤不翻轉時（玩家執白），白方在下方，黑方在上方
+    
+    QLabel* opponentTimeLabel = nullptr;
+    QProgressBar* opponentProgressBar = nullptr;
+    QWidget* opponentCapturedPanel = nullptr;
+    QLabel* myTimeLabel = nullptr;
+    QProgressBar* myProgressBar = nullptr;
+    QWidget* myCapturedPanel = nullptr;
+    
+    if (m_isBoardFlipped) {
+        // 棋盤翻轉：玩家執黑，對方（白方）在上方，我方（黑方）在下方
+        opponentTimeLabel = m_whiteTimeLabel;
+        opponentProgressBar = m_whiteTimeProgressBar;
+        opponentCapturedPanel = m_capturedBlackPanel;  // 黑方被吃的棋子（白方吃的）
+        myTimeLabel = m_blackTimeLabel;
+        myProgressBar = m_blackTimeProgressBar;
+        myCapturedPanel = m_capturedWhitePanel;  // 白方被吃的棋子（黑方吃的）
+    } else {
+        // 棋盤不翻轉：玩家執白，對方（黑方）在上方，我方（白方）在下方
+        opponentTimeLabel = m_blackTimeLabel;
+        opponentProgressBar = m_blackTimeProgressBar;
+        opponentCapturedPanel = m_capturedWhitePanel;  // 白方被吃的棋子（黑方吃的）
+        myTimeLabel = m_whiteTimeLabel;
+        myProgressBar = m_whiteTimeProgressBar;
+        myCapturedPanel = m_capturedBlackPanel;  // 黑方被吃的棋子（白方吃的）
+    }
+    
+    // 將 widgets 重新設定父物件並添加到新佈局
+    // 對方的時間和吃子紀錄放在棋盤上方
+    if (opponentTimeLabel) {
+        opponentTimeLabel->setParent(m_topEndGamePanel);
+        opponentTimeLabel->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
+        topLayout->addWidget(opponentTimeLabel);
+        opponentTimeLabel->show();
+    }
+    if (opponentProgressBar) {
+        opponentProgressBar->setParent(m_topEndGamePanel);
+        topLayout->addWidget(opponentProgressBar);
+        opponentProgressBar->show();
+    }
+    if (opponentCapturedPanel) {
+        opponentCapturedPanel->setParent(m_topEndGamePanel);
+        topLayout->addWidget(opponentCapturedPanel, 1);
+        opponentCapturedPanel->show();
+    }
+    
+    // 我方的時間和吃子紀錄放在棋盤下方
+    if (myTimeLabel) {
+        myTimeLabel->setParent(m_bottomEndGamePanel);
+        myTimeLabel->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
+        bottomLayout->addWidget(myTimeLabel);
+        myTimeLabel->show();
+    }
+    if (myProgressBar) {
+        myProgressBar->setParent(m_bottomEndGamePanel);
+        bottomLayout->addWidget(myProgressBar);
+        myProgressBar->show();
+    }
+    if (myCapturedPanel) {
+        myCapturedPanel->setParent(m_bottomEndGamePanel);
+        bottomLayout->addWidget(myCapturedPanel, 1);
+        myCapturedPanel->show();
+    }
+    
+    // 隱藏右側面板
+    if (m_rightTimePanel) {
+        m_rightTimePanel->hide();
+    }
+    
+    // 顯示上下方面板
+    m_topEndGamePanel->show();
+    m_bottomEndGamePanel->show();
+    
+    // 更新被吃掉的棋子顯示
+    updateCapturedPiecesDisplay();
+}
+
+void Qt_Chess::restoreWidgetsFromGameEnd() {
+    // 將時間和吃子紀錄恢復到右側面板
+    if (!m_rightTimePanel) return;
+    
+    QVBoxLayout* rightLayout = qobject_cast<QVBoxLayout*>(m_rightTimePanel->layout());
+    if (!rightLayout) return;
+    
+    // 隱藏上下方面板
+    if (m_topEndGamePanel) {
+        m_topEndGamePanel->hide();
+    }
+    if (m_bottomEndGamePanel) {
+        m_bottomEndGamePanel->hide();
+    }
+    
+    // 清空右側佈局（但不刪除 widgets）
+    while (rightLayout->count() > 0) {
+        rightLayout->takeAt(0);
+    }
+    
+    // 將 widgets 重新設定父物件並添加到右側佈局
+    // 按原始順序：對方吃子紀錄 -> 黑方時間 -> 白方時間 -> 我方吃子紀錄
+    
+    if (m_capturedWhitePanel) {
+        m_capturedWhitePanel->setParent(m_rightTimePanel);
+        rightLayout->addWidget(m_capturedWhitePanel, 1);
+    }
+    
+    if (m_blackTimeProgressBar) {
+        m_blackTimeProgressBar->setParent(m_rightTimePanel);
+        rightLayout->addWidget(m_blackTimeProgressBar, 0, Qt::AlignCenter);
+    }
+    
+    if (m_blackTimeLabel) {
+        m_blackTimeLabel->setParent(m_rightTimePanel);
+        m_blackTimeLabel->setAlignment(Qt::AlignCenter);
+        rightLayout->addWidget(m_blackTimeLabel, 0, Qt::AlignCenter);
+    }
+    
+    if (m_whiteTimeLabel) {
+        m_whiteTimeLabel->setParent(m_rightTimePanel);
+        m_whiteTimeLabel->setAlignment(Qt::AlignCenter);
+        rightLayout->addWidget(m_whiteTimeLabel, 0, Qt::AlignCenter);
+    }
+    
+    if (m_whiteTimeProgressBar) {
+        m_whiteTimeProgressBar->setParent(m_rightTimePanel);
+        rightLayout->addWidget(m_whiteTimeProgressBar, 0, Qt::AlignCenter);
+    }
+    
+    if (m_capturedBlackPanel) {
+        m_capturedBlackPanel->setParent(m_rightTimePanel);
+        rightLayout->addWidget(m_capturedBlackPanel, 1);
+    }
+    
+    // 更新被吃掉的棋子顯示
+    updateCapturedPiecesDisplay();
 }
 
 void Qt_Chess::loadTimeControlSettings() {
@@ -2524,8 +2709,8 @@ void Qt_Chess::showTimeControlAfterTimeout() {
         m_startButton->setEnabled(true);
     }
 
-    // 保持時間顯示可見，以便玩家可以看到超時時的最終時間
-    // 時間標籤在超時時不再隱藏
+    // 將時間和吃子紀錄移動到棋盤上下方
+    moveWidgetsForGameEnd();
 
     // 當遊戲超時結束時，將右側伸展設為 0
     setRightPanelStretch(0);
@@ -2757,17 +2942,20 @@ void Qt_Chess::updateCapturedPiecesDisplay() {
     int whiteDiff = blackCapturedValue - whiteCapturedValue;
     int blackDiff = -whiteDiff;  // 黑方分差與白方分差相反
 
+    // 檢查是否處於遊戲結束狀態（面板已移動到上下方）
+    bool isEndGameLayout = m_topEndGamePanel && m_topEndGamePanel->isVisible();
+
     // 被吃掉棋子的大小和間距設定
-    // 相同類型棋子水平重疊顯示，不同類型棋子垂直排列
     const int pieceSize = 24;  // 每個棋子標籤的大小
     const int horizontalOffset = pieceSize / 4;  // 相同類型棋子的水平重疊偏移量
     const int verticalOffset = pieceSize;  // 不同類型棋子之間的垂直間距
-    const int topMargin = 38;  // 頂部邊距，避免超出棋盤上方邊緣
+    const int topMargin = isEndGameLayout ? 5 : 38;  // 頂部邊距：遊戲結束時較小
+    const int leftMargin = 5;  // 左邊距
 
     // 按棋子類型分組並顯示的輔助函數
-    // 相同類型棋子水平重疊，不同類型棋子垂直排列
-    // 返回最終的 y 位置以便放置分差標籤
-    auto displayCapturedPieces = [this, pieceSize, horizontalOffset, verticalOffset, topMargin](
+    // 根據是否為遊戲結束佈局使用不同的排列方式
+    // 返回最終的位置以便放置分差標籤
+    auto displayCapturedPieces = [this, pieceSize, horizontalOffset, verticalOffset, topMargin, leftMargin, isEndGameLayout](
         QWidget* panel, const std::vector<ChessPiece>& capturedPieces, QList<QLabel*>& labels) -> int {
         if (!panel) return 0;
         if (capturedPieces.empty()) return 0;
@@ -2784,21 +2972,20 @@ void Qt_Chess::updateCapturedPiecesDisplay() {
             return static_cast<int>(a.getType()) < static_cast<int>(b.getType());
         });
 
-        int yPos = topMargin;  // 起始 y 位置，加入頂部邊距
         int panelWidth = panel->width();
+        int panelHeight = panel->height();
         // 如果面板寬度尚未計算（初始設置期間），使用最小寬度
         if (panelWidth <= 0) {
             panelWidth = panel->minimumWidth();
-            if (panelWidth <= 0) panelWidth = 30;  // 後備最小寬度
+            if (panelWidth <= 0) panelWidth = isEndGameLayout ? 200 : 30;  // 後備最小寬度
         }
-        int baseXPos = 5;  // 起始 x 位置（左對齊，留最小邊距）
-        int xPos = baseXPos;
-        int panelHeight = panel->height();
-        // 如果面板高度尚未計算，使用最小高度
         if (panelHeight <= 0) {
             panelHeight = panel->minimumHeight();
-            if (panelHeight <= 0) panelHeight = 100;  // 後備最小高度
+            if (panelHeight <= 0) panelHeight = isEndGameLayout ? 50 : 100;  // 後備最小高度
         }
+
+        int xPos = leftMargin;
+        int yPos = topMargin;
         PieceType lastType = PieceType::None;
 
         for (size_t i = 0; i < sortedPieces.size(); ++i) {
@@ -2815,15 +3002,30 @@ void Qt_Chess::updateCapturedPiecesDisplay() {
                     int newXPos = xPos + horizontalOffset;
                     // 檢查是否超出面板寬度，如果超出則換行
                     if (newXPos + pieceSize > panelWidth) {
-                        nextYPos += verticalOffset;
-                        nextXPos = baseXPos;
+                        if (isEndGameLayout) {
+                            // 遊戲結束佈局時，超出寬度就不再顯示更多棋子
+                            break;
+                        } else {
+                            // 正常佈局時換行
+                            nextYPos += verticalOffset;
+                            nextXPos = leftMargin;
+                        }
                     } else {
                         nextXPos = newXPos;
                     }
                 } else {
-                    // 不同類型的棋子垂直排列（換行）
-                    nextYPos += verticalOffset;
-                    nextXPos = baseXPos;  // 重置 x 位置
+                    if (isEndGameLayout) {
+                        // 遊戲結束時，不同類型棋子也水平排列，只是間距較大
+                        int newXPos = xPos + pieceSize;
+                        if (newXPos + pieceSize > panelWidth) {
+                            break;  // 超出寬度就不再顯示
+                        }
+                        nextXPos = newXPos;
+                    } else {
+                        // 正常佈局：不同類型的棋子垂直排列（換行）
+                        nextYPos += verticalOffset;
+                        nextXPos = leftMargin;  // 重置 x 位置
+                    }
                 }
             }
 
@@ -2851,12 +3053,16 @@ void Qt_Chess::updateCapturedPiecesDisplay() {
             labels.append(label);
         }
         
-        // 返回最終的 y 位置（加上最後一行的高度）
-        return yPos + pieceSize;
+        // 返回最終的位置（用於放置分差標籤）
+        if (isEndGameLayout) {
+            return xPos + pieceSize;  // 返回 x 位置
+        } else {
+            return yPos + pieceSize;  // 返回 y 位置
+        }
     };
 
     // 更新分差標籤的輔助函數
-    auto updateScoreDiffLabel = [](QLabel*& label, QWidget* panel, int scoreDiff, int yPosition) {
+    auto updateScoreDiffLabel = [isEndGameLayout](QLabel*& label, QWidget* panel, int scoreDiff, int position) {
         if (!panel) return;
         
         // 如果標籤不存在，創建它
@@ -2873,7 +3079,13 @@ void Qt_Chess::updateCapturedPiecesDisplay() {
         if (scoreDiff > 0) {
             label->setText(QString("+%1").arg(scoreDiff));
             label->setStyleSheet("QLabel { color: #4CAF50; }");  // 綠色表示領先
-            label->move(5, yPosition + 5);  // 在棋子下方顯示
+            if (isEndGameLayout) {
+                // 遊戲結束佈局：分差標籤在棋子右側
+                label->move(position + 5, 5);
+            } else {
+                // 正常佈局：分差標籤在棋子下方
+                label->move(5, position + 5);
+            }
             label->adjustSize();
             label->show();
         } else {
