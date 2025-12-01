@@ -20,6 +20,8 @@
 #include <QGroupBox>
 #include <QListWidget>
 #include <QProgressBar>
+#include <QRadioButton>
+#include <QButtonGroup>
 #include <vector>
 #include "chessboard.h"
 #include "chessengine.h"
@@ -155,7 +157,10 @@ private:
     
     // 電腦對弈引擎
     ChessEngine* m_chessEngine;
-    QComboBox* m_gameModeComboBox;
+    QButtonGroup* m_gameModeButtonGroup;
+    QRadioButton* m_humanVsHumanRadio;
+    QRadioButton* m_humanVsComputerRadio;
+    QRadioButton* m_computerVsHumanRadio;
     QSlider* m_difficultySlider;
     QLabel* m_difficultyLabel;
     QLabel* m_difficultyValueLabel;
@@ -242,13 +247,15 @@ private:
     // 電腦對弈功能
     void setupEngineUI(QVBoxLayout* layout);
     void initializeEngine();
-    void onGameModeChanged(int index);
+    void onGameModeChanged(int id);
     void onDifficultyChanged(int value);
     void onEngineBestMove(const QString& move);
     void onEngineReady();
     void onEngineError(const QString& error);
     void requestEngineMove();
     bool isComputerTurn() const;
+    bool isPlayerPiece(PieceColor pieceColor) const;  // 檢查棋子是否為玩家的
+    GameMode getCurrentGameMode() const;  // 取得當前遊戲模式
     void loadEngineSettings();
     void saveEngineSettings();
     QString getEnginePath() const;
