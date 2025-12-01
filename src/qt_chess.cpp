@@ -76,25 +76,25 @@ const int MAX_PANEL_WIDTH = 600;              // 左右面板的最大寬度（�
 const int PGN_MOVES_PER_LINE = 6;            // PGN 檔案中每行的移動回合數
 
 // ELO 評分常數（用於難度顯示）
-const int ELO_BASE = 250;                    // 最低 ELO 評分（對應 Skill Level 1）
+const int ELO_BASE = 250;                    // 最低 ELO 評分（對應 Skill Level 0）
 const int ELO_PER_LEVEL = 150;               // 每級增加的 ELO 分數（確保結果能被50整除）
 
 // 計算 ELO 評分的輔助函數
 static int calculateElo(int skillLevel) {
-    return ELO_BASE + (skillLevel - 1) * ELO_PER_LEVEL;
+    return ELO_BASE + skillLevel * ELO_PER_LEVEL;
 }
 
 // 根據難度等級取得中文難度名稱
 static QString getDifficultyName(int skillLevel) {
-    if (skillLevel <= 4) {
+    if (skillLevel <= 4) {        // Level 0-4
         return "初學";
-    } else if (skillLevel <= 8) {
+    } else if (skillLevel <= 8) { // Level 5-8
         return "簡單";
-    } else if (skillLevel <= 12) {
+    } else if (skillLevel <= 12) { // Level 9-12
         return "中等";
-    } else if (skillLevel <= 16) {
+    } else if (skillLevel <= 16) { // Level 13-16
         return "困難";
-    } else {
+    } else {                       // Level 17-20
         return "大師";
     }
 }
@@ -2021,9 +2021,10 @@ void Qt_Chess::setupTimeControlUI(QVBoxLayout* timeControlPanelLayout) {
     m_humanModeButton->setChecked(true);
     m_humanModeButton->setMinimumSize(60, 40);
     m_humanModeButton->setStyleSheet(
-        "QPushButton { border: 2px solid #555; border-radius: 5px; padding: 5px; background-color: #4CAF50; color: white; }"
-        "QPushButton:checked { background-color: #2E7D32; border-color: #1B5E20; }"
-        "QPushButton:hover { background-color: #66BB6A; }"
+        "QPushButton { border: 2px solid #555; border-radius: 5px; padding: 5px; background-color: #9E9E9E; color: #333; }"
+        "QPushButton:checked { background-color: #4CAF50; color: white; border-color: #2E7D32; }"
+        "QPushButton:hover { background-color: #BDBDBD; }"
+        "QPushButton:checked:hover { background-color: #66BB6A; }"
     );
     connect(m_humanModeButton, &QPushButton::clicked, this, &Qt_Chess::onHumanModeClicked);
     gameModeButtonsLayout->addWidget(m_humanModeButton);
@@ -2034,9 +2035,10 @@ void Qt_Chess::setupTimeControlUI(QVBoxLayout* timeControlPanelLayout) {
     m_computerModeButton->setCheckable(true);
     m_computerModeButton->setMinimumSize(60, 40);
     m_computerModeButton->setStyleSheet(
-        "QPushButton { border: 2px solid #555; border-radius: 5px; padding: 5px; background-color: #2196F3; color: white; }"
-        "QPushButton:checked { background-color: #1565C0; border-color: #0D47A1; }"
-        "QPushButton:hover { background-color: #42A5F5; }"
+        "QPushButton { border: 2px solid #555; border-radius: 5px; padding: 5px; background-color: #9E9E9E; color: #333; }"
+        "QPushButton:checked { background-color: #2196F3; color: white; border-color: #1565C0; }"
+        "QPushButton:hover { background-color: #BDBDBD; }"
+        "QPushButton:checked:hover { background-color: #42A5F5; }"
     );
     connect(m_computerModeButton, &QPushButton::clicked, this, &Qt_Chess::onComputerModeClicked);
     gameModeButtonsLayout->addWidget(m_computerModeButton);
@@ -2064,7 +2066,7 @@ void Qt_Chess::setupTimeControlUI(QVBoxLayout* timeControlPanelLayout) {
     timeControlLayout->addWidget(m_difficultyValueLabel);
     
     m_difficultySlider = new QSlider(Qt::Horizontal, this);
-    m_difficultySlider->setMinimum(1);
+    m_difficultySlider->setMinimum(0);
     m_difficultySlider->setMaximum(20);
     m_difficultySlider->setValue(10);
     m_difficultySlider->setTickPosition(QSlider::TicksBelow);
@@ -3218,8 +3220,8 @@ void Qt_Chess::onDifficultyChanged(int value) {
     m_chessEngine->setDifficulty(value);
     
     // 根據難度調整思考時間
-    // 較低難度：較短思考時間；較高難度：較長思考時間
-    int thinkingTime = 500 + (value * 100);  // 600ms 到 2500ms
+    // 較低難度：較短思考時間（最小50ms）；較高難度：較長思考時間
+    int thinkingTime = 50 + (value * 125);  // 50ms 到 2550ms
     m_chessEngine->setThinkingTime(thinkingTime);
     
     // 儲存設定

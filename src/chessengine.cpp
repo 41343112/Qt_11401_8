@@ -95,13 +95,13 @@ void ChessEngine::setGameMode(GameMode mode)
 
 void ChessEngine::setDifficulty(int level)
 {
-    m_skillLevel = qBound(1, level, 20);
+    m_skillLevel = qBound(0, level, 20);
     configureEngine();
 }
 
 void ChessEngine::setThinkingTime(int milliseconds)
 {
-    m_thinkingTimeMs = qBound(100, milliseconds, 30000);
+    m_thinkingTimeMs = qBound(50, milliseconds, 30000);
 }
 
 void ChessEngine::newGame()
