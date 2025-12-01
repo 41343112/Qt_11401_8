@@ -277,13 +277,6 @@ void Qt_Chess::setupUI() {
                                              BOARD_CONTAINER_MARGIN, BOARD_CONTAINER_MARGIN);
     boardContainerVLayout->setSpacing(5);
 
-    // 對方的吃子紀錄放在棋盤上方靠左對齊（白子被黑方吃掉）
-    m_capturedWhitePanel = new QWidget(m_boardContainer);
-    m_capturedWhitePanel->setMinimumHeight(30);
-    m_capturedWhitePanel->setMaximumHeight(40);
-    m_capturedWhitePanel->setMinimumWidth(8 * MIN_SQUARE_SIZE);  // 設置最小寬度以匹配棋盤寬度
-    boardContainerVLayout->addWidget(m_capturedWhitePanel, 0);
-
     // 國際象棋棋盤（水平佈局以保持居中）
     QHBoxLayout* boardHLayout = new QHBoxLayout();
     boardHLayout->setContentsMargins(0, 0, 0, 0);
@@ -329,19 +322,12 @@ void Qt_Chess::setupUI() {
     boardHLayout->addWidget(m_boardWidget, 1, Qt::AlignCenter);
     boardContainerVLayout->addLayout(boardHLayout, 1);
 
-    // 我方的吃子紀錄放在棋盤下方靠左對齊（黑子被白方吃掉）
-    m_capturedBlackPanel = new QWidget(m_boardContainer);
-    m_capturedBlackPanel->setMinimumHeight(30);
-    m_capturedBlackPanel->setMaximumHeight(40);
-    m_capturedBlackPanel->setMinimumWidth(8 * MIN_SQUARE_SIZE);  // 設置最小寬度以匹配棋盤寬度
-    boardContainerVLayout->addWidget(m_capturedBlackPanel, 0);
-
     // 將棋盤容器添加到內容佈局
     // 使用較大的伸展因子(3)使棋盤在水平放大時優先擴展
     m_contentLayout->addWidget(m_boardContainer, 2, Qt::AlignCenter);
 
     // 右側時間顯示面板（在棋盤和時間控制之間）
-    // 佈局順序：黑方進度條（上方）-> 黑方時間標籤 -> 白方時間標籤 -> 白方進度條（下方）
+    // 佈局順序：對方吃子紀錄（上方垂直往下）-> 時間顯示區 -> 我方吃子紀錄（從時間垂直往下）
     m_rightTimePanel = new QWidget(this);
     m_rightTimePanel->setMinimumWidth(100);
     m_rightTimePanel->setMaximumWidth(150);
@@ -349,13 +335,16 @@ void Qt_Chess::setupUI() {
     rightTimePanelLayout->setContentsMargins(5, 5, 5, 5);
     rightTimePanelLayout->setSpacing(5);
 
+    // 對方的吃子紀錄從右側棋盤上方垂直往下（白子被黑方吃掉）
+    m_capturedWhitePanel = new QWidget(m_rightTimePanel);
+    m_capturedWhitePanel->setMinimumWidth(30);
+    m_capturedWhitePanel->setMinimumHeight(100);
+    rightTimePanelLayout->addWidget(m_capturedWhitePanel, 1);
+
     // 時間顯示字體
     QFont timeFont;
     timeFont.setPointSize(14);
     timeFont.setBold(true);
-
-    // 添加頂部伸展
-    rightTimePanelLayout->addStretch(1);
 
     // 黑方時間進度條 - 放在時間標籤上方，初始隱藏
     m_blackTimeProgressBar = new QProgressBar(m_rightTimePanel);
@@ -405,8 +394,11 @@ void Qt_Chess::setupUI() {
     m_whiteTimeProgressBar->hide();  // 初始隱藏
     rightTimePanelLayout->addWidget(m_whiteTimeProgressBar, 0, Qt::AlignCenter);
 
-    // 添加底部伸展
-    rightTimePanelLayout->addStretch(1);
+    // 我方的吃子紀錄從時間垂直往下（黑子被白方吃掉）
+    m_capturedBlackPanel = new QWidget(m_rightTimePanel);
+    m_capturedBlackPanel->setMinimumWidth(30);
+    m_capturedBlackPanel->setMinimumHeight(100);
+    rightTimePanelLayout->addWidget(m_capturedBlackPanel, 1);
 
     // 將右側時間面板添加到內容佈局
     m_contentLayout->addWidget(m_rightTimePanel, 0);
@@ -2482,13 +2474,13 @@ void Qt_Chess::updateCapturedPiecesDisplay() {
     }
     m_capturedBlackLabels.clear();
 
-    // 被吃掉棋子的大小和間距設定
+    // 被吃掉棋子的大小和間距設定（垂直佈局）
     const int pieceSize = 24;  // 每個棋子標籤的大小
     const int sameTypeOffset = pieceSize / 4;  // 相同類型棋子的重疊偏移量
     const int diffTypeOffset = pieceSize;  // 不同類型棋子之間的間距（不重疊）
 
-    // 按棋子類型分組並顯示的輔助函數
-    auto displayCapturedPieces = [pieceSize, sameTypeOffset, diffTypeOffset](
+    // 按棋子類型分組並垂直顯示的輔助函數
+    auto displayCapturedPiecesVertical = [pieceSize, sameTypeOffset, diffTypeOffset](
         QWidget* panel, const std::vector<ChessPiece>& capturedPieces, QList<QLabel*>& labels) {
         if (!panel || capturedPieces.empty()) return;
 
@@ -2498,7 +2490,9 @@ void Qt_Chess::updateCapturedPiecesDisplay() {
             return static_cast<int>(a.getType()) < static_cast<int>(b.getType());
         });
 
-        int xPos = 5;  // 起始 x 位置
+        int yPos = 5;  // 起始 y 位置（垂直佈局）
+        int xPos = (panel->width() - pieceSize) / 2;  // 水平居中
+        if (xPos < 5) xPos = 5;  // 確保最小邊距
         PieceType lastType = PieceType::None;
 
         for (size_t i = 0; i < sortedPieces.size(); ++i) {
@@ -2511,19 +2505,19 @@ void Qt_Chess::updateCapturedPiecesDisplay() {
             label->setFixedSize(pieceSize, pieceSize);
             label->setAlignment(Qt::AlignCenter);
 
-            // 如果不是第一個棋子，根據類型決定間距
+            // 如果不是第一個棋子，根據類型決定間距（垂直方向）
             if (lastType != PieceType::None) {
                 if (piece.getType() == lastType) {
                     // 相同類型的棋子可以重疊
-                    xPos += sameTypeOffset;
+                    yPos += sameTypeOffset;
                 } else {
                     // 不同類型的棋子之間需要間距，不能重疊
-                    xPos += diffTypeOffset;
+                    yPos += diffTypeOffset;
                 }
             }
 
-            // 放置棋子標籤
-            label->move(xPos, 3);
+            // 放置棋子標籤（垂直佈局，水平居中）
+            label->move(xPos, yPos);
             lastType = piece.getType();
 
             label->show();
@@ -2531,16 +2525,16 @@ void Qt_Chess::updateCapturedPiecesDisplay() {
         }
     };
 
-    // 顯示被吃掉的白色棋子
+    // 顯示被吃掉的白色棋子（對方吃子紀錄，從右側棋盤上方垂直往下）
     if (m_capturedWhitePanel) {
         const std::vector<ChessPiece>& capturedWhite = m_chessBoard.getCapturedPieces(PieceColor::White);
-        displayCapturedPieces(m_capturedWhitePanel, capturedWhite, m_capturedWhiteLabels);
+        displayCapturedPiecesVertical(m_capturedWhitePanel, capturedWhite, m_capturedWhiteLabels);
     }
 
-    // 顯示被吃掉的黑色棋子
+    // 顯示被吃掉的黑色棋子（我方吃子紀錄，從時間垂直往下）
     if (m_capturedBlackPanel) {
         const std::vector<ChessPiece>& capturedBlack = m_chessBoard.getCapturedPieces(PieceColor::Black);
-        displayCapturedPieces(m_capturedBlackPanel, capturedBlack, m_capturedBlackLabels);
+        displayCapturedPiecesVertical(m_capturedBlackPanel, capturedBlack, m_capturedBlackLabels);
     }
 }
 
