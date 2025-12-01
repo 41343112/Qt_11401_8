@@ -14,6 +14,8 @@
 #include <QSlider>
 #include <QEvent>
 #include <QMouseEvent>
+#include <QFile>
+#include <QTextStream>
 
 PieceIconSettingsDialog::PieceIconSettingsDialog(QWidget *parent)
     : QDialog(parent)
@@ -205,6 +207,19 @@ void PieceIconSettingsDialog::setupUI()
                    &PieceIconSettingsDialog::onResetBlackPawn);
     
     scrollLayout->addWidget(blackGroup);
+    
+    // 儲存/載入自訂圖標集按鈕
+    QHBoxLayout* customIconButtonLayout = new QHBoxLayout();
+    
+    QPushButton* saveCustomIconSetButton = new QPushButton("儲存自訂圖標集", this);
+    connect(saveCustomIconSetButton, &QPushButton::clicked, this, &PieceIconSettingsDialog::onSaveCustomIconSet);
+    customIconButtonLayout->addWidget(saveCustomIconSetButton);
+    
+    QPushButton* loadCustomIconSetButton = new QPushButton("載入自訂圖標集", this);
+    connect(loadCustomIconSetButton, &QPushButton::clicked, this, &PieceIconSettingsDialog::onLoadCustomIconSet);
+    customIconButtonLayout->addWidget(loadCustomIconSetButton);
+    
+    scrollLayout->addLayout(customIconButtonLayout);
     scrollLayout->addStretch();
     
     m_customIconsScrollArea->setWidget(scrollWidget);
@@ -292,71 +307,19 @@ void PieceIconSettingsDialog::previewIcon(const QString& iconFile)
     
     QDialog previewDialog(this);
     previewDialog.setWindowTitle("圖標預覽");
-    previewDialog.resize(400, 500);
+    previewDialog.resize(400, 400);
     QVBoxLayout* layout = new QVBoxLayout(&previewDialog);
     
-    // 帶捲動區域的圖片標籤以進行縮放
+    // 帶捲動區域的圖片標籤
     QScrollArea* scrollArea = new QScrollArea(&previewDialog);
     scrollArea->setAlignment(Qt::AlignCenter);
     scrollArea->setWidgetResizable(false);
     
     QLabel* imageLabel = new QLabel(scrollArea);
     imageLabel->setAlignment(Qt::AlignCenter);
+    imageLabel->setPixmap(pixmap);
     scrollArea->setWidget(imageLabel);
-    layout->addWidget(scrollArea, 1);  // 給它更多空間
-    
-    // 縮放控制
-    QHBoxLayout* zoomLayout = new QHBoxLayout();
-    QLabel* zoomLabel = new QLabel("縮放:", &previewDialog);
-    zoomLayout->addWidget(zoomLabel);
-    
-    QPushButton* zoomOutButton = new QPushButton("-", &previewDialog);
-    zoomOutButton->setFixedWidth(30);
-    zoomLayout->addWidget(zoomOutButton);
-    
-    QSlider* zoomSlider = new QSlider(Qt::Horizontal, &previewDialog);
-    zoomSlider->setMinimum(25);   // 25% 縮放
-    zoomSlider->setMaximum(400);  // 400% 縮放
-    zoomSlider->setValue(100);    // 100% 縮放（預設）
-    zoomSlider->setTickPosition(QSlider::TicksBelow);
-    zoomSlider->setTickInterval(25);
-    zoomLayout->addWidget(zoomSlider);
-    
-    QPushButton* zoomInButton = new QPushButton("+", &previewDialog);
-    zoomInButton->setFixedWidth(30);
-    zoomLayout->addWidget(zoomInButton);
-    
-    QLabel* zoomValueLabel = new QLabel("100%", &previewDialog);
-    zoomValueLabel->setFixedWidth(50);
-    zoomValueLabel->setAlignment(Qt::AlignCenter);
-    zoomLayout->addWidget(zoomValueLabel);
-    
-    layout->addLayout(zoomLayout);
-    
-    // +/- 按鈕的縮放步進
-    const int zoomStep = 25;
-    
-    // 更新圖片函數 - 按值捕獲 pixmap 以避免懸空引用
-    auto updateImage = [pixmap, imageLabel, zoomValueLabel](int zoomPercent) {
-        int newWidth = pixmap.width() * zoomPercent / 100;
-        int newHeight = pixmap.height() * zoomPercent / 100;
-        imageLabel->setPixmap(pixmap.scaled(newWidth, newHeight, Qt::KeepAspectRatio, Qt::SmoothTransformation));
-        zoomValueLabel->setText(QString("%1%").arg(zoomPercent));
-    };
-    
-    // 連接縮放控制
-    connect(zoomSlider, &QSlider::valueChanged, updateImage);
-    
-    connect(zoomInButton, &QPushButton::clicked, [zoomSlider, zoomStep]() {
-        zoomSlider->setValue(qMin(zoomSlider->value() + zoomStep, zoomSlider->maximum()));
-    });
-    
-    connect(zoomOutButton, &QPushButton::clicked, [zoomSlider, zoomStep]() {
-        zoomSlider->setValue(qMax(zoomSlider->value() - zoomStep, zoomSlider->minimum()));
-    });
-    
-    // 設置初始顯示
-    updateImage(100);
+    layout->addWidget(scrollArea, 1);
     
     // 關閉按鈕
     QPushButton* closeButton = new QPushButton("關閉", &previewDialog);
@@ -813,6 +776,148 @@ void PieceIconSettingsDialog::onIconSetButtonClicked(int id)
     }
     
     updateCustomIconsControls();
+}
+
+void PieceIconSettingsDialog::onSaveCustomIconSet()
+{
+    QString fileName = QFileDialog::getSaveFileName(
+        this,
+        "儲存自訂圖標集",
+        QString(),
+        "圖標集檔案 (*.iconset);;所有檔案 (*.*)"
+    );
+    
+    if (fileName.isEmpty()) {
+        return;
+    }
+    
+    // 確保檔案有正確的副檔名
+    if (!fileName.endsWith(".iconset", Qt::CaseInsensitive)) {
+        fileName += ".iconset";
+    }
+    
+    QFile file(fileName);
+    if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
+        QMessageBox::warning(this, "錯誤", "無法儲存檔案");
+        return;
+    }
+    
+    QTextStream out(&file);
+    out << "[CustomIconSet]\n";
+    out << "whiteKingIcon=" << m_settings.whiteKingIcon << "\n";
+    out << "whiteQueenIcon=" << m_settings.whiteQueenIcon << "\n";
+    out << "whiteRookIcon=" << m_settings.whiteRookIcon << "\n";
+    out << "whiteBishopIcon=" << m_settings.whiteBishopIcon << "\n";
+    out << "whiteKnightIcon=" << m_settings.whiteKnightIcon << "\n";
+    out << "whitePawnIcon=" << m_settings.whitePawnIcon << "\n";
+    out << "blackKingIcon=" << m_settings.blackKingIcon << "\n";
+    out << "blackQueenIcon=" << m_settings.blackQueenIcon << "\n";
+    out << "blackRookIcon=" << m_settings.blackRookIcon << "\n";
+    out << "blackBishopIcon=" << m_settings.blackBishopIcon << "\n";
+    out << "blackKnightIcon=" << m_settings.blackKnightIcon << "\n";
+    out << "blackPawnIcon=" << m_settings.blackPawnIcon << "\n";
+    
+    file.close();
+    QMessageBox::information(this, "成功", "自訂圖標集已儲存");
+}
+
+void PieceIconSettingsDialog::onLoadCustomIconSet()
+{
+    QString fileName = QFileDialog::getOpenFileName(
+        this,
+        "載入自訂圖標集",
+        QString(),
+        "圖標集檔案 (*.iconset);;所有檔案 (*.*)"
+    );
+    
+    if (fileName.isEmpty()) {
+        return;
+    }
+    
+    QFile file(fileName);
+    if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        QMessageBox::warning(this, "錯誤", "無法開啟檔案");
+        return;
+    }
+    
+    QTextStream in(&file);
+    QString line;
+    
+    // 檢查檔案標頭
+    bool headerFound = false;
+    
+    while (!in.atEnd()) {
+        line = in.readLine().trimmed();
+        
+        // 檢查標頭
+        if (line == "[CustomIconSet]") {
+            headerFound = true;
+            continue;
+        }
+        
+        // 跳過空行
+        if (line.isEmpty()) {
+            continue;
+        }
+        
+        // 使用 '=' 分割鍵值對
+        int separatorIndex = line.indexOf('=');
+        if (separatorIndex <= 0) {
+            continue;
+        }
+        
+        QString key = line.left(separatorIndex);
+        QString value = line.mid(separatorIndex + 1);
+        
+        if (key == "whiteKingIcon") {
+            m_settings.whiteKingIcon = value;
+        } else if (key == "whiteQueenIcon") {
+            m_settings.whiteQueenIcon = value;
+        } else if (key == "whiteRookIcon") {
+            m_settings.whiteRookIcon = value;
+        } else if (key == "whiteBishopIcon") {
+            m_settings.whiteBishopIcon = value;
+        } else if (key == "whiteKnightIcon") {
+            m_settings.whiteKnightIcon = value;
+        } else if (key == "whitePawnIcon") {
+            m_settings.whitePawnIcon = value;
+        } else if (key == "blackKingIcon") {
+            m_settings.blackKingIcon = value;
+        } else if (key == "blackQueenIcon") {
+            m_settings.blackQueenIcon = value;
+        } else if (key == "blackRookIcon") {
+            m_settings.blackRookIcon = value;
+        } else if (key == "blackBishopIcon") {
+            m_settings.blackBishopIcon = value;
+        } else if (key == "blackKnightIcon") {
+            m_settings.blackKnightIcon = value;
+        } else if (key == "blackPawnIcon") {
+            m_settings.blackPawnIcon = value;
+        }
+    }
+    
+    file.close();
+    
+    if (!headerFound) {
+        QMessageBox::warning(this, "錯誤", "無效的圖標集檔案格式");
+        return;
+    }
+    
+    // 更新 UI 以顯示載入的路徑
+    m_whiteKingEdit->setText(m_settings.whiteKingIcon);
+    m_whiteQueenEdit->setText(m_settings.whiteQueenIcon);
+    m_whiteRookEdit->setText(m_settings.whiteRookIcon);
+    m_whiteBishopEdit->setText(m_settings.whiteBishopIcon);
+    m_whiteKnightEdit->setText(m_settings.whiteKnightIcon);
+    m_whitePawnEdit->setText(m_settings.whitePawnIcon);
+    m_blackKingEdit->setText(m_settings.blackKingIcon);
+    m_blackQueenEdit->setText(m_settings.blackQueenIcon);
+    m_blackRookEdit->setText(m_settings.blackRookIcon);
+    m_blackBishopEdit->setText(m_settings.blackBishopIcon);
+    m_blackKnightEdit->setText(m_settings.blackKnightIcon);
+    m_blackPawnEdit->setText(m_settings.blackPawnIcon);
+    
+    QMessageBox::information(this, "成功", "自訂圖標集已載入");
 }
 
 bool PieceIconSettingsDialog::eventFilter(QObject *obj, QEvent *event)

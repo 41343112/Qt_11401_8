@@ -19,6 +19,7 @@
 #include <QTimer>
 #include <QGroupBox>
 #include <QListWidget>
+#include <QProgressBar>
 #include <vector>
 #include "chessboard.h"
 #include "soundsettingsdialog.h"
@@ -109,10 +110,14 @@ private:
     QLabel* m_incrementTitleLabel;  // 增量的標題標籤
     QLabel* m_whiteTimeLabel;
     QLabel* m_blackTimeLabel;
+    QProgressBar* m_whiteTimeProgressBar;  // 白方時間進度條
+    QProgressBar* m_blackTimeProgressBar;  // 黑方時間進度條
     QPushButton* m_startButton;
     QTimer* m_gameTimer;
     int m_whiteTimeMs;  // 白方剩餘時間（毫秒）
     int m_blackTimeMs;  // 黑方剩餘時間（毫秒）
+    int m_whiteInitialTimeMs;  // 白方初始時間（毫秒），用於進度條計算
+    int m_blackInitialTimeMs;  // 黑方初始時間（毫秒），用於進度條計算
     int m_incrementMs;  // 每步的增量（毫秒）
     bool m_timeControlEnabled;
     bool m_timerStarted;  // 追蹤計時器是否已手動啟動
@@ -126,6 +131,15 @@ private:
     QPushButton* m_exportPGNButton;
     QPushButton* m_copyPGNButton;
     QWidget* m_moveListPanel;
+    
+    // 被吃掉的棋子面板和右側時間/吃子顯示面板
+    QWidget* m_capturedWhitePanel;
+    QWidget* m_capturedBlackPanel;
+    QList<QLabel*> m_capturedWhiteLabels;
+    QList<QLabel*> m_capturedBlackLabels;
+    QLabel* m_whiteScoreDiffLabel;  // 白方分差標籤
+    QLabel* m_blackScoreDiffLabel;  // 黑方分差標籤
+    QWidget* m_rightTimePanel;  // 右側時間和被吃棋子的容器
     
     // 回放控制
     QLabel* m_replayTitle;
@@ -198,6 +212,10 @@ private:
     void exportPGN();
     void copyPGN();
     QString generatePGN() const;
+    
+    // 被吃掉的棋子顯示
+    void updateCapturedPiecesDisplay();
+    int getPieceValue(PieceType type) const;  // 取得棋子分值的輔助函數
     
     // 回放功能
     void enterReplayMode();

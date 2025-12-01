@@ -97,6 +97,8 @@ private slots:
     void onUseCustomIconsToggled(bool enabled);
     void onResetToDefaults();
     void onAccept();
+    void onSaveCustomIconSet();
+    void onLoadCustomIconSet();
 
 private:
     PieceIconSettings m_settings;
