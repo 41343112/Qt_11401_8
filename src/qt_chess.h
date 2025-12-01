@@ -166,6 +166,7 @@ private:
     QPushButton* m_whiteButton;          // 執白按鈕
     QPushButton* m_randomButton;         // 隨機按鈕
     QPushButton* m_blackButton;          // 執黑按鈕
+    bool m_isRandomColorSelected;        // 是否選擇隨機顏色
     QSlider* m_difficultySlider;
     QLabel* m_difficultyLabel;
     QLabel* m_difficultyValueLabel;

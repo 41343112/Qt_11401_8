@@ -180,6 +180,7 @@ Qt_Chess::Qt_Chess(QWidget *parent)
     , m_whiteButton(nullptr)
     , m_randomButton(nullptr)
     , m_blackButton(nullptr)
+    , m_isRandomColorSelected(false)
     , m_difficultySlider(nullptr)
     , m_difficultyLabel(nullptr)
     , m_difficultyValueLabel(nullptr)
@@ -3212,6 +3213,7 @@ void Qt_Chess::onComputerModeClicked() {
 }
 
 void Qt_Chess::onWhiteColorClicked() {
+    m_isRandomColorSelected = false;  // 清除隨機選擇標記
     m_currentGameMode = GameMode::HumanVsComputer;
     updateGameModeUI();
     
@@ -3222,6 +3224,9 @@ void Qt_Chess::onWhiteColorClicked() {
 }
 
 void Qt_Chess::onRandomColorClicked() {
+    // 設定隨機選擇標記
+    m_isRandomColorSelected = true;
+    
     // 隨機選擇執白或執黑
     if (QRandomGenerator::global()->bounded(2) == 0) {
         m_currentGameMode = GameMode::HumanVsComputer;
@@ -3237,6 +3242,7 @@ void Qt_Chess::onRandomColorClicked() {
 }
 
 void Qt_Chess::onBlackColorClicked() {
+    m_isRandomColorSelected = false;  // 清除隨機選擇標記
     m_currentGameMode = GameMode::ComputerVsHuman;
     updateGameModeUI();
     
@@ -3262,13 +3268,16 @@ void Qt_Chess::updateGameModeUI() {
         m_colorSelectionWidget->setVisible(!isHumanMode);
     }
     if (m_whiteButton) {
-        m_whiteButton->setChecked(m_currentGameMode == GameMode::HumanVsComputer);
+        // 如果是隨機選擇，不高亮執白按鈕
+        m_whiteButton->setChecked(!m_isRandomColorSelected && m_currentGameMode == GameMode::HumanVsComputer);
     }
     if (m_randomButton) {
-        m_randomButton->setChecked(false);  // 隨機按鈕不保持選中狀態
+        // 如果是隨機選擇，保持隨機按鈕高亮
+        m_randomButton->setChecked(m_isRandomColorSelected);
     }
     if (m_blackButton) {
-        m_blackButton->setChecked(m_currentGameMode == GameMode::ComputerVsHuman);
+        // 如果是隨機選擇，不高亮執黑按鈕
+        m_blackButton->setChecked(!m_isRandomColorSelected && m_currentGameMode == GameMode::ComputerVsHuman);
     }
     
     // 更新狀態標籤
@@ -3276,7 +3285,13 @@ void Qt_Chess::updateGameModeUI() {
         if (isHumanMode) {
             m_gameModeStatusLabel->hide();
         } else {
-            QString statusText = (m_currentGameMode == GameMode::HumanVsComputer) ? "您執白（先手）" : "您執黑（後手）";
+            QString statusText;
+            if (m_isRandomColorSelected) {
+                // 隨機選擇時，顯示隨機結果
+                statusText = (m_currentGameMode == GameMode::HumanVsComputer) ? "隨機 → 您執白（先手）" : "隨機 → 您執黑（後手）";
+            } else {
+                statusText = (m_currentGameMode == GameMode::HumanVsComputer) ? "您執白（先手）" : "您執黑（後手）";
+            }
             m_gameModeStatusLabel->setText(statusText);
             m_gameModeStatusLabel->show();
         }
