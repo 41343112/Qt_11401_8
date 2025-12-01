@@ -1,5 +1,6 @@
 #include "qt_chess.h"
 #include "ui_qt_chess.h"
+#include "chessengine.h"
 #include "soundsettingsdialog.h"
 #include "pieceiconsettingsdialog.h"
 #include "boardcolorsettingsdialog.h"
@@ -17,6 +18,8 @@
 #include <QPixmap>
 #include <QFile>
 #include <QComboBox>
+#include <QRadioButton>
+#include <QButtonGroup>
 #include <QSlider>
 #include <QTimer>
 #include <QGroupBox>
@@ -25,6 +28,10 @@
 #include <QTextStream>
 #include <QClipboard>
 #include <QApplication>
+#include <QRandomGenerator>
+#include <QDir>
+#include <QCoreApplication>
+#include <QDebug>
 #include <algorithm>
 
 namespace {
@@ -68,6 +75,30 @@ const int MAX_PANEL_WIDTH = 600;              // 左右面板的最大寬度（�
 
 // PGN 格式常數
 const int PGN_MOVES_PER_LINE = 6;            // PGN 檔案中每行的移動回合數
+
+// ELO 評分常數（用於難度顯示）
+const int ELO_BASE = 250;                    // 最低 ELO 評分（對應 Skill Level 0）
+const int ELO_PER_LEVEL = 150;               // 每級增加的 ELO 分數（確保結果能被50整除）
+
+// 計算 ELO 評分的輔助函數
+static int calculateElo(int skillLevel) {
+    return ELO_BASE + skillLevel * ELO_PER_LEVEL;
+}
+
+// 根據難度等級取得中文難度名稱
+static QString getDifficultyName(int skillLevel) {
+    if (skillLevel <= 4) {        // Level 0-4
+        return "初學";
+    } else if (skillLevel <= 8) { // Level 5-8
+        return "簡單";
+    } else if (skillLevel <= 12) { // Level 9-12
+        return "中等";
+    } else if (skillLevel <= 16) { // Level 13-16
+        return "困難";
+    } else {                       // Level 17-20
+        return "大師";
+    }
+}
 
 // 獲取面板的實際寬度，如果尚未渲染則使用後備值的輔助函數
 static int getPanelWidth(QWidget* panel) {
@@ -140,6 +171,20 @@ Qt_Chess::Qt_Chess(QWidget *parent)
     , m_isReplayMode(false)
     , m_replayMoveIndex(-1)
     , m_savedCurrentPlayer(PieceColor::White)
+    , m_chessEngine(nullptr)
+    , m_humanModeButton(nullptr)
+    , m_computerModeButton(nullptr)
+    , m_gameModeStatusLabel(nullptr)
+    , m_currentGameMode(GameMode::HumanVsHuman)
+    , m_colorSelectionWidget(nullptr)
+    , m_whiteButton(nullptr)
+    , m_randomButton(nullptr)
+    , m_blackButton(nullptr)
+    , m_isRandomColorSelected(false)
+    , m_difficultySlider(nullptr)
+    , m_difficultyLabel(nullptr)
+    , m_difficultyValueLabel(nullptr)
+    , m_thinkingLabel(nullptr)
 {
     ui->setupUi(this);
     setWindowTitle("國際象棋 - 雙人對弈");
@@ -161,6 +206,8 @@ Qt_Chess::Qt_Chess(QWidget *parent)
     setupMenuBar();
     setupUI();
     loadTimeControlSettings();  // 在 setupUI() 之後載入以確保元件存在
+    loadEngineSettings();  // 載入引擎設定
+    initializeEngine();  // 初始化棋局引擎
     updateBoard();
     updateStatus();
     updateTimeDisplays();
@@ -170,6 +217,12 @@ Qt_Chess::Qt_Chess(QWidget *parent)
 
 Qt_Chess::~Qt_Chess()
 {
+    // 停止並清理棋局引擎
+    if (m_chessEngine) {
+        m_chessEngine->stopEngine();
+        delete m_chessEngine;
+        m_chessEngine = nullptr;
+    }
     delete ui;
 }
 
@@ -605,6 +658,11 @@ void Qt_Chess::onSquareClicked(int displayRow, int displayCol) {
         return;
     }
 
+    // 如果是電腦的回合，玩家不能移動
+    if (isComputerTurn()) {
+        return;
+    }
+
     // 將顯示坐標轉換為邏輯坐標
     int logicalRow = getLogicalRow(displayRow);
     int logicalCol = getLogicalCol(displayCol);
@@ -614,7 +672,8 @@ void Qt_Chess::onSquareClicked(int displayRow, int displayCol) {
         // 嘗試選擇一個棋子
         const ChessPiece& piece = m_chessBoard.getPiece(logicalRow, logicalCol);
         if (piece.getType() != PieceType::None &&
-            piece.getColor() == m_chessBoard.getCurrentPlayer()) {
+            piece.getColor() == m_chessBoard.getCurrentPlayer() &&
+            isPlayerPiece(piece.getColor())) {  // 檢查是否為玩家的棋子
             m_selectedSquare = clickedSquare;
             m_pieceSelected = true;
             highlightValidMoves();
@@ -627,7 +686,10 @@ void Qt_Chess::onSquareClicked(int displayRow, int displayCol) {
         // 嘗試移動選中的棋子
         if (m_chessBoard.movePiece(m_selectedSquare, clickedSquare)) {
             m_pieceSelected = false;
-
+            
+            // 記錄 UCI 格式的移動
+            PieceType promType = PieceType::None;
+            
             // 為剛完成移動的玩家應用時間增量
             applyIncrement();
 
@@ -638,8 +700,13 @@ void Qt_Chess::onSquareClicked(int displayRow, int displayCol) {
                 const ChessPiece& piece = m_chessBoard.getPiece(clickedSquare.y(), clickedSquare.x());
                 PieceType promotionType = showPromotionDialog(piece.getColor());
                 m_chessBoard.promotePawn(clickedSquare, promotionType);
+                promType = promotionType;
                 updateBoard();
             }
+            
+            // 記錄 UCI 移動
+            QString uciMove = ChessEngine::moveToUCI(m_selectedSquare, clickedSquare, promType);
+            m_uciMoveHistory.append(uciMove);
 
             // 更新棋譜列表
             updateMoveList();
@@ -651,6 +718,12 @@ void Qt_Chess::onSquareClicked(int displayRow, int displayCol) {
             updateTimeDisplays();
 
             updateStatus();
+            
+            // 如果現在是電腦的回合，請求引擎走棋
+            if (isComputerTurn() && m_gameStarted) {
+                // 使用短暫延遲讓 UI 更新
+                QTimer::singleShot(100, this, &Qt_Chess::requestEngineMove);
+            }
         } else if (clickedSquare == m_selectedSquare) {
             // 取消選擇棋子
             m_pieceSelected = false;
@@ -659,7 +732,8 @@ void Qt_Chess::onSquareClicked(int displayRow, int displayCol) {
             // 嘗試選擇相同顏色的另一個棋子
             const ChessPiece& piece = m_chessBoard.getPiece(logicalRow, logicalCol);
             if (piece.getType() != PieceType::None &&
-                piece.getColor() == m_chessBoard.getCurrentPlayer()) {
+                piece.getColor() == m_chessBoard.getCurrentPlayer() &&
+                isPlayerPiece(piece.getColor())) {  // 檢查是否為玩家的棋子
                 m_selectedSquare = clickedSquare;
                 highlightValidMoves();
             }
@@ -676,10 +750,17 @@ void Qt_Chess::onNewGameClicked() {
     m_chessBoard.initializeBoard();
     m_pieceSelected = false;
     m_gameStarted = false;  // 重置遊戲開始狀態
+    m_uciMoveHistory.clear();  // 清空 UCI 移動歷史
 
     // 重置時間控制
     stopTimer();
     m_timerStarted = false;
+    
+    // 停止引擎思考
+    if (m_chessEngine) {
+        m_chessEngine->stop();
+        m_chessEngine->newGame();
+    }
 
     // 顯示時間控制面板
     if (m_timeControlPanel) {
@@ -765,6 +846,23 @@ void Qt_Chess::onGiveUpClicked() {
 }
 
 void Qt_Chess::onStartButtonClicked() {
+    // 清空 UCI 移動歷史
+    m_uciMoveHistory.clear();
+    
+    // 通知引擎開始新遊戲
+    if (m_chessEngine) {
+        m_chessEngine->newGame();
+    }
+    
+    // 根據選擇的遊戲模式決定是否翻轉棋盤
+    // 當玩家執黑時（ComputerVsHuman），棋盤應該翻轉使黑棋在下方
+    GameMode mode = getCurrentGameMode();
+    bool shouldFlip = (mode == GameMode::ComputerVsHuman);
+    if (m_isBoardFlipped != shouldFlip) {
+        m_isBoardFlipped = shouldFlip;
+        saveBoardFlipSettings();
+    }
+    
     if (m_timeControlEnabled && !m_timerStarted) {
         // 重置棋盤到初始狀態
         resetBoardState();
@@ -821,6 +919,11 @@ void Qt_Chess::onStartButtonClicked() {
 
         // 當遊戲開始時，將右側伸展設為 1
         setRightPanelStretch(1);
+        
+        // 如果是電腦先走（玩家執黑），請求引擎走棋
+        if (isComputerTurn()) {
+            QTimer::singleShot(500, this, &Qt_Chess::requestEngineMove);
+        }
     } else if (!m_timeControlEnabled && !m_gameStarted) {
         // 重置棋盤到初始狀態（即使沒有時間控制）
         resetBoardState();
@@ -857,6 +960,11 @@ void Qt_Chess::onStartButtonClicked() {
 
         // 當遊戲開始時，將右側伸展設為 1
         setRightPanelStretch(1);
+        
+        // 如果是電腦先走（玩家執黑），請求引擎走棋
+        if (isComputerTurn()) {
+            QTimer::singleShot(500, this, &Qt_Chess::requestEngineMove);
+        }
     }
 }
 
@@ -1074,7 +1182,8 @@ void Qt_Chess::mousePressEvent(QMouseEvent *event) {
 
         const ChessPiece& piece = m_chessBoard.getPiece(logicalRow, logicalCol);
         if (piece.getType() != PieceType::None &&
-            piece.getColor() == m_chessBoard.getCurrentPlayer()) {
+            piece.getColor() == m_chessBoard.getCurrentPlayer() &&
+            isPlayerPiece(piece.getColor())) {  // 檢查是否為玩家的棋子
 
             // 追蹤這個棋子在拖動前是否已被選中
             m_wasSelectedBeforeDrag = (m_pieceSelected && m_selectedSquare == logicalSquare);
@@ -1177,6 +1286,9 @@ void Qt_Chess::mouseReleaseEvent(QMouseEvent *event) {
             // 嘗試移動棋子
             if (m_chessBoard.movePiece(m_dragStartSquare, logicalDropSquare)) {
                 m_pieceSelected = false;
+                
+                // 記錄 UCI 格式的移動
+                PieceType promType = PieceType::None;
 
                 // 應用 time increment for the player who just moved
                 applyIncrement();
@@ -1188,8 +1300,13 @@ void Qt_Chess::mouseReleaseEvent(QMouseEvent *event) {
                     const ChessPiece& piece = m_chessBoard.getPiece(logicalDropSquare.y(), logicalDropSquare.x());
                     PieceType promotionType = showPromotionDialog(piece.getColor());
                     m_chessBoard.promotePawn(logicalDropSquare, promotionType);
+                    promType = promotionType;
                     updateBoard();
                 }
+                
+                // 記錄 UCI 移動
+                QString uciMove = ChessEngine::moveToUCI(m_dragStartSquare, logicalDropSquare, promType);
+                m_uciMoveHistory.append(uciMove);
 
                 // 更新棋譜列表
                 updateMoveList();
@@ -1202,6 +1319,12 @@ void Qt_Chess::mouseReleaseEvent(QMouseEvent *event) {
 
                 updateStatus();
                 clearHighlights();
+                
+                // 如果現在是電腦的回合，請求引擎走棋
+                if (isComputerTurn() && m_gameStarted) {
+                    // 使用短暫延遲讓 UI 更新
+                    QTimer::singleShot(100, this, &Qt_Chess::requestEngineMove);
+                }
             } else if (logicalDropSquare == m_dragStartSquare) {
                 // 放在同一格子上 - 切換選擇
                 // 將棋子恢復到原始格子
@@ -1889,6 +2012,131 @@ void Qt_Chess::setupTimeControlUI(QVBoxLayout* timeControlPanelLayout) {
     connect(m_incrementSlider, &QSlider::valueChanged, this, &Qt_Chess::onIncrementChanged);
     timeControlLayout->addWidget(m_incrementSlider);
 
+    // 對弈模式 - 直接接在時間控制下方（同一個群組框內）
+    QLabel* gameModeLabel = new QLabel("對弈模式:", this);
+    gameModeLabel->setFont(labelFont);
+    timeControlLayout->addWidget(gameModeLabel);
+    
+    // 使用方塊按鈕選擇雙人或電腦對弈
+    QHBoxLayout* gameModeButtonsLayout = new QHBoxLayout();
+    
+    // 雙人對弈按鈕
+    m_humanModeButton = new QPushButton("雙人", this);
+    m_humanModeButton->setFont(labelFont);
+    m_humanModeButton->setCheckable(true);
+    m_humanModeButton->setChecked(true);
+    m_humanModeButton->setMinimumSize(60, 40);
+    m_humanModeButton->setStyleSheet(
+        "QPushButton { border: 2px solid #555; border-radius: 5px; padding: 5px; background-color: #9E9E9E; color: #333; }"
+        "QPushButton:checked { background-color: #4CAF50; color: white; border-color: #2E7D32; }"
+        "QPushButton:hover { background-color: #BDBDBD; }"
+        "QPushButton:checked:hover { background-color: #66BB6A; }"
+    );
+    connect(m_humanModeButton, &QPushButton::clicked, this, &Qt_Chess::onHumanModeClicked);
+    gameModeButtonsLayout->addWidget(m_humanModeButton);
+    
+    // 電腦對弈按鈕
+    m_computerModeButton = new QPushButton("電腦", this);
+    m_computerModeButton->setFont(labelFont);
+    m_computerModeButton->setCheckable(true);
+    m_computerModeButton->setMinimumSize(60, 40);
+    m_computerModeButton->setStyleSheet(
+        "QPushButton { border: 2px solid #555; border-radius: 5px; padding: 5px; background-color: #9E9E9E; color: #333; }"
+        "QPushButton:checked { background-color: #2196F3; color: white; border-color: #1565C0; }"
+        "QPushButton:hover { background-color: #BDBDBD; }"
+        "QPushButton:checked:hover { background-color: #42A5F5; }"
+    );
+    connect(m_computerModeButton, &QPushButton::clicked, this, &Qt_Chess::onComputerModeClicked);
+    gameModeButtonsLayout->addWidget(m_computerModeButton);
+    
+    timeControlLayout->addLayout(gameModeButtonsLayout);
+    
+    // 選邊按鈕容器（電腦模式時顯示）
+    m_colorSelectionWidget = new QWidget(this);
+    QHBoxLayout* colorButtonsLayout = new QHBoxLayout(m_colorSelectionWidget);
+    colorButtonsLayout->setContentsMargins(0, 5, 0, 5);
+    
+    // 統一的按鈕樣式（灰色未選中，藍色選中）
+    QString colorButtonStyle = 
+        "QPushButton { border: 2px solid #555; border-radius: 5px; padding: 3px; background-color: #9E9E9E; color: #333; }"
+        "QPushButton:checked { background-color: #2196F3; color: white; border-color: #1565C0; }"
+        "QPushButton:hover { background-color: #BDBDBD; }"
+        "QPushButton:checked:hover { background-color: #42A5F5; }";
+    
+    // 執白按鈕
+    m_whiteButton = new QPushButton("執白", this);
+    m_whiteButton->setFont(labelFont);
+    m_whiteButton->setCheckable(true);
+    m_whiteButton->setMinimumSize(50, 35);
+    m_whiteButton->setStyleSheet(colorButtonStyle);
+    connect(m_whiteButton, &QPushButton::clicked, this, &Qt_Chess::onWhiteColorClicked);
+    colorButtonsLayout->addWidget(m_whiteButton);
+    
+    // 隨機按鈕
+    m_randomButton = new QPushButton("隨機", this);
+    m_randomButton->setFont(labelFont);
+    m_randomButton->setCheckable(true);
+    m_randomButton->setMinimumSize(50, 35);
+    m_randomButton->setStyleSheet(colorButtonStyle);
+    connect(m_randomButton, &QPushButton::clicked, this, &Qt_Chess::onRandomColorClicked);
+    colorButtonsLayout->addWidget(m_randomButton);
+    
+    // 執黑按鈕
+    m_blackButton = new QPushButton("執黑", this);
+    m_blackButton->setFont(labelFont);
+    m_blackButton->setCheckable(true);
+    m_blackButton->setMinimumSize(50, 35);
+    m_blackButton->setStyleSheet(colorButtonStyle);
+    connect(m_blackButton, &QPushButton::clicked, this, &Qt_Chess::onBlackColorClicked);
+    colorButtonsLayout->addWidget(m_blackButton);
+    
+    m_colorSelectionWidget->hide();  // 初始隱藏
+    timeControlLayout->addWidget(m_colorSelectionWidget);
+    
+    // 顯示當前選擇的標籤（電腦模式時顯示執白/執黑）
+    m_gameModeStatusLabel = new QLabel("", this);
+    m_gameModeStatusLabel->setFont(labelFont);
+    m_gameModeStatusLabel->setAlignment(Qt::AlignCenter);
+    m_gameModeStatusLabel->hide();  // 初始隱藏
+    timeControlLayout->addWidget(m_gameModeStatusLabel);
+    
+    // 難度設定
+    m_difficultyLabel = new QLabel("電腦難度:", this);
+    m_difficultyLabel->setFont(labelFont);
+    timeControlLayout->addWidget(m_difficultyLabel);
+    
+    // 初始值為 0（初學者），顯示 ELO 和中文難度名稱
+    int initialElo = calculateElo(0);
+    QString initialDiffName = getDifficultyName(0);
+    m_difficultyValueLabel = new QLabel(QString("%1 (ELO %2)").arg(initialDiffName).arg(initialElo), this);
+    m_difficultyValueLabel->setFont(labelFont);
+    m_difficultyValueLabel->setAlignment(Qt::AlignCenter);
+    timeControlLayout->addWidget(m_difficultyValueLabel);
+    
+    m_difficultySlider = new QSlider(Qt::Horizontal, this);
+    m_difficultySlider->setMinimum(0);
+    m_difficultySlider->setMaximum(20);
+    m_difficultySlider->setValue(0);
+    m_difficultySlider->setTickPosition(QSlider::TicksBelow);
+    m_difficultySlider->setTickInterval(1);
+    connect(m_difficultySlider, &QSlider::valueChanged, this, &Qt_Chess::onDifficultyChanged);
+    timeControlLayout->addWidget(m_difficultySlider);
+    
+    // 電腦思考中的提示標籤（初始隱藏）
+    m_thinkingLabel = new QLabel("電腦思考中...", this);
+    m_thinkingLabel->setFont(labelFont);
+    m_thinkingLabel->setAlignment(Qt::AlignCenter);
+    m_thinkingLabel->setStyleSheet("QLabel { color: #FF6B6B; font-weight: bold; }");
+    m_thinkingLabel->hide();
+    timeControlLayout->addWidget(m_thinkingLabel);
+    
+    // 根據初始模式設定難度控制的可見性（預設為雙人模式，隱藏難度控制）
+    bool isVsComputer = (m_currentGameMode != GameMode::HumanVsHuman);
+    m_colorSelectionWidget->setVisible(isVsComputer);
+    m_difficultyLabel->setVisible(isVsComputer);
+    m_difficultyValueLabel->setVisible(isVsComputer);
+    m_difficultySlider->setVisible(isVsComputer);
+
     // 添加伸展以填充群組框中的剩餘空間
     timeControlLayout->addStretch();
 
@@ -2514,22 +2762,29 @@ void Qt_Chess::updateCapturedPiecesDisplay() {
     const int pieceSize = 24;  // 每個棋子標籤的大小
     const int horizontalOffset = pieceSize / 4;  // 相同類型棋子的水平重疊偏移量
     const int verticalOffset = pieceSize;  // 不同類型棋子之間的垂直間距
+    const int topMargin = 38;  // 頂部邊距，避免超出棋盤上方邊緣
 
     // 按棋子類型分組並顯示的輔助函數
     // 相同類型棋子水平重疊，不同類型棋子垂直排列
     // 返回最終的 y 位置以便放置分差標籤
-    auto displayCapturedPieces = [pieceSize, horizontalOffset, verticalOffset](
+    auto displayCapturedPieces = [this, pieceSize, horizontalOffset, verticalOffset, topMargin](
         QWidget* panel, const std::vector<ChessPiece>& capturedPieces, QList<QLabel*>& labels) -> int {
         if (!panel) return 0;
         if (capturedPieces.empty()) return 0;
 
-        // 複製並按棋子類型排序，確保相同類型的棋子放在一起
+        // 複製並按棋子分值由小到大排序，確保相同分值的棋子放在一起
         std::vector<ChessPiece> sortedPieces = capturedPieces;
-        std::sort(sortedPieces.begin(), sortedPieces.end(), [](const ChessPiece& a, const ChessPiece& b) {
+        std::sort(sortedPieces.begin(), sortedPieces.end(), [this](const ChessPiece& a, const ChessPiece& b) {
+            int valueA = getPieceValue(a.getType());
+            int valueB = getPieceValue(b.getType());
+            if (valueA != valueB) {
+                return valueA < valueB;  // 按分值由小到大排序
+            }
+            // 分值相同時，按類型排序以保持穩定性
             return static_cast<int>(a.getType()) < static_cast<int>(b.getType());
         });
 
-        int yPos = 0;  // 起始 y 位置，與棋盤頂部貼齊
+        int yPos = topMargin;  // 起始 y 位置，加入頂部邊距
         int panelWidth = panel->width();
         // 如果面板寬度尚未計算（初始設置期間），使用最小寬度
         if (panelWidth <= 0) {
@@ -2548,13 +2803,10 @@ void Qt_Chess::updateCapturedPiecesDisplay() {
 
         for (size_t i = 0; i < sortedPieces.size(); ++i) {
             const ChessPiece& piece = sortedPieces[i];
-            QLabel* label = new QLabel(panel);
-            label->setText(piece.getSymbol());
-            QFont pieceFont;
-            pieceFont.setPointSize(16);
-            label->setFont(pieceFont);
-            label->setFixedSize(pieceSize, pieceSize);
-            label->setAlignment(Qt::AlignCenter);
+
+            // 先計算下一個棋子的位置
+            int nextYPos = yPos;
+            int nextXPos = xPos;
 
             // 如果不是第一個棋子，根據類型決定位置
             if (lastType != PieceType::None) {
@@ -2563,19 +2815,35 @@ void Qt_Chess::updateCapturedPiecesDisplay() {
                     int newXPos = xPos + horizontalOffset;
                     // 檢查是否超出面板寬度，如果超出則換行
                     if (newXPos + pieceSize > panelWidth) {
-                        yPos += verticalOffset;
-                        xPos = baseXPos;
+                        nextYPos += verticalOffset;
+                        nextXPos = baseXPos;
                     } else {
-                        xPos = newXPos;
+                        nextXPos = newXPos;
                     }
                 } else {
                     // 不同類型的棋子垂直排列（換行）
-                    yPos += verticalOffset;
-                    xPos = baseXPos;  // 重置 x 位置
+                    nextYPos += verticalOffset;
+                    nextXPos = baseXPos;  // 重置 x 位置
                 }
             }
 
-            // 放置棋子標籤
+            // 檢查是否超出面板高度，如果超出則停止顯示
+            if (nextYPos + pieceSize > panelHeight) {
+                break;  // 停止處理更多棋子
+            }
+
+            // 更新位置
+            yPos = nextYPos;
+            xPos = nextXPos;
+
+            // 創建並放置棋子標籤
+            QLabel* label = new QLabel(panel);
+            label->setText(piece.getSymbol());
+            QFont pieceFont;
+            pieceFont.setPointSize(16);
+            label->setFont(pieceFont);
+            label->setFixedSize(pieceSize, pieceSize);
+            label->setAlignment(Qt::AlignCenter);
             label->move(xPos, yPos);
             lastType = piece.getType();
 
@@ -2827,4 +3095,383 @@ void Qt_Chess::restoreBoardState() {
     // 更新顯示
     updateBoard();
     clearHighlights();
+}
+
+// 電腦對弈功能實現
+// 注意：setupEngineUI 的功能已整合到 setupTimeControlUI 中
+void Qt_Chess::setupEngineUI(QVBoxLayout* layout) {
+    Q_UNUSED(layout);
+    // 此函數已被棄用，所有遊戲模式 UI 現在都在 setupTimeControlUI 中設置
+}
+
+void Qt_Chess::initializeEngine() {
+    m_chessEngine = new ChessEngine(this);
+    
+    connect(m_chessEngine, &ChessEngine::engineReady, this, &Qt_Chess::onEngineReady);
+    connect(m_chessEngine, &ChessEngine::bestMoveFound, this, &Qt_Chess::onEngineBestMove);
+    connect(m_chessEngine, &ChessEngine::engineError, this, &Qt_Chess::onEngineError);
+    connect(m_chessEngine, &ChessEngine::thinkingStarted, this, [this]() {
+        if (m_thinkingLabel) m_thinkingLabel->show();
+    });
+    connect(m_chessEngine, &ChessEngine::thinkingStopped, this, [this]() {
+        if (m_thinkingLabel) m_thinkingLabel->hide();
+    });
+    
+    // 嘗試啟動引擎
+    QString enginePath = getEnginePath();
+    if (!enginePath.isEmpty() && QFile::exists(enginePath)) {
+        m_chessEngine->startEngine(enginePath);
+    }
+}
+
+QString Qt_Chess::getEnginePath() const {
+    // 優先尋找與執行檔同目錄的引擎
+    QString appDir = QCoreApplication::applicationDirPath();
+    
+    // 檢查多種可能的引擎檔案名稱
+    QStringList engineNames;
+#ifdef Q_OS_WIN
+    engineNames << "stockfish.exe" << "stockfish-windows-x86-64-avx2.exe" 
+                << "stockfish-windows.exe" << "engine/stockfish.exe"
+                << "engine/stockfish-windows-x86-64-avx2.exe";
+#else
+    engineNames << "stockfish" << "stockfish-linux" << "stockfish-ubuntu-x86-64-avx2"
+                << "engine/stockfish" << "engine/stockfish-linux";
+#endif
+    
+    // 在應用程式目錄搜尋
+    for (const QString& name : engineNames) {
+        QString path = appDir + "/" + name;
+        if (QFile::exists(path)) {
+            return path;
+        }
+    }
+    
+    // 在專案的 engine 目錄搜尋（開發時使用）
+    QString projectEngineDir = appDir + "/../engine";
+    for (const QString& name : engineNames) {
+        QString path = projectEngineDir + "/" + name;
+        if (QFile::exists(path)) {
+            return path;
+        }
+        // 移除 engine/ 前綴
+        QString baseName = name;
+        if (baseName.startsWith("engine/")) {
+            baseName = baseName.mid(7);
+        }
+        path = projectEngineDir + "/" + baseName;
+        if (QFile::exists(path)) {
+            return path;
+        }
+    }
+    
+    // 在原始碼的 engine 目錄搜尋（源碼目錄）
+    QString srcEngineDir = QString(QCoreApplication::applicationDirPath() + "/../../engine");
+    for (const QString& name : engineNames) {
+        QString baseName = name;
+        if (baseName.startsWith("engine/")) {
+            baseName = baseName.mid(7);
+        }
+        QString path = srcEngineDir + "/" + baseName;
+        if (QFile::exists(path)) {
+            return path;
+        }
+    }
+    
+    return QString();
+}
+
+void Qt_Chess::onHumanModeClicked() {
+    m_currentGameMode = GameMode::HumanVsHuman;
+    updateGameModeUI();
+    
+    // 更新引擎的遊戲模式
+    if (m_chessEngine) {
+        m_chessEngine->setGameMode(m_currentGameMode);
+    }
+    
+    // 儲存設定
+    saveEngineSettings();
+}
+
+void Qt_Chess::onComputerModeClicked() {
+    // 切換到電腦模式，顯示選邊按鈕
+    // 預設選擇執白（如果尚未選擇）
+    if (m_currentGameMode == GameMode::HumanVsHuman) {
+        m_currentGameMode = GameMode::HumanVsComputer;
+    }
+    
+    updateGameModeUI();
+    
+    // 更新引擎的遊戲模式
+    if (m_chessEngine) {
+        m_chessEngine->setGameMode(m_currentGameMode);
+    }
+    
+    // 儲存設定
+    saveEngineSettings();
+}
+
+void Qt_Chess::onWhiteColorClicked() {
+    m_isRandomColorSelected = false;  // 清除隨機選擇標記
+    m_currentGameMode = GameMode::HumanVsComputer;
+    updateGameModeUI();
+    
+    if (m_chessEngine) {
+        m_chessEngine->setGameMode(m_currentGameMode);
+    }
+    saveEngineSettings();
+}
+
+void Qt_Chess::onRandomColorClicked() {
+    // 設定隨機選擇標記
+    m_isRandomColorSelected = true;
+    
+    // 隨機選擇執白或執黑
+    if (QRandomGenerator::global()->bounded(2) == 0) {
+        m_currentGameMode = GameMode::HumanVsComputer;
+    } else {
+        m_currentGameMode = GameMode::ComputerVsHuman;
+    }
+    updateGameModeUI();
+    
+    if (m_chessEngine) {
+        m_chessEngine->setGameMode(m_currentGameMode);
+    }
+    saveEngineSettings();
+}
+
+void Qt_Chess::onBlackColorClicked() {
+    m_isRandomColorSelected = false;  // 清除隨機選擇標記
+    m_currentGameMode = GameMode::ComputerVsHuman;
+    updateGameModeUI();
+    
+    if (m_chessEngine) {
+        m_chessEngine->setGameMode(m_currentGameMode);
+    }
+    saveEngineSettings();
+}
+
+void Qt_Chess::updateGameModeUI() {
+    bool isHumanMode = (m_currentGameMode == GameMode::HumanVsHuman);
+    
+    // 更新按鈕選中狀態
+    if (m_humanModeButton) {
+        m_humanModeButton->setChecked(isHumanMode);
+    }
+    if (m_computerModeButton) {
+        m_computerModeButton->setChecked(!isHumanMode);
+    }
+    
+    // 更新選邊按鈕
+    if (m_colorSelectionWidget) {
+        m_colorSelectionWidget->setVisible(!isHumanMode);
+    }
+    if (m_whiteButton) {
+        // 如果是隨機選擇，不高亮執白按鈕
+        m_whiteButton->setChecked(!m_isRandomColorSelected && m_currentGameMode == GameMode::HumanVsComputer);
+    }
+    if (m_randomButton) {
+        // 如果是隨機選擇，保持隨機按鈕高亮
+        m_randomButton->setChecked(m_isRandomColorSelected);
+    }
+    if (m_blackButton) {
+        // 如果是隨機選擇，不高亮執黑按鈕
+        m_blackButton->setChecked(!m_isRandomColorSelected && m_currentGameMode == GameMode::ComputerVsHuman);
+    }
+    
+    // 隱藏狀態標籤（不顯示執白/執黑）
+    if (m_gameModeStatusLabel) {
+        m_gameModeStatusLabel->hide();
+    }
+    
+    // 更新難度控制的可見性
+    if (m_difficultyLabel) m_difficultyLabel->setVisible(!isHumanMode);
+    if (m_difficultyValueLabel) m_difficultyValueLabel->setVisible(!isHumanMode);
+    if (m_difficultySlider) m_difficultySlider->setVisible(!isHumanMode);
+}
+
+void Qt_Chess::onDifficultyChanged(int value) {
+    if (!m_difficultyValueLabel || !m_chessEngine) return;
+    
+    // 使用輔助函數計算 ELO 評分和中文難度名稱
+    int elo = calculateElo(value);
+    QString diffName = getDifficultyName(value);
+    
+    // 更新顯示的難度值（顯示中文難度名稱和 ELO）
+    QString diffText = QString("%1 (ELO %2)").arg(diffName).arg(elo);
+    m_difficultyValueLabel->setText(diffText);
+    
+    // 更新引擎難度
+    m_chessEngine->setDifficulty(value);
+    
+    // 根據難度調整思考時間
+    // 較低難度：較短思考時間（最小50ms）；較高難度：較長思考時間
+    int thinkingTime = 50 + (value * 125);  // 50ms 到 2550ms
+    m_chessEngine->setThinkingTime(thinkingTime);
+    
+    // 根據難度調整搜尋深度（與難度綁定）
+    // Level 0 (ELO 250) = depth 1, Level 20 (ELO 3250) = depth 21
+    int depth = 1 + value;  // depth 1-21
+    m_chessEngine->setSearchDepth(depth);
+    
+    // 儲存設定
+    saveEngineSettings();
+}
+
+void Qt_Chess::onEngineBestMove(const QString& move) {
+    if (move.isEmpty() || !m_gameStarted || m_isReplayMode) return;
+    
+    // 解析 UCI 格式的移動
+    QPoint from, to;
+    PieceType promotionType;
+    ChessEngine::uciToMove(move, from, to, promotionType);
+    
+    if (from.x() < 0 || to.x() < 0) {
+        qWarning() << "Invalid engine move:" << move;
+        return;
+    }
+    
+    // 在執行移動之前檢測移動類型
+    bool isCapture = isCaptureMove(from, to);
+    bool isCastling = isCastlingMove(from, to);
+    
+    // 執行引擎的移動
+    if (m_chessBoard.movePiece(from, to)) {
+        // 記錄 UCI 格式的移動
+        m_uciMoveHistory.append(move);
+        
+        // 為剛完成移動的玩家應用時間增量
+        applyIncrement();
+        
+        updateBoard();
+        
+        // 處理升變
+        if (m_chessBoard.needsPromotion(to)) {
+            // 引擎的升變類型已經包含在移動中
+            if (promotionType != PieceType::None) {
+                m_chessBoard.promotePawn(to, promotionType);
+            } else {
+                // 預設升變為后
+                m_chessBoard.promotePawn(to, PieceType::Queen);
+            }
+            updateBoard();
+        }
+        
+        // 更新棋譜列表
+        updateMoveList();
+        
+        // 播放適當的音效
+        playSoundForMove(isCapture, isCastling);
+        
+        // 更新時間顯示
+        updateTimeDisplays();
+        
+        updateStatus();
+    }
+}
+
+void Qt_Chess::onEngineReady() {
+    // 引擎已準備好，可以開始遊戲
+    if (m_chessEngine) {
+        GameMode mode = getCurrentGameMode();
+        m_chessEngine->setGameMode(mode);
+        
+        if (m_difficultySlider) {
+            m_chessEngine->setDifficulty(m_difficultySlider->value());
+        }
+    }
+}
+
+void Qt_Chess::onEngineError(const QString& error) {
+    // 顯示引擎錯誤訊息，但不阻止遊戲進行（可以繼續雙人對弈）
+    qWarning() << "Chess engine error:" << error;
+    
+    // 如果引擎無法使用，切換回雙人對弈模式
+    if (m_currentGameMode != GameMode::HumanVsHuman) {
+        // 切換回雙人對弈模式
+        m_currentGameMode = GameMode::HumanVsHuman;
+        updateGameModeUI();
+        QMessageBox::warning(this, "引擎錯誤", 
+            QString("無法啟動棋譜引擎：%1\n\n已切換為雙人對弈模式。").arg(error));
+    }
+}
+
+void Qt_Chess::requestEngineMove() {
+    if (!m_chessEngine || !m_chessEngine->isEngineRunning()) return;
+    if (!m_gameStarted || m_isReplayMode) return;
+    
+    // 使用移動歷史設定當前位置
+    m_chessEngine->setPositionFromMoves(m_uciMoveHistory);
+    
+    // 請求引擎計算最佳走法
+    m_chessEngine->requestMove();
+}
+
+bool Qt_Chess::isComputerTurn() const {
+    if (!m_chessEngine) return false;
+    
+    GameMode mode = getCurrentGameMode();
+    PieceColor currentPlayer = m_chessBoard.getCurrentPlayer();
+    
+    switch (mode) {
+        case GameMode::HumanVsComputer:
+            // 人執白，電腦執黑
+            return currentPlayer == PieceColor::Black;
+        case GameMode::ComputerVsHuman:
+            // 電腦執白，人執黑
+            return currentPlayer == PieceColor::White;
+        case GameMode::HumanVsHuman:
+        default:
+            return false;
+    }
+}
+
+GameMode Qt_Chess::getCurrentGameMode() const {
+    return m_currentGameMode;
+}
+
+bool Qt_Chess::isPlayerPiece(PieceColor pieceColor) const {
+    GameMode mode = getCurrentGameMode();
+    
+    switch (mode) {
+        case GameMode::HumanVsComputer:
+            // 人執白，電腦執黑
+            return pieceColor == PieceColor::White;
+        case GameMode::ComputerVsHuman:
+            // 電腦執白，人執黑
+            return pieceColor == PieceColor::Black;
+        case GameMode::HumanVsHuman:
+        default:
+            // 雙人對弈，任何顏色都是玩家的
+            return true;
+    }
+}
+
+void Qt_Chess::loadEngineSettings() {
+    QSettings settings("Qt_Chess", "ChessEngine");
+    
+    int gameMode = settings.value("gameMode", static_cast<int>(GameMode::HumanVsHuman)).toInt();
+    int difficulty = settings.value("difficulty", 0).toInt();  // 預設初學者
+    
+    // 設定遊戲模式
+    m_currentGameMode = static_cast<GameMode>(gameMode);
+    updateGameModeUI();
+    
+    if (m_difficultySlider) {
+        m_difficultySlider->setValue(difficulty);
+        onDifficultyChanged(difficulty);  // 更新顯示（同時設定搜尋深度）
+    }
+}
+
+void Qt_Chess::saveEngineSettings() {
+    QSettings settings("Qt_Chess", "ChessEngine");
+    
+    settings.setValue("gameMode", static_cast<int>(m_currentGameMode));
+    
+    if (m_difficultySlider) {
+        settings.setValue("difficulty", m_difficultySlider->value());
+    }
+    
+    settings.sync();
 }

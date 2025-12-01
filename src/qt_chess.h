@@ -20,8 +20,11 @@
 #include <QGroupBox>
 #include <QListWidget>
 #include <QProgressBar>
+#include <QRadioButton>
+#include <QButtonGroup>
 #include <vector>
 #include "chessboard.h"
+#include "chessengine.h"
 #include "soundsettingsdialog.h"
 #include "pieceiconsettingsdialog.h"
 #include "boardcolorsettingsdialog.h"
@@ -152,6 +155,24 @@ private:
     std::vector<std::vector<ChessPiece>> m_savedBoardState;  // 儲存進入回放前的棋盤狀態
     PieceColor m_savedCurrentPlayer;  // 儲存進入回放前的當前玩家
     
+    // 電腦對弈引擎
+    ChessEngine* m_chessEngine;
+    QPushButton* m_humanModeButton;      // 雙人對弈按鈕
+    QPushButton* m_computerModeButton;   // 電腦對弈按鈕
+    QLabel* m_gameModeStatusLabel;       // 顯示電腦模式時的執白/執黑狀態
+    GameMode m_currentGameMode;          // 當前遊戲模式
+    // 選邊按鈕（電腦模式時顯示）
+    QWidget* m_colorSelectionWidget;     // 選邊按鈕容器
+    QPushButton* m_whiteButton;          // 執白按鈕
+    QPushButton* m_randomButton;         // 隨機按鈕
+    QPushButton* m_blackButton;          // 執黑按鈕
+    bool m_isRandomColorSelected;        // 是否選擇隨機顏色
+    QSlider* m_difficultySlider;
+    QLabel* m_difficultyLabel;
+    QLabel* m_difficultyValueLabel;
+    QLabel* m_thinkingLabel;  // 顯示「電腦思考中...」
+    QStringList m_uciMoveHistory;  // UCI 格式的移動歷史
+    
     void setupUI();
     void setupMenuBar();
     void updateBoard();
@@ -228,5 +249,26 @@ private:
     void updateReplayButtons();
     void saveBoardState();
     void restoreBoardState();
+    
+    // 電腦對弈功能
+    void setupEngineUI(QVBoxLayout* layout);
+    void initializeEngine();
+    void onHumanModeClicked();           // 雙人模式按鈕點擊
+    void onComputerModeClicked();        // 電腦模式按鈕點擊
+    void onWhiteColorClicked();          // 執白按鈕點擊
+    void onRandomColorClicked();         // 隨機按鈕點擊
+    void onBlackColorClicked();          // 執黑按鈕點擊
+    void onDifficultyChanged(int value);
+    void onEngineBestMove(const QString& move);
+    void onEngineReady();
+    void onEngineError(const QString& error);
+    void requestEngineMove();
+    bool isComputerTurn() const;
+    bool isPlayerPiece(PieceColor pieceColor) const;  // 檢查棋子是否為玩家的
+    GameMode getCurrentGameMode() const;  // 取得當前遊戲模式
+    void loadEngineSettings();
+    void saveEngineSettings();
+    QString getEnginePath() const;
+    void updateGameModeUI();             // 更新遊戲模式 UI 狀態
 };
 #endif // QT_CHESS_H

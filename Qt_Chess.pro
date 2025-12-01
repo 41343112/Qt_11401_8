@@ -13,6 +13,7 @@ SOURCES += \
     src/qt_chess.cpp \
     src/chesspiece.cpp \
     src/chessboard.cpp \
+    src/chessengine.cpp \
     src/soundsettingsdialog.cpp \
     src/pieceiconsettingsdialog.cpp \
     src/boardcolorsettingsdialog.cpp
@@ -21,6 +22,7 @@ HEADERS += \
     src/qt_chess.h \
     src/chesspiece.h \
     src/chessboard.h \
+    src/chessengine.h \
     src/soundsettingsdialog.h \
     src/pieceiconsettingsdialog.h \
     src/boardcolorsettingsdialog.h
