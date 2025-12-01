@@ -43,11 +43,14 @@ public:
     void setGameMode(GameMode mode);
     GameMode getGameMode() const { return m_gameMode; }
     
-    void setDifficulty(int level);  // 1-20
+    void setDifficulty(int level);  // 0-20
     int getDifficulty() const { return m_skillLevel; }
     
     void setThinkingTime(int milliseconds);  // 設定思考時間
     int getThinkingTime() const { return m_thinkingTimeMs; }
+    
+    void setSearchDepth(int depth);  // 設定搜尋深度（1-30）
+    int getSearchDepth() const { return m_searchDepth; }
 
     // 棋局控制
     void newGame();
@@ -84,8 +87,9 @@ private:
     QString m_currentPosition;  // 當前 FEN 或移動列表
     
     GameMode m_gameMode;
-    int m_skillLevel;           // 1-20
+    int m_skillLevel;           // 0-20
     int m_thinkingTimeMs;       // 思考時間（毫秒）
+    int m_searchDepth;          // 搜尋深度（1-30）
     
     bool m_isReady;
     bool m_isThinking;

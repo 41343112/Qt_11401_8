@@ -157,10 +157,16 @@ private:
     
     // 電腦對弈引擎
     ChessEngine* m_chessEngine;
-    QButtonGroup* m_gameModeButtonGroup;
-    QRadioButton* m_humanVsHumanRadio;
-    QRadioButton* m_humanVsComputerRadio;
-    QRadioButton* m_computerVsHumanRadio;
+    QPushButton* m_humanModeButton;      // 雙人對弈按鈕
+    QPushButton* m_computerModeButton;   // 電腦對弈按鈕
+    QLabel* m_gameModeStatusLabel;       // 顯示電腦模式時的執白/執黑狀態
+    GameMode m_currentGameMode;          // 當前遊戲模式
+    // 選邊按鈕（電腦模式時顯示）
+    QWidget* m_colorSelectionWidget;     // 選邊按鈕容器
+    QPushButton* m_whiteButton;          // 執白按鈕
+    QPushButton* m_randomButton;         // 隨機按鈕
+    QPushButton* m_blackButton;          // 執黑按鈕
+    bool m_isRandomColorSelected;        // 是否選擇隨機顏色
     QSlider* m_difficultySlider;
     QLabel* m_difficultyLabel;
     QLabel* m_difficultyValueLabel;
@@ -247,7 +253,11 @@ private:
     // 電腦對弈功能
     void setupEngineUI(QVBoxLayout* layout);
     void initializeEngine();
-    void onGameModeChanged(int id);
+    void onHumanModeClicked();           // 雙人模式按鈕點擊
+    void onComputerModeClicked();        // 電腦模式按鈕點擊
+    void onWhiteColorClicked();          // 執白按鈕點擊
+    void onRandomColorClicked();         // 隨機按鈕點擊
+    void onBlackColorClicked();          // 執黑按鈕點擊
     void onDifficultyChanged(int value);
     void onEngineBestMove(const QString& move);
     void onEngineReady();
@@ -259,5 +269,6 @@ private:
     void loadEngineSettings();
     void saveEngineSettings();
     QString getEnginePath() const;
+    void updateGameModeUI();             // 更新遊戲模式 UI 狀態
 };
 #endif // QT_CHESS_H

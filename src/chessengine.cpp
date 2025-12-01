@@ -9,8 +9,9 @@ ChessEngine::ChessEngine(QObject *parent)
     : QObject(parent)
     , m_process(nullptr)
     , m_gameMode(GameMode::HumanVsHuman)
-    , m_skillLevel(10)  // 預設中等難度
-    , m_thinkingTimeMs(1000)  // 預設 1 秒思考時間
+    , m_skillLevel(0)  // 預設初學者難度
+    , m_thinkingTimeMs(50)  // 預設 50ms 思考時間
+    , m_searchDepth(1)  // 預設搜尋深度 1
     , m_isReady(false)
     , m_isThinking(false)
 {
@@ -95,13 +96,18 @@ void ChessEngine::setGameMode(GameMode mode)
 
 void ChessEngine::setDifficulty(int level)
 {
-    m_skillLevel = qBound(1, level, 20);
+    m_skillLevel = qBound(0, level, 20);
     configureEngine();
 }
 
 void ChessEngine::setThinkingTime(int milliseconds)
 {
-    m_thinkingTimeMs = qBound(100, milliseconds, 30000);
+    m_thinkingTimeMs = qBound(50, milliseconds, 30000);
+}
+
+void ChessEngine::setSearchDepth(int depth)
+{
+    m_searchDepth = qBound(1, depth, 30);
 }
 
 void ChessEngine::newGame()
@@ -140,8 +146,8 @@ void ChessEngine::requestMove()
     m_bestMove.clear();
     emit thinkingStarted();
     
-    // 使用 movetime 限制思考時間
-    sendCommand(QString("go movetime %1").arg(m_thinkingTimeMs));
+    // 使用 movetime 和 depth 限制思考
+    sendCommand(QString("go movetime %1 depth %2").arg(m_thinkingTimeMs).arg(m_searchDepth));
 }
 
 void ChessEngine::stop()
