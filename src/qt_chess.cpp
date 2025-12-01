@@ -76,12 +76,27 @@ const int MAX_PANEL_WIDTH = 600;              // 左右面板的最大寬度（�
 const int PGN_MOVES_PER_LINE = 6;            // PGN 檔案中每行的移動回合數
 
 // ELO 評分常數（用於難度顯示）
-const int ELO_BASE = 800;                    // 最低 ELO 評分（對應 Skill Level 1）
+const int ELO_BASE = 250;                    // 最低 ELO 評分（對應 Skill Level 1）
 const int ELO_PER_LEVEL = 150;               // 每級增加的 ELO 分數（確保結果能被50整除）
 
 // 計算 ELO 評分的輔助函數
 static int calculateElo(int skillLevel) {
     return ELO_BASE + (skillLevel - 1) * ELO_PER_LEVEL;
+}
+
+// 根據難度等級取得中文難度名稱
+static QString getDifficultyName(int skillLevel) {
+    if (skillLevel <= 4) {
+        return "初學";
+    } else if (skillLevel <= 8) {
+        return "簡單";
+    } else if (skillLevel <= 12) {
+        return "中等";
+    } else if (skillLevel <= 16) {
+        return "困難";
+    } else {
+        return "大師";
+    }
 }
 
 // 獲取面板的實際寬度，如果尚未渲染則使用後備值的輔助函數
@@ -156,10 +171,10 @@ Qt_Chess::Qt_Chess(QWidget *parent)
     , m_replayMoveIndex(-1)
     , m_savedCurrentPlayer(PieceColor::White)
     , m_chessEngine(nullptr)
-    , m_gameModeButtonGroup(nullptr)
-    , m_humanVsHumanRadio(nullptr)
-    , m_humanVsComputerRadio(nullptr)
-    , m_computerVsHumanRadio(nullptr)
+    , m_humanModeButton(nullptr)
+    , m_computerModeButton(nullptr)
+    , m_gameModeStatusLabel(nullptr)
+    , m_currentGameMode(GameMode::HumanVsHuman)
     , m_difficultySlider(nullptr)
     , m_difficultyLabel(nullptr)
     , m_difficultyValueLabel(nullptr)
@@ -1996,37 +2011,54 @@ void Qt_Chess::setupTimeControlUI(QVBoxLayout* timeControlPanelLayout) {
     gameModeLabel->setFont(labelFont);
     timeControlLayout->addWidget(gameModeLabel);
     
-    // 使用按鈕選擇雙人或電腦對弈
+    // 使用方塊按鈕選擇雙人或電腦對弈
     QHBoxLayout* gameModeButtonsLayout = new QHBoxLayout();
-    m_gameModeButtonGroup = new QButtonGroup(this);
     
-    m_humanVsHumanRadio = new QRadioButton("雙人", this);
-    m_humanVsHumanRadio->setFont(labelFont);
-    m_humanVsHumanRadio->setChecked(true);
-    m_gameModeButtonGroup->addButton(m_humanVsHumanRadio, static_cast<int>(GameMode::HumanVsHuman));
-    gameModeButtonsLayout->addWidget(m_humanVsHumanRadio);
+    // 雙人對弈按鈕
+    m_humanModeButton = new QPushButton("雙人", this);
+    m_humanModeButton->setFont(labelFont);
+    m_humanModeButton->setCheckable(true);
+    m_humanModeButton->setChecked(true);
+    m_humanModeButton->setMinimumSize(60, 40);
+    m_humanModeButton->setStyleSheet(
+        "QPushButton { border: 2px solid #555; border-radius: 5px; padding: 5px; background-color: #4CAF50; color: white; }"
+        "QPushButton:checked { background-color: #2E7D32; border-color: #1B5E20; }"
+        "QPushButton:hover { background-color: #66BB6A; }"
+    );
+    connect(m_humanModeButton, &QPushButton::clicked, this, &Qt_Chess::onHumanModeClicked);
+    gameModeButtonsLayout->addWidget(m_humanModeButton);
     
-    m_humanVsComputerRadio = new QRadioButton("電腦（執白）", this);
-    m_humanVsComputerRadio->setFont(labelFont);
-    m_gameModeButtonGroup->addButton(m_humanVsComputerRadio, static_cast<int>(GameMode::HumanVsComputer));
-    gameModeButtonsLayout->addWidget(m_humanVsComputerRadio);
+    // 電腦對弈按鈕
+    m_computerModeButton = new QPushButton("電腦", this);
+    m_computerModeButton->setFont(labelFont);
+    m_computerModeButton->setCheckable(true);
+    m_computerModeButton->setMinimumSize(60, 40);
+    m_computerModeButton->setStyleSheet(
+        "QPushButton { border: 2px solid #555; border-radius: 5px; padding: 5px; background-color: #2196F3; color: white; }"
+        "QPushButton:checked { background-color: #1565C0; border-color: #0D47A1; }"
+        "QPushButton:hover { background-color: #42A5F5; }"
+    );
+    connect(m_computerModeButton, &QPushButton::clicked, this, &Qt_Chess::onComputerModeClicked);
+    gameModeButtonsLayout->addWidget(m_computerModeButton);
     
-    m_computerVsHumanRadio = new QRadioButton("電腦（執黑）", this);
-    m_computerVsHumanRadio->setFont(labelFont);
-    m_gameModeButtonGroup->addButton(m_computerVsHumanRadio, static_cast<int>(GameMode::ComputerVsHuman));
-    gameModeButtonsLayout->addWidget(m_computerVsHumanRadio);
+    // 顯示當前選擇的標籤（電腦模式時顯示執白/執黑）
+    m_gameModeStatusLabel = new QLabel("", this);
+    m_gameModeStatusLabel->setFont(labelFont);
+    m_gameModeStatusLabel->setAlignment(Qt::AlignCenter);
+    m_gameModeStatusLabel->hide();  // 初始隱藏
     
-    connect(m_gameModeButtonGroup, &QButtonGroup::idClicked,
-            this, &Qt_Chess::onGameModeChanged);
     timeControlLayout->addLayout(gameModeButtonsLayout);
+    timeControlLayout->addWidget(m_gameModeStatusLabel);
     
     // 難度設定
     m_difficultyLabel = new QLabel("電腦難度:", this);
     m_difficultyLabel->setFont(labelFont);
     timeControlLayout->addWidget(m_difficultyLabel);
     
-    // 初始值為 10，對應 ELO 評分使用 calculateElo 計算
-    m_difficultyValueLabel = new QLabel(QString("ELO %1").arg(calculateElo(10)), this);
+    // 初始值為 10，顯示 ELO 和中文難度名稱
+    int initialElo = calculateElo(10);
+    QString initialDiffName = getDifficultyName(10);
+    m_difficultyValueLabel = new QLabel(QString("%1 (ELO %2)").arg(initialDiffName).arg(initialElo), this);
     m_difficultyValueLabel->setFont(labelFont);
     m_difficultyValueLabel->setAlignment(Qt::AlignCenter);
     timeControlLayout->addWidget(m_difficultyValueLabel);
@@ -2048,8 +2080,8 @@ void Qt_Chess::setupTimeControlUI(QVBoxLayout* timeControlPanelLayout) {
     m_thinkingLabel->hide();
     timeControlLayout->addWidget(m_thinkingLabel);
     
-    // 根據初始模式設定難度控制的可見性
-    bool isVsComputer = (m_gameModeButtonGroup->checkedId() != static_cast<int>(GameMode::HumanVsHuman));
+    // 根據初始模式設定難度控制的可見性（預設為雙人模式，隱藏難度控制）
+    bool isVsComputer = (m_currentGameMode != GameMode::HumanVsHuman);
     m_difficultyLabel->setVisible(isVsComputer);
     m_difficultyValueLabel->setVisible(isVsComputer);
     m_difficultySlider->setVisible(isVsComputer);
@@ -3098,34 +3130,88 @@ QString Qt_Chess::getEnginePath() const {
     return QString();
 }
 
-void Qt_Chess::onGameModeChanged(int id) {
-    if (!m_gameModeButtonGroup) return;
-    
-    GameMode mode = static_cast<GameMode>(id);
-    
-    // 更新難度控制的可見性
-    bool isVsComputer = (mode != GameMode::HumanVsHuman);
-    if (m_difficultyLabel) m_difficultyLabel->setVisible(isVsComputer);
-    if (m_difficultyValueLabel) m_difficultyValueLabel->setVisible(isVsComputer);
-    if (m_difficultySlider) m_difficultySlider->setVisible(isVsComputer);
+void Qt_Chess::onHumanModeClicked() {
+    m_currentGameMode = GameMode::HumanVsHuman;
+    updateGameModeUI();
     
     // 更新引擎的遊戲模式
     if (m_chessEngine) {
-        m_chessEngine->setGameMode(mode);
+        m_chessEngine->setGameMode(m_currentGameMode);
     }
     
     // 儲存設定
     saveEngineSettings();
 }
 
+void Qt_Chess::onComputerModeClicked() {
+    // 彈出對話框讓用戶選擇執白或執黑
+    QMessageBox msgBox(this);
+    msgBox.setWindowTitle("選擇棋子顏色");
+    msgBox.setText("請選擇您要執的棋子顏色：");
+    QPushButton* whiteButton = msgBox.addButton("執白（先手）", QMessageBox::AcceptRole);
+    QPushButton* blackButton = msgBox.addButton("執黑（後手）", QMessageBox::AcceptRole);
+    msgBox.addButton("取消", QMessageBox::RejectRole);
+    
+    msgBox.exec();
+    
+    if (msgBox.clickedButton() == whiteButton) {
+        m_currentGameMode = GameMode::HumanVsComputer;
+    } else if (msgBox.clickedButton() == blackButton) {
+        m_currentGameMode = GameMode::ComputerVsHuman;
+    } else {
+        // 用戶取消，保持原來的選擇狀態
+        updateGameModeUI();
+        return;
+    }
+    
+    updateGameModeUI();
+    
+    // 更新引擎的遊戲模式
+    if (m_chessEngine) {
+        m_chessEngine->setGameMode(m_currentGameMode);
+    }
+    
+    // 儲存設定
+    saveEngineSettings();
+}
+
+void Qt_Chess::updateGameModeUI() {
+    bool isHumanMode = (m_currentGameMode == GameMode::HumanVsHuman);
+    
+    // 更新按鈕選中狀態
+    if (m_humanModeButton) {
+        m_humanModeButton->setChecked(isHumanMode);
+    }
+    if (m_computerModeButton) {
+        m_computerModeButton->setChecked(!isHumanMode);
+    }
+    
+    // 更新狀態標籤
+    if (m_gameModeStatusLabel) {
+        if (isHumanMode) {
+            m_gameModeStatusLabel->hide();
+        } else {
+            QString statusText = (m_currentGameMode == GameMode::HumanVsComputer) ? "您執白（先手）" : "您執黑（後手）";
+            m_gameModeStatusLabel->setText(statusText);
+            m_gameModeStatusLabel->show();
+        }
+    }
+    
+    // 更新難度控制的可見性
+    if (m_difficultyLabel) m_difficultyLabel->setVisible(!isHumanMode);
+    if (m_difficultyValueLabel) m_difficultyValueLabel->setVisible(!isHumanMode);
+    if (m_difficultySlider) m_difficultySlider->setVisible(!isHumanMode);
+}
+
 void Qt_Chess::onDifficultyChanged(int value) {
     if (!m_difficultyValueLabel || !m_chessEngine) return;
     
-    // 使用輔助函數計算 ELO 評分
+    // 使用輔助函數計算 ELO 評分和中文難度名稱
     int elo = calculateElo(value);
+    QString diffName = getDifficultyName(value);
     
-    // 更新顯示的難度值（使用 ELO 表示）
-    QString diffText = QString("ELO %1").arg(elo);
+    // 更新顯示的難度值（顯示中文難度名稱和 ELO）
+    QString diffText = QString("%1 (ELO %2)").arg(diffName).arg(elo);
     m_difficultyValueLabel->setText(diffText);
     
     // 更新引擎難度
@@ -3194,7 +3280,7 @@ void Qt_Chess::onEngineBestMove(const QString& move) {
 
 void Qt_Chess::onEngineReady() {
     // 引擎已準備好，可以開始遊戲
-    if (m_chessEngine && m_gameModeButtonGroup) {
+    if (m_chessEngine) {
         GameMode mode = getCurrentGameMode();
         m_chessEngine->setGameMode(mode);
         
@@ -3209,10 +3295,10 @@ void Qt_Chess::onEngineError(const QString& error) {
     qWarning() << "Chess engine error:" << error;
     
     // 如果引擎無法使用，切換回雙人對弈模式
-    if (m_gameModeButtonGroup && m_humanVsHumanRadio && 
-        m_gameModeButtonGroup->checkedId() != static_cast<int>(GameMode::HumanVsHuman)) {
+    if (m_currentGameMode != GameMode::HumanVsHuman) {
         // 切換回雙人對弈模式
-        m_humanVsHumanRadio->setChecked(true);
+        m_currentGameMode = GameMode::HumanVsHuman;
+        updateGameModeUI();
         QMessageBox::warning(this, "引擎錯誤", 
             QString("無法啟動棋譜引擎：%1\n\n已切換為雙人對弈模式。").arg(error));
     }
@@ -3230,7 +3316,7 @@ void Qt_Chess::requestEngineMove() {
 }
 
 bool Qt_Chess::isComputerTurn() const {
-    if (!m_chessEngine || !m_gameModeButtonGroup) return false;
+    if (!m_chessEngine) return false;
     
     GameMode mode = getCurrentGameMode();
     PieceColor currentPlayer = m_chessBoard.getCurrentPlayer();
@@ -3249,8 +3335,7 @@ bool Qt_Chess::isComputerTurn() const {
 }
 
 GameMode Qt_Chess::getCurrentGameMode() const {
-    if (!m_gameModeButtonGroup) return GameMode::HumanVsHuman;
-    return static_cast<GameMode>(m_gameModeButtonGroup->checkedId());
+    return m_currentGameMode;
 }
 
 bool Qt_Chess::isPlayerPiece(PieceColor pieceColor) const {
@@ -3276,15 +3361,9 @@ void Qt_Chess::loadEngineSettings() {
     int gameMode = settings.value("gameMode", static_cast<int>(GameMode::HumanVsHuman)).toInt();
     int difficulty = settings.value("difficulty", 10).toInt();
     
-    // 根據儲存的遊戲模式選擇對應的單選按鈕
-    if (m_gameModeButtonGroup) {
-        QAbstractButton* button = m_gameModeButtonGroup->button(gameMode);
-        if (button) {
-            button->setChecked(true);
-            // 手動觸發模式變更以更新難度控制的可見性
-            onGameModeChanged(gameMode);
-        }
-    }
+    // 設定遊戲模式
+    m_currentGameMode = static_cast<GameMode>(gameMode);
+    updateGameModeUI();
     
     if (m_difficultySlider) {
         m_difficultySlider->setValue(difficulty);
@@ -3295,9 +3374,7 @@ void Qt_Chess::loadEngineSettings() {
 void Qt_Chess::saveEngineSettings() {
     QSettings settings("Qt_Chess", "ChessEngine");
     
-    if (m_gameModeButtonGroup) {
-        settings.setValue("gameMode", m_gameModeButtonGroup->checkedId());
-    }
+    settings.setValue("gameMode", static_cast<int>(m_currentGameMode));
     
     if (m_difficultySlider) {
         settings.setValue("difficulty", m_difficultySlider->value());
