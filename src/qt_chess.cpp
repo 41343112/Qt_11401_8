@@ -3280,21 +3280,9 @@ void Qt_Chess::updateGameModeUI() {
         m_blackButton->setChecked(!m_isRandomColorSelected && m_currentGameMode == GameMode::ComputerVsHuman);
     }
     
-    // 更新狀態標籤
+    // 隱藏狀態標籤（不顯示執白/執黑）
     if (m_gameModeStatusLabel) {
-        if (isHumanMode) {
-            m_gameModeStatusLabel->hide();
-        } else {
-            QString statusText;
-            if (m_isRandomColorSelected) {
-                // 隨機選擇時，顯示隨機結果
-                statusText = (m_currentGameMode == GameMode::HumanVsComputer) ? "隨機 → 您執白（先手）" : "隨機 → 您執黑（後手）";
-            } else {
-                statusText = (m_currentGameMode == GameMode::HumanVsComputer) ? "您執白（先手）" : "您執黑（後手）";
-            }
-            m_gameModeStatusLabel->setText(statusText);
-            m_gameModeStatusLabel->show();
-        }
+        m_gameModeStatusLabel->hide();
     }
     
     // 更新難度控制的可見性
