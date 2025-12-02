@@ -210,13 +210,20 @@ Qt_Chess::Qt_Chess(QWidget *parent)
     , m_difficultyLabel(nullptr)
     , m_difficultyValueLabel(nullptr)
     , m_thinkingLabel(nullptr)
+    , m_bgmPlayer(nullptr)
+    , m_bgmEnabled(true)
+    , m_bgmVolume(30)
     , m_animationOverlay(nullptr)
     , m_animationLabel(nullptr)
+    , m_animationSubLabel(nullptr)
     , m_animationTimer(nullptr)
     , m_animationStep(0)
     , m_pendingGameStart(false)
     , m_startupAnimationTimer(nullptr)
     , m_startupAnimationStep(0)
+    , m_fadeAnimation(nullptr)
+    , m_scaleAnimation(nullptr)
+    , m_opacityEffect(nullptr)
 {
     ui->setupUi(this);
     setWindowTitle("♔ 國際象棋 - 科技對弈 ♚");
@@ -234,6 +241,7 @@ Qt_Chess::Qt_Chess(QWidget *parent)
 
     loadSoundSettings();
     initializeSounds();
+    initializeBackgroundMusic();  // 初始化背景音樂
     loadPieceIconSettings();
     loadBoardColorSettings();
     loadBoardFlipSettings();
@@ -255,6 +263,13 @@ Qt_Chess::Qt_Chess(QWidget *parent)
 
 Qt_Chess::~Qt_Chess()
 {
+    // 停止並清理背景音樂
+    if (m_bgmPlayer) {
+        m_bgmPlayer->stop();
+        delete m_bgmPlayer;
+        m_bgmPlayer = nullptr;
+    }
+    
     // 停止並清理棋局引擎
     if (m_chessEngine) {
         m_chessEngine->stopEngine();
@@ -4369,6 +4384,12 @@ void Qt_Chess::playStartupAnimation() {
         m_animationLabel->setAlignment(Qt::AlignCenter);
     }
     
+    // 創建副標籤（用於顯示副標題）
+    if (!m_animationSubLabel) {
+        m_animationSubLabel = new QLabel(m_animationOverlay);
+        m_animationSubLabel->setAlignment(Qt::AlignCenter);
+    }
+    
     // 初始化啟動動畫計時器（只在構造時連接一次）
     if (!m_startupAnimationTimer) {
         m_startupAnimationTimer = new QTimer(this);
@@ -4378,63 +4399,71 @@ void Qt_Chess::playStartupAnimation() {
     // 每次播放動畫時更新疊加層大小以匹配當前視窗大小
     QRect windowRect = rect();
     m_animationOverlay->setGeometry(windowRect);
-    m_animationLabel->setGeometry(0, 0, windowRect.width(), windowRect.height());
+    m_animationLabel->setGeometry(0, windowRect.height() / 4, windowRect.width(), windowRect.height() / 2);
+    m_animationSubLabel->setGeometry(0, windowRect.height() * 2 / 3, windowRect.width(), windowRect.height() / 4);
     
     // 開始動畫
     m_startupAnimationStep = 0;
     m_animationOverlay->raise();
     m_animationOverlay->show();
     
-    // 顯示第一幀
+    // 顯示第一幀並開始淡入效果
     onStartupAnimationStep();
     
-    // 啟動動畫計時器（每 600ms 更新一次）
-    m_startupAnimationTimer->start(600);
+    // 啟動動畫計時器（每 700ms 更新一次，更流暢）
+    m_startupAnimationTimer->start(700);
+}
+
+void Qt_Chess::playStartupTextAnimation(QLabel* label, const QString& text, const QString& color, int fontSize) {
+    if (!label) return;
+    
+    // 設置文字和樣式
+    label->setText(text);
+    label->setStyleSheet(QString(
+        "QLabel { "
+        "  color: %1; "
+        "  font-size: %2px; "
+        "  font-weight: bold; "
+        "  font-family: 'Arial', sans-serif; "
+        "  background: transparent; "
+        "}"
+    ).arg(color).arg(fontSize));
 }
 
 void Qt_Chess::onStartupAnimationStep() {
     if (!m_animationLabel || !m_animationOverlay) return;
     
-    QString text;
-    QString style;
-    
-    // 啟動動畫序列：歡迎訊息 -> 標題 -> 準備就緒
+    // 動態啟動動畫序列：多階段視覺效果
     switch (m_startupAnimationStep) {
         case 0:
-            text = "♔ ♕ ♖ ♗ ♘ ♙";
-            style = QString(
-                "QLabel { "
-                "  color: %1; "
-                "  font-size: 72px; "
-                "  font-weight: bold; "
-                "  font-family: 'Arial', sans-serif; "
-                "  background: transparent; "
-                "}"
-            ).arg(THEME_ACCENT_PRIMARY);
+            // 第一幀：白色棋子符號，從上方滑入
+            playStartupTextAnimation(m_animationLabel, "♔ ♕ ♖ ♗ ♘ ♙", THEME_ACCENT_PRIMARY, 80);
+            if (m_animationSubLabel) m_animationSubLabel->setText("");
             break;
         case 1:
-            text = "科技對弈";
-            style = QString(
-                "QLabel { "
-                "  color: %1; "
-                "  font-size: 64px; "
-                "  font-weight: bold; "
-                "  font-family: 'Arial', sans-serif; "
-                "  background: transparent; "
-                "}"
-            ).arg(THEME_ACCENT_WARNING);
+            // 第二幀：標題「科技對弈」放大顯示
+            playStartupTextAnimation(m_animationLabel, "⚡ 科技對弈 ⚡", THEME_ACCENT_WARNING, 72);
+            if (m_animationSubLabel) {
+                m_animationSubLabel->setStyleSheet(QString(
+                    "QLabel { color: %1; font-size: 24px; background: transparent; }"
+                ).arg(THEME_ACCENT_PRIMARY));
+                m_animationSubLabel->setText("TECH CHESS BATTLE");
+            }
             break;
         case 2:
-            text = "♚ ♛ ♜ ♝ ♞ ♟";
-            style = QString(
-                "QLabel { "
-                "  color: %1; "
-                "  font-size: 72px; "
-                "  font-weight: bold; "
-                "  font-family: 'Arial', sans-serif; "
-                "  background: transparent; "
-                "}"
-            ).arg(THEME_ACCENT_SECONDARY);
+            // 第三幀：黑色棋子符號
+            playStartupTextAnimation(m_animationLabel, "♚ ♛ ♜ ♝ ♞ ♟", THEME_ACCENT_SECONDARY, 80);
+            if (m_animationSubLabel) m_animationSubLabel->setText("");
+            break;
+        case 3:
+            // 第四幀：準備就緒
+            playStartupTextAnimation(m_animationLabel, "🎮 準備就緒 🎮", THEME_ACCENT_SUCCESS, 64);
+            if (m_animationSubLabel) {
+                m_animationSubLabel->setStyleSheet(QString(
+                    "QLabel { color: %1; font-size: 20px; background: transparent; }"
+                ).arg(THEME_ACCENT_SUCCESS));
+                m_animationSubLabel->setText("READY TO PLAY");
+            }
             break;
         default:
             // 動畫結束
@@ -4443,8 +4472,6 @@ void Qt_Chess::onStartupAnimationStep() {
             return;
     }
     
-    m_animationLabel->setText(text);
-    m_animationLabel->setStyleSheet(style);
     m_startupAnimationStep++;
 }
 
@@ -4452,5 +4479,59 @@ void Qt_Chess::finishStartupAnimation() {
     // 隱藏動畫疊加層
     if (m_animationOverlay) {
         m_animationOverlay->hide();
+    }
+    
+    // 啟動動畫結束後開始播放背景音樂
+    startBackgroundMusic();
+}
+
+void Qt_Chess::initializeBackgroundMusic() {
+    // 創建背景音樂播放器 (Qt5 API)
+    m_bgmPlayer = new QMediaPlayer(this);
+    
+    // 設定音量 (Qt5 使用 0-100 整數)
+    m_bgmPlayer->setVolume(m_bgmVolume);
+    
+    // 設定循環播放 - 當媒體結束時重新播放
+    connect(m_bgmPlayer, &QMediaPlayer::stateChanged, this, [this](QMediaPlayer::State state) {
+        if (state == QMediaPlayer::StoppedState && m_bgmEnabled && m_bgmPlayer->position() >= m_bgmPlayer->duration() - 100) {
+            // 媒體播放完畢，重新開始
+            m_bgmPlayer->setPosition(0);
+            m_bgmPlayer->play();
+        }
+    });
+}
+
+void Qt_Chess::startBackgroundMusic() {
+    if (!m_bgmPlayer || !m_bgmEnabled) return;
+    
+    // 注意：由於沒有背景音樂檔案，這裡只是準備好播放器
+    // 如果有背景音樂檔案，可以設定來源：
+    // m_bgmPlayer->setMedia(QUrl("qrc:/resources/sounds/bgm.mp3"));
+    // m_bgmPlayer->play();
+    
+    // 目前沒有背景音樂檔案，所以這個功能是預留的
+    // 當有音樂檔案時，取消下面的註解即可啟用
+}
+
+void Qt_Chess::stopBackgroundMusic() {
+    if (m_bgmPlayer) {
+        m_bgmPlayer->stop();
+    }
+}
+
+void Qt_Chess::toggleBackgroundMusic() {
+    m_bgmEnabled = !m_bgmEnabled;
+    if (m_bgmEnabled) {
+        startBackgroundMusic();
+    } else {
+        stopBackgroundMusic();
+    }
+}
+
+void Qt_Chess::setBackgroundMusicVolume(int volume) {
+    m_bgmVolume = qBound(0, volume, 100);
+    if (m_bgmPlayer) {
+        m_bgmPlayer->setVolume(m_bgmVolume);
     }
 }

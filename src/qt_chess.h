@@ -11,6 +11,7 @@
 #include <QKeyEvent>
 #include <QMap>
 #include <QSoundEffect>
+#include <QMediaPlayer>
 #include <QMenuBar>
 #include <QMenu>
 #include <QAction>
@@ -22,6 +23,8 @@
 #include <QProgressBar>
 #include <QRadioButton>
 #include <QButtonGroup>
+#include <QPropertyAnimation>
+#include <QGraphicsOpacityEffect>
 #include <vector>
 #include "chessboard.h"
 #include "chessengine.h"
@@ -91,6 +94,11 @@ private:
     QSoundEffect m_checkSound;
     QSoundEffect m_checkmateSound;
     SoundSettingsDialog::SoundSettings m_soundSettings;
+    
+    // 背景音樂
+    QMediaPlayer* m_bgmPlayer;
+    bool m_bgmEnabled;
+    int m_bgmVolume;  // 0-100
     
     // 棋子圖示設定
     PieceIconSettingsDialog::PieceIconSettings m_pieceIconSettings;
@@ -293,10 +301,19 @@ private:
     void playStartupAnimation();         // 播放啟動動畫
     void onStartupAnimationStep();       // 啟動動畫步驟更新
     void finishStartupAnimation();       // 啟動動畫完成後的處理
+    void playStartupTextAnimation(QLabel* label, const QString& text, const QString& color, int fontSize);
+    
+    // 背景音樂控制
+    void initializeBackgroundMusic();    // 初始化背景音樂
+    void startBackgroundMusic();         // 開始播放背景音樂
+    void stopBackgroundMusic();          // 停止背景音樂
+    void toggleBackgroundMusic();        // 切換背景音樂開關
+    void setBackgroundMusicVolume(int volume);  // 設定背景音樂音量 (0-100)
     
     // 動畫相關成員
     QWidget* m_animationOverlay;         // 動畫疊加層
     QLabel* m_animationLabel;            // 動畫文字標籤
+    QLabel* m_animationSubLabel;         // 動畫副標籤（用於多行動畫）
     QTimer* m_animationTimer;            // 動畫計時器
     int m_animationStep;                 // 動畫當前步驟
     bool m_pendingGameStart;             // 是否有待處理的遊戲開始
@@ -304,5 +321,8 @@ private:
     // 啟動動畫相關成員
     QTimer* m_startupAnimationTimer;     // 啟動動畫計時器
     int m_startupAnimationStep;          // 啟動動畫當前步驟
+    QPropertyAnimation* m_fadeAnimation; // 淡入淡出動畫
+    QPropertyAnimation* m_scaleAnimation; // 縮放動畫
+    QGraphicsOpacityEffect* m_opacityEffect; // 透明度效果
 };
 #endif // QT_CHESS_H
