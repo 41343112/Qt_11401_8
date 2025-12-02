@@ -18,6 +18,7 @@
 #include <QComboBox>
 #include <QSlider>
 #include <QTimer>
+#include <QRandomGenerator>
 #include <QGroupBox>
 #include <QListWidget>
 #include <QProgressBar>
@@ -99,6 +100,8 @@ private:
     QMediaPlayer* m_bgmPlayer;
     bool m_bgmEnabled;
     int m_bgmVolume;  // 0-100
+    QStringList m_bgmList;  // 背景音樂列表
+    int m_lastBgmIndex;     // 上一次播放的音樂索引，避免重複
     
     // 棋子圖示設定
     PieceIconSettingsDialog::PieceIconSettings m_pieceIconSettings;

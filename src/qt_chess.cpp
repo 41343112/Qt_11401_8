@@ -213,6 +213,7 @@ Qt_Chess::Qt_Chess(QWidget *parent)
     , m_bgmPlayer(nullptr)
     , m_bgmEnabled(true)
     , m_bgmVolume(30)
+    , m_lastBgmIndex(-1)
     , m_animationOverlay(nullptr)
     , m_animationLabel(nullptr)
     , m_animationSubLabel(nullptr)
@@ -4492,6 +4493,14 @@ void Qt_Chess::initializeBackgroundMusic() {
     // 設定音量 (Qt5 使用 0-100 整數)
     m_bgmPlayer->setVolume(m_bgmVolume);
     
+    // 初始化背景音樂列表 - 使用 resources/backgroundsound 中的5首音樂
+    m_bgmList.clear();
+    m_bgmList << "qrc:/resources/backgroundsound/bgm1.mp3"
+              << "qrc:/resources/backgroundsound/bgm2.mp3"
+              << "qrc:/resources/backgroundsound/bgm3.mp3"
+              << "qrc:/resources/backgroundsound/bgm4.mp3"
+              << "qrc:/resources/backgroundsound/bgm5.mp3";
+    
     // 設定循環播放 - 當媒體結束時重新播放
     connect(m_bgmPlayer, &QMediaPlayer::stateChanged, this, [this](QMediaPlayer::State state) {
         if (state == QMediaPlayer::StoppedState && m_bgmEnabled && m_bgmPlayer->position() >= m_bgmPlayer->duration() - 100) {
@@ -4503,12 +4512,31 @@ void Qt_Chess::initializeBackgroundMusic() {
 }
 
 void Qt_Chess::startBackgroundMusic() {
-    if (!m_bgmPlayer || !m_bgmEnabled) return;
+    if (!m_bgmPlayer || !m_bgmEnabled || m_bgmList.isEmpty()) return;
     
+<<<<<<< HEAD
 
      m_bgmPlayer->setMedia(QUrl("qrc:/resources/sounds/bgm.mp3"));
      m_bgmPlayer->play();
 
+=======
+    // 隨機選擇一首背景音樂，但不能與上一次相同
+    int newIndex;
+    if (m_bgmList.size() == 1) {
+        newIndex = 0;
+    } else {
+        do {
+            newIndex = QRandomGenerator::global()->bounded(m_bgmList.size());
+        } while (newIndex == m_lastBgmIndex);
+    }
+    
+    m_lastBgmIndex = newIndex;
+    QString bgmPath = m_bgmList[newIndex];
+    
+    // 設定並播放背景音樂
+    m_bgmPlayer->setMedia(QUrl(bgmPath));
+    m_bgmPlayer->play();
+>>>>>>> 70a7b563a51a3e016d1b0930bd70edd44d1592ed
 }
 
 void Qt_Chess::stopBackgroundMusic() {

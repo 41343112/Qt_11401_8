@@ -5,6 +5,12 @@
         <file>resources/sounds/castling.wav</file>
         <file>resources/sounds/check.wav</file>
         <file>resources/sounds/checkmate.wav</file>
+        <!-- Background music files -->
+        <file>resources/backgroundsound/bgm1.mp3</file>
+        <file>resources/backgroundsound/bgm2.mp3</file>
+        <file>resources/backgroundsound/bgm3.mp3</file>
+        <file>resources/backgroundsound/bgm4.mp3</file>
+        <file>resources/backgroundsound/bgm5.mp3</file>
         <!-- Chess piece icon sets - uncomment and add files when images are provided -->
         <!-- Set 1 -->
         <file>resources/icons/set1/white_king.png</file>
