@@ -7,12 +7,27 @@
 #include <QMessageBox>
 #include <QSettings>
 
+// 現代科技風格主題顏色（與主介面一致）
+namespace {
+    const QString DIALOG_THEME_BG_DARK = "#1A1A2E";
+    const QString DIALOG_THEME_BG_MEDIUM = "#16213E";
+    const QString DIALOG_THEME_BG_PANEL = "#0F3460";
+    const QString DIALOG_THEME_ACCENT_PRIMARY = "#00D9FF";
+    const QString DIALOG_THEME_ACCENT_SECONDARY = "#E94560";
+    const QString DIALOG_THEME_ACCENT_SUCCESS = "#00FF88";
+    const QString DIALOG_THEME_TEXT_PRIMARY = "#EAEAEA";
+    const QString DIALOG_THEME_BORDER = "#2A4066";
+}
+
 SoundSettingsDialog::SoundSettingsDialog(QWidget *parent)
     : QDialog(parent)
 {
-    setWindowTitle("音效設定");
+    setWindowTitle("🔊 音效設定");
     setModal(true);
     setMinimumWidth(600);
+    
+    // 應用現代科技風格
+    applyModernDialogStyle();
     
     setupUI();
     
@@ -400,6 +415,80 @@ SoundSettingsDialog::SoundSettings SoundSettingsDialog::getDefaultSettings()
     defaults.allSoundsEnabled = true;
     
     return defaults;
+}
+
+void SoundSettingsDialog::applyModernDialogStyle()
+{
+    // 現代科技風格對話框樣式表
+    QString styleSheet = QString(
+        "QDialog { "
+        "  background: qlineargradient(x1:0, y1:0, x2:1, y2:1, "
+        "    stop:0 %1, stop:0.5 %2, stop:1 %1); "
+        "}"
+        "QGroupBox { "
+        "  font-weight: bold; "
+        "  color: %3; "
+        "  border: 2px solid %4; "
+        "  border-radius: 10px; "
+        "  margin-top: 12px; "
+        "  padding-top: 10px; "
+        "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1, "
+        "    stop:0 rgba(15, 52, 96, 0.9), stop:1 rgba(26, 26, 46, 0.9)); "
+        "}"
+        "QGroupBox::title { "
+        "  subcontrol-origin: margin; "
+        "  subcontrol-position: top left; "
+        "  padding: 4px 12px; "
+        "  color: %3; "
+        "  background: %5; "
+        "  border: 1px solid %3; "
+        "  border-radius: 6px; "
+        "  left: 10px; "
+        "}"
+        "QLabel { color: %6; }"
+        "QCheckBox { color: %6; }"
+        "QCheckBox::indicator { width: 18px; height: 18px; }"
+        "QCheckBox::indicator:unchecked { "
+        "  border: 2px solid %4; border-radius: 4px; background: %1; "
+        "}"
+        "QCheckBox::indicator:checked { "
+        "  border: 2px solid %3; border-radius: 4px; "
+        "  background: qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 %3, stop:1 %7); "
+        "}"
+        "QLineEdit { "
+        "  background: %1; color: %6; border: 2px solid %4; "
+        "  border-radius: 6px; padding: 4px 8px; "
+        "}"
+        "QLineEdit:focus { border-color: %3; }"
+        "QPushButton { "
+        "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 %5, stop:1 %1); "
+        "  color: %6; border: 2px solid %4; border-radius: 8px; "
+        "  padding: 6px 12px; font-weight: bold; "
+        "}"
+        "QPushButton:hover { "
+        "  border-color: %3; "
+        "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1, "
+        "    stop:0 %5, stop:0.5 rgba(0, 217, 255, 0.3), stop:1 %1); "
+        "}"
+        "QPushButton:pressed { background: %3; color: %1; }"
+        "QSlider::groove:horizontal { "
+        "  border: 1px solid %4; height: 8px; "
+        "  background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 %1, stop:1 %5); "
+        "  border-radius: 4px; "
+        "}"
+        "QSlider::handle:horizontal { "
+        "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 %3, stop:1 rgba(0, 217, 255, 0.7)); "
+        "  border: 2px solid %3; width: 16px; margin: -5px 0; border-radius: 8px; "
+        "}"
+        "QSlider::sub-page:horizontal { "
+        "  background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 %3, stop:1 %7); "
+        "  border-radius: 4px; "
+        "}"
+    ).arg(DIALOG_THEME_BG_DARK, DIALOG_THEME_BG_MEDIUM, DIALOG_THEME_ACCENT_PRIMARY, 
+          DIALOG_THEME_BORDER, DIALOG_THEME_BG_PANEL, DIALOG_THEME_TEXT_PRIMARY, 
+          DIALOG_THEME_ACCENT_SECONDARY);
+    
+    setStyleSheet(styleSheet);
 }
 
 void SoundSettingsDialog::onResetMove()

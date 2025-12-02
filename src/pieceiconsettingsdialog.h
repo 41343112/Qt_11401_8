@@ -173,6 +173,7 @@ private:
     QPushButton* m_blackPawnResetButton;
     
     void setupUI();
+    void applyModernDialogStyle();  // 應用現代科技風格
     void createPieceRow(QGridLayout* gridLayout, int& row, const QString& label,
                        QLineEdit*& iconEdit,
                        QPushButton*& browseButton, QPushButton*& previewButton,

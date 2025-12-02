@@ -110,6 +110,7 @@ private:
     QSoundEffect m_previewSound;
     
     void setupUI();
+    void applyModernDialogStyle();  // 應用現代科技風格
     void createSoundRow(QGridLayout* gridLayout, int& row, const QString& label,
                        QLineEdit*& soundEdit, QCheckBox*& soundCheckBox,
                        QSlider*& volumeSlider, QLabel*& volumeLabel,

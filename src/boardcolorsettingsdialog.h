@@ -72,6 +72,7 @@ private:
     BoardColorSettings m_customSlots[7];
     
     void setupUI();
+    void applyModernDialogStyle();  // 應用現代科技風格
     void updatePreview();
     void updateColorButtons();
     void applyPresetColorScheme(ColorScheme scheme);

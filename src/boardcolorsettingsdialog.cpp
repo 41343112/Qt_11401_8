@@ -10,10 +10,19 @@
 
 // 常數
 namespace {
-    const QString HOVER_BORDER_COLOR = "#4A90E2";
-    const QString HOVER_BACKGROUND_COLOR = "#F0F0F0";
-    const QString PRESSED_BACKGROUND_COLOR = "#E0E0E0";
+    const QString HOVER_BORDER_COLOR = "#00D9FF";  // 霓虹青色
+    const QString HOVER_BACKGROUND_COLOR = "rgba(0, 217, 255, 0.2)";
+    const QString PRESSED_BACKGROUND_COLOR = "rgba(0, 217, 255, 0.4)";
     const int MAX_CUSTOM_SLOTS = 7;
+    
+    // 現代科技風格主題顏色
+    const QString DIALOG_THEME_BG_DARK = "#1A1A2E";
+    const QString DIALOG_THEME_BG_MEDIUM = "#16213E";
+    const QString DIALOG_THEME_BG_PANEL = "#0F3460";
+    const QString DIALOG_THEME_ACCENT_PRIMARY = "#00D9FF";
+    const QString DIALOG_THEME_ACCENT_SECONDARY = "#E94560";
+    const QString DIALOG_THEME_TEXT_PRIMARY = "#EAEAEA";
+    const QString DIALOG_THEME_BORDER = "#2A4066";
     
     // 預設配色方案（不包括自訂插槽）
     const QVector<BoardColorSettingsDialog::ColorScheme> PRESET_SCHEMES = {
@@ -35,9 +44,12 @@ namespace {
 BoardColorSettingsDialog::BoardColorSettingsDialog(QWidget *parent)
     : QDialog(parent)
 {
-    setWindowTitle("棋盤顏色設定");
+    setWindowTitle("🎨 棋盤顏色設定");
     setModal(true);
     resize(650, 500);
+    
+    // 應用現代科技風格
+    applyModernDialogStyle();
     
     m_settings = getDefaultSettings();
     loadCustomSlots();
@@ -591,4 +603,64 @@ bool BoardColorSettingsDialog::isCustomSlot(ColorScheme scheme) const {
            scheme == ColorScheme::Custom5 ||
            scheme == ColorScheme::Custom6 ||
            scheme == ColorScheme::Custom7;
+}
+
+void BoardColorSettingsDialog::applyModernDialogStyle() {
+    // 現代科技風格對話框樣式表
+    QString styleSheet = QString(
+        "QDialog { "
+        "  background: qlineargradient(x1:0, y1:0, x2:1, y2:1, "
+        "    stop:0 %1, stop:0.5 %2, stop:1 %1); "
+        "}"
+        "QGroupBox { "
+        "  font-weight: bold; "
+        "  color: %3; "
+        "  border: 2px solid %4; "
+        "  border-radius: 10px; "
+        "  margin-top: 12px; "
+        "  padding-top: 10px; "
+        "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1, "
+        "    stop:0 rgba(15, 52, 96, 0.9), stop:1 rgba(26, 26, 46, 0.9)); "
+        "}"
+        "QGroupBox::title { "
+        "  subcontrol-origin: margin; "
+        "  subcontrol-position: top left; "
+        "  padding: 4px 12px; "
+        "  color: %3; "
+        "  background: %5; "
+        "  border: 1px solid %3; "
+        "  border-radius: 6px; "
+        "  left: 10px; "
+        "}"
+        "QLabel { color: %6; }"
+        "QPushButton { "
+        "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 %5, stop:1 %1); "
+        "  color: %6; border: 2px solid %4; border-radius: 8px; "
+        "  padding: 6px 12px; font-weight: bold; "
+        "}"
+        "QPushButton:hover { "
+        "  border-color: %3; "
+        "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1, "
+        "    stop:0 %5, stop:0.5 rgba(0, 217, 255, 0.3), stop:1 %1); "
+        "}"
+        "QPushButton:pressed { background: %3; color: %1; }"
+        "QRadioButton { color: %6; }"
+        "QRadioButton::indicator { width: 16px; height: 16px; }"
+        "QRadioButton::indicator:unchecked { "
+        "  border: 2px solid %4; border-radius: 8px; background: %1; "
+        "}"
+        "QRadioButton::indicator:checked { "
+        "  border: 2px solid %3; border-radius: 8px; "
+        "  background: qradialgradient(cx:0.5, cy:0.5, radius:0.5, "
+        "    fx:0.5, fy:0.5, stop:0 %3, stop:0.5 %3, stop:0.7 transparent); "
+        "}"
+        "QLineEdit { "
+        "  background: %1; color: %6; border: 2px solid %4; "
+        "  border-radius: 6px; padding: 4px 8px; "
+        "}"
+        "QLineEdit:focus { border-color: %3; }"
+    ).arg(DIALOG_THEME_BG_DARK, DIALOG_THEME_BG_MEDIUM, DIALOG_THEME_ACCENT_PRIMARY, 
+          DIALOG_THEME_BORDER, DIALOG_THEME_BG_PANEL, DIALOG_THEME_TEXT_PRIMARY);
+    
+    setStyleSheet(styleSheet);
 }
