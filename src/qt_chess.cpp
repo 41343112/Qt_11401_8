@@ -1430,6 +1430,15 @@ void Qt_Chess::resizeEvent(QResizeEvent *event) {
 }
 
 void Qt_Chess::keyPressEvent(QKeyEvent *event) {
+    // ESC 鍵：退出全螢幕
+    if (event->key() == Qt::Key_Escape) {
+        if (isFullScreen()) {
+            showNormal();
+            event->accept();
+            return;
+        }
+    }
+
     // 檢查是否在回放模式或有棋譜可回放
     const std::vector<MoveRecord>& moveHistory = m_chessBoard.getMoveHistory();
     if (moveHistory.empty()) {
