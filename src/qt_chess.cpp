@@ -3376,20 +3376,37 @@ void Qt_Chess::updateCapturedPiecesDisplay() {
         }
     };
 
-    // 顯示被吃掉的白色棋子（對方吃子紀錄，從上往下，與棋盤頂部貼齊）
-    // 這裡顯示的是黑方吃掉的白子，所以顯示黑方的分差
-    int whitePanelEndY = 0;
-    if (m_capturedWhitePanel) {
-        whitePanelEndY = displayCapturedPieces(m_capturedWhitePanel, capturedWhite, m_capturedWhiteLabels);
-        updateScoreDiffLabel(m_blackScoreDiffLabel, m_capturedWhitePanel, blackDiff, whitePanelEndY);
-    }
-
-    // 顯示被吃掉的黑色棋子（我方吃子紀錄，從上往下）
-    // 這裡顯示的是白方吃掉的黑子，所以顯示白方的分差
-    int blackPanelEndY = 0;
-    if (m_capturedBlackPanel) {
-        blackPanelEndY = displayCapturedPieces(m_capturedBlackPanel, capturedBlack, m_capturedBlackLabels);
-        updateScoreDiffLabel(m_whiteScoreDiffLabel, m_capturedBlackPanel, whiteDiff, blackPanelEndY);
+    // 根據棋盤是否翻轉來決定哪個面板顯示哪方的被吃棋子
+    // 上方面板（m_capturedWhitePanel）應該顯示對方被吃掉的棋子
+    // 下方面板（m_capturedBlackPanel）應該顯示我方吃掉的對方棋子
+    
+    int topPanelEndY = 0;
+    int bottomPanelEndY = 0;
+    
+    if (m_isBoardFlipped) {
+        // 棋盤翻轉：玩家執黑
+        // 上方面板顯示被吃掉的黑子（對方白方吃掉的我方黑子）
+        // 下方面板顯示被吃掉的白子（我方黑方吃掉的對方白子）
+        if (m_capturedWhitePanel) {
+            topPanelEndY = displayCapturedPieces(m_capturedWhitePanel, capturedBlack, m_capturedWhiteLabels);
+            updateScoreDiffLabel(m_blackScoreDiffLabel, m_capturedWhitePanel, whiteDiff, topPanelEndY);
+        }
+        if (m_capturedBlackPanel) {
+            bottomPanelEndY = displayCapturedPieces(m_capturedBlackPanel, capturedWhite, m_capturedBlackLabels);
+            updateScoreDiffLabel(m_whiteScoreDiffLabel, m_capturedBlackPanel, blackDiff, bottomPanelEndY);
+        }
+    } else {
+        // 棋盤不翻轉：玩家執白
+        // 上方面板顯示被吃掉的白子（對方黑方吃掉的我方白子）
+        // 下方面板顯示被吃掉的黑子（我方白方吃掉的對方黑子）
+        if (m_capturedWhitePanel) {
+            topPanelEndY = displayCapturedPieces(m_capturedWhitePanel, capturedWhite, m_capturedWhiteLabels);
+            updateScoreDiffLabel(m_blackScoreDiffLabel, m_capturedWhitePanel, blackDiff, topPanelEndY);
+        }
+        if (m_capturedBlackPanel) {
+            bottomPanelEndY = displayCapturedPieces(m_capturedBlackPanel, capturedBlack, m_capturedBlackLabels);
+            updateScoreDiffLabel(m_whiteScoreDiffLabel, m_capturedBlackPanel, whiteDiff, bottomPanelEndY);
+        }
     }
 }
 
@@ -4255,44 +4272,9 @@ void Qt_Chess::onAnimationStep() {
     QString style;
     
     // 根據動畫步驟設置不同的文字和樣式
+    // 已移除 3-2-1 倒數，直接顯示開始訊息
     switch (m_animationStep) {
         case 0:
-            text = "3";
-            style = QString(
-                "QLabel { "
-                "  color: %1; "
-                "  font-size: 120px; "
-                "  font-weight: bold; "
-                "  font-family: 'Arial', sans-serif; "
-                "  background: transparent; "
-                "}"
-            ).arg(THEME_ACCENT_PRIMARY);
-            break;
-        case 1:
-            text = "2";
-            style = QString(
-                "QLabel { "
-                "  color: %1; "
-                "  font-size: 120px; "
-                "  font-weight: bold; "
-                "  font-family: 'Arial', sans-serif; "
-                "  background: transparent; "
-                "}"
-            ).arg(THEME_ACCENT_WARNING);
-            break;
-        case 2:
-            text = "1";
-            style = QString(
-                "QLabel { "
-                "  color: %1; "
-                "  font-size: 120px; "
-                "  font-weight: bold; "
-                "  font-family: 'Arial', sans-serif; "
-                "  background: transparent; "
-                "}"
-            ).arg(THEME_ACCENT_SECONDARY);
-            break;
-        case 3:
             text = "⚔ 對弈開始 ⚔";
             style = QString(
                 "QLabel { "
