@@ -4514,12 +4514,6 @@ void Qt_Chess::initializeBackgroundMusic() {
 void Qt_Chess::startBackgroundMusic() {
     if (!m_bgmPlayer || !m_bgmEnabled || m_bgmList.isEmpty()) return;
     
-<<<<<<< HEAD
-
-     m_bgmPlayer->setMedia(QUrl("qrc:/resources/sounds/bgm.mp3"));
-     m_bgmPlayer->play();
-
-=======
     // 隨機選擇一首背景音樂，但不能與上一次相同
     int newIndex;
     if (m_bgmList.size() == 1) {
@@ -4536,7 +4530,6 @@ void Qt_Chess::startBackgroundMusic() {
     // 設定並播放背景音樂
     m_bgmPlayer->setMedia(QUrl(bgmPath));
     m_bgmPlayer->play();
->>>>>>> 70a7b563a51a3e016d1b0930bd70edd44d1592ed
 }
 
 void Qt_Chess::stopBackgroundMusic() {
