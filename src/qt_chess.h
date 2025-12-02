@@ -144,6 +144,10 @@ private:
     QLabel* m_blackScoreDiffLabel;  // 黑方分差標籤
     QWidget* m_rightTimePanel;  // 右側時間和被吃棋子的容器
     
+    // 遊戲結束時的上下方面板
+    QWidget* m_topEndGamePanel;     // 遊戲結束時對方的時間和吃子紀錄（棋盤上方）
+    QWidget* m_bottomEndGamePanel;  // 遊戲結束時我方的時間和吃子紀錄（棋盤下方）
+    
     // 回放控制
     QLabel* m_replayTitle;
     QPushButton* m_replayFirstButton;
@@ -221,6 +225,8 @@ private:
     void loadTimeControlSettings();
     void saveTimeControlSettings();
     void handleGameEnd();  // 處理遊戲結束狀態的輔助函數
+    void moveWidgetsForGameEnd();  // 將時間和吃子紀錄移動到棋盤上下方
+    void restoreWidgetsFromGameEnd();  // 將時間和吃子紀錄恢復到右側面板
     void showTimeControlAfterTimeout();  // 時間到期後顯示時間控制面板的輔助函數
     void updateTimeControlSizes();  // 根據視窗大小更新時間控制 UI 元素大小的輔助函數
     void resetBoardState();  // 重置棋盤到初始狀態的輔助函數
