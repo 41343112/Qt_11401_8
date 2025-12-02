@@ -25,7 +25,8 @@ HEADERS += \
     src/chessengine.h \
     src/soundsettingsdialog.h \
     src/pieceiconsettingsdialog.h \
-    src/boardcolorsettingsdialog.h
+    src/boardcolorsettingsdialog.h \
+    src/theme.h
 
 FORMS += \
     src/qt_chess.ui

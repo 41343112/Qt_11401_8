@@ -1,4 +1,5 @@
 #include "boardcolorsettingsdialog.h"
+#include "theme.h"
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QGroupBox>
@@ -10,19 +11,7 @@
 
 // 常數
 namespace {
-    const QString HOVER_BORDER_COLOR = "#00D9FF";  // 霓虹青色
-    const QString HOVER_BACKGROUND_COLOR = "rgba(0, 217, 255, 0.2)";
-    const QString PRESSED_BACKGROUND_COLOR = "rgba(0, 217, 255, 0.4)";
     const int MAX_CUSTOM_SLOTS = 7;
-    
-    // 現代科技風格主題顏色
-    const QString DIALOG_THEME_BG_DARK = "#1A1A2E";
-    const QString DIALOG_THEME_BG_MEDIUM = "#16213E";
-    const QString DIALOG_THEME_BG_PANEL = "#0F3460";
-    const QString DIALOG_THEME_ACCENT_PRIMARY = "#00D9FF";
-    const QString DIALOG_THEME_ACCENT_SECONDARY = "#E94560";
-    const QString DIALOG_THEME_TEXT_PRIMARY = "#EAEAEA";
-    const QString DIALOG_THEME_BORDER = "#2A4066";
     
     // 預設配色方案（不包括自訂插槽）
     const QVector<BoardColorSettingsDialog::ColorScheme> PRESET_SCHEMES = {
@@ -243,12 +232,12 @@ QPushButton* BoardColorSettingsDialog::createPresetPreview(ColorScheme scheme, c
     // 設置內容元件幾何以填充按鈕
     contentWidget->setGeometry(0, 0, PREVIEW_BUTTON_WIDTH, PREVIEW_BUTTON_HEIGHT);
     
-    // 添加懸停效果
+    // 添加懸停效果 - 使用共用主題顏色
     button->setStyleSheet(
         QString("QPushButton { border: 2px solid transparent; border-radius: 5px; background-color: transparent; }"
                 "QPushButton:hover { border: 2px solid %1; background-color: %2; }"
                 "QPushButton:pressed { background-color: %3; }")
-        .arg(HOVER_BORDER_COLOR, HOVER_BACKGROUND_COLOR, PRESSED_BACKGROUND_COLOR)
+        .arg(Theme::HOVER_BORDER, Theme::HOVER_BG, Theme::PRESSED_BG)
     );
     
     // 連接點擊事件
@@ -659,8 +648,8 @@ void BoardColorSettingsDialog::applyModernDialogStyle() {
         "  border-radius: 6px; padding: 4px 8px; "
         "}"
         "QLineEdit:focus { border-color: %3; }"
-    ).arg(DIALOG_THEME_BG_DARK, DIALOG_THEME_BG_MEDIUM, DIALOG_THEME_ACCENT_PRIMARY, 
-          DIALOG_THEME_BORDER, DIALOG_THEME_BG_PANEL, DIALOG_THEME_TEXT_PRIMARY);
+    ).arg(Theme::BG_DARK, Theme::BG_MEDIUM, Theme::ACCENT_PRIMARY, 
+          Theme::BORDER, Theme::BG_PANEL, Theme::TEXT_PRIMARY);
     
     setStyleSheet(styleSheet);
 }

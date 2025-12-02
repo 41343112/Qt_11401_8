@@ -55,9 +55,7 @@ const QString THEME_ACCENT_SECONDARY = "#E94560";  // 次要強調色（霓虹�
 const QString THEME_ACCENT_SUCCESS = "#00FF88";    // 成功色（霓虹綠色）
 const QString THEME_ACCENT_WARNING = "#FFD93D";    // 警告色（霓虹黃色）
 const QString THEME_TEXT_PRIMARY = "#EAEAEA";      // 主要文字顏色
-const QString THEME_TEXT_SECONDARY = "#B8B8B8";    // 次要文字顏色
 const QString THEME_BORDER = "#2A4066";            // 邊框顏色
-const QString THEME_GLOW = "rgba(0, 217, 255, 0.3)"; // 發光效果
 
 // 視窗大小的佈局常數
 const int PANEL_SPACING = 10;          // 面板之間的間距

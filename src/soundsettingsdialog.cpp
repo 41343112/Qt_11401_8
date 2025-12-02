@@ -1,4 +1,5 @@
 #include "soundsettingsdialog.h"
+#include "theme.h"
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QGridLayout>
@@ -6,18 +7,6 @@
 #include <QFileDialog>
 #include <QMessageBox>
 #include <QSettings>
-
-// 現代科技風格主題顏色（與主介面一致）
-namespace {
-    const QString DIALOG_THEME_BG_DARK = "#1A1A2E";
-    const QString DIALOG_THEME_BG_MEDIUM = "#16213E";
-    const QString DIALOG_THEME_BG_PANEL = "#0F3460";
-    const QString DIALOG_THEME_ACCENT_PRIMARY = "#00D9FF";
-    const QString DIALOG_THEME_ACCENT_SECONDARY = "#E94560";
-    const QString DIALOG_THEME_ACCENT_SUCCESS = "#00FF88";
-    const QString DIALOG_THEME_TEXT_PRIMARY = "#EAEAEA";
-    const QString DIALOG_THEME_BORDER = "#2A4066";
-}
 
 SoundSettingsDialog::SoundSettingsDialog(QWidget *parent)
     : QDialog(parent)
@@ -484,9 +473,9 @@ void SoundSettingsDialog::applyModernDialogStyle()
         "  background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 %3, stop:1 %7); "
         "  border-radius: 4px; "
         "}"
-    ).arg(DIALOG_THEME_BG_DARK, DIALOG_THEME_BG_MEDIUM, DIALOG_THEME_ACCENT_PRIMARY, 
-          DIALOG_THEME_BORDER, DIALOG_THEME_BG_PANEL, DIALOG_THEME_TEXT_PRIMARY, 
-          DIALOG_THEME_ACCENT_SECONDARY);
+    ).arg(Theme::BG_DARK, Theme::BG_MEDIUM, Theme::ACCENT_PRIMARY, 
+          Theme::BORDER, Theme::BG_PANEL, Theme::TEXT_PRIMARY, 
+          Theme::ACCENT_SECONDARY);
     
     setStyleSheet(styleSheet);
 }
