@@ -1093,6 +1093,30 @@ void Qt_Chess::onGiveUpClicked() {
 }
 
 void Qt_Chess::onStartButtonClicked() {
+    // 如果是網路遊戲且是主機，發送遊戲開始訊息
+    if (m_isNetworkGame && m_networkManager && m_networkManager->getRole() == NetworkRole::Server) {
+        // 獲取時間設定
+        int whiteTimeMs = 0;
+        int blackTimeMs = 0;
+        int incrementMs = 0;
+        
+        if (m_timeControlEnabled) {
+            if (m_whiteTimeLimitSlider) {
+                whiteTimeMs = calculateTimeFromSliderValue(m_whiteTimeLimitSlider->value());
+            }
+            if (m_blackTimeLimitSlider) {
+                blackTimeMs = calculateTimeFromSliderValue(m_blackTimeLimitSlider->value());
+            }
+            if (m_incrementSlider) {
+                incrementMs = m_incrementSlider->value() * 1000;  // 轉換為毫秒
+            }
+        }
+        
+        // 發送遊戲開始訊息給客戶端
+        PieceColor localColor = m_networkManager->getLocalPlayerColor();
+        m_networkManager->sendGameStart(localColor, whiteTimeMs, blackTimeMs, incrementMs);
+    }
+    
     // 清空 UCI 移動歷史
     m_uciMoveHistory.clear();
     
@@ -4809,19 +4833,28 @@ void Qt_Chess::onNetworkConnected() {
     QString remoteAddr = m_networkManager->getRemoteAddress();
     
     if (m_networkManager->getRole() == NetworkRole::Server) {
-        m_connectionStatusLabel->setText(QString("對手已連線！\n%1").arg(remoteAddr));
-        
-        // 發送遊戲開始信息和玩家顏色
-        PieceColor localColor = m_networkManager->getLocalPlayerColor();
-        m_networkManager->sendGameStart(localColor);
+        // 主機模式
+        m_connectionStatusLabel->setText(QString("對手已連線！\n點擊開始按鈕啟動遊戲").arg(remoteAddr));
         m_networkManager->sendPlayerInfo(m_localPlayerName);
+        
+        // 主機保持開始按鈕可見
+        if (m_startButton) {
+            m_startButton->show();
+            m_startButton->setEnabled(true);
+        }
         
     } else {
-        m_connectionStatusLabel->setText(QString("已連線到伺服器\n%1").arg(remoteAddr));
+        // 客戶端模式
+        m_connectionStatusLabel->setText(QString("已連線到伺服器\n等待主機開始遊戲...").arg(remoteAddr));
         m_networkManager->sendPlayerInfo(m_localPlayerName);
+        
+        // 客戶端隱藏開始按鈕
+        if (m_startButton) {
+            m_startButton->hide();
+        }
     }
     
-    QMessageBox::information(this, tr("連線成功"), tr("已成功建立連線，可以開始遊戲！"));
+    QMessageBox::information(this, tr("連線成功"), tr("已成功建立連線！"));
 }
 
 void Qt_Chess::onNetworkDisconnected() {
@@ -4884,7 +4917,7 @@ void Qt_Chess::onNetworkMoveReceived(const QPoint& from, const QPoint& to, Piece
     }
 }
 
-void Qt_Chess::onNetworkGameStartReceived(PieceColor remotePlayerColor) {
+void Qt_Chess::onNetworkGameStartReceived(PieceColor remotePlayerColor, int whiteTimeMs, int blackTimeMs, int incrementMs) {
     // 收到遊戲開始信息（客戶端收到）
     // 遠端玩家的顏色，本地玩家使用相反的顏色
     PieceColor localColor = (remotePlayerColor == PieceColor::White) ? PieceColor::Black : PieceColor::White;
@@ -4892,6 +4925,66 @@ void Qt_Chess::onNetworkGameStartReceived(PieceColor remotePlayerColor) {
     
     QString colorText = (localColor == PieceColor::White) ? "執白" : "執黑";
     m_connectionStatusLabel->setText(QString("遊戲開始！\n您%1").arg(colorText));
+    
+    // 同步時間設定並啟動遊戲
+    m_whiteTimeMs = whiteTimeMs;
+    m_blackTimeMs = blackTimeMs;
+    m_whiteInitialTimeMs = whiteTimeMs;
+    m_blackInitialTimeMs = blackTimeMs;
+    m_incrementMs = incrementMs;
+    m_timeControlEnabled = (whiteTimeMs > 0 || blackTimeMs > 0);
+    
+    // 重置棋盤到初始狀態
+    resetBoardState();
+    
+    // 清空棋譜列表
+    if (m_moveListWidget) {
+        m_moveListWidget->clear();
+    }
+    
+    // 隱藏時間控制面板
+    if (m_timeControlPanel) {
+        m_timeControlPanel->hide();
+    }
+    
+    // 標記遊戲已開始
+    m_gameStarted = true;
+    
+    if (m_timeControlEnabled) {
+        m_timerStarted = true;
+        startTimer();
+        
+        // 在棋盤左右兩側顯示時間和進度條
+        if (m_whiteTimeLabel && m_blackTimeLabel) {
+            m_whiteTimeLabel->show();
+            m_blackTimeLabel->show();
+        }
+        if (m_whiteTimeProgressBar && m_blackTimeProgressBar) {
+            m_whiteTimeProgressBar->show();
+            m_blackTimeProgressBar->show();
+        }
+        
+        updateTimeDisplays();
+    }
+    
+    // 顯示放棄按鈕
+    if (m_giveUpButton) {
+        m_giveUpButton->show();
+    }
+    
+    // 更新回放按鈕狀態
+    updateReplayButtons();
+    
+    // 顯示右側時間面板
+    if (m_rightTimePanel) {
+        m_rightTimePanel->show();
+    }
+    
+    // 當遊戲開始時，將右側伸展設為 1
+    setRightPanelStretch(1);
+    
+    updateBoard();
+    updateStatus();
 }
 
 void Qt_Chess::onNetworkResignReceived() {

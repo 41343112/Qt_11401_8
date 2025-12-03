@@ -52,7 +52,7 @@ public:
 
     // 訊息發送
     void sendMove(const QPoint& from, const QPoint& to, PieceType promotionType = PieceType::None);
-    void sendGameStart(PieceColor playerColor);
+    void sendGameStart(PieceColor playerColor, int whiteTimeMs = 0, int blackTimeMs = 0, int incrementMs = 0);
     void sendGameEnd(const QString& result);
     void sendChat(const QString& message);
     void sendResign();
@@ -70,7 +70,7 @@ signals:
     void disconnected();
     void connectionError(const QString& error);
     void moveReceived(const QPoint& from, const QPoint& to, PieceType promotionType);
-    void gameStartReceived(PieceColor remotePlayerColor);
+    void gameStartReceived(PieceColor remotePlayerColor, int whiteTimeMs, int blackTimeMs, int incrementMs);
     void gameEndReceived(const QString& result);
     void chatReceived(const QString& message);
     void resignReceived();

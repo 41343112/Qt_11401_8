@@ -306,10 +306,16 @@ void NetworkManager::processMessage(const QString& messageData)
         }
         
         case NetworkMessageType::GameStart: {
-            // 解析遊戲開始資料: "playerColor"
-            int colorInt = message.data.toInt();
-            PieceColor remoteColor = static_cast<PieceColor>(colorInt);
-            emit gameStartReceived(remoteColor);
+            // 解析遊戲開始資料: "playerColor,whiteTimeMs,blackTimeMs,incrementMs"
+            QStringList parts = message.data.split(',');
+            if (parts.size() >= 1) {
+                int colorInt = parts[0].toInt();
+                PieceColor remoteColor = static_cast<PieceColor>(colorInt);
+                int whiteTimeMs = (parts.size() >= 2) ? parts[1].toInt() : 0;
+                int blackTimeMs = (parts.size() >= 3) ? parts[2].toInt() : 0;
+                int incrementMs = (parts.size() >= 4) ? parts[3].toInt() : 0;
+                emit gameStartReceived(remoteColor, whiteTimeMs, blackTimeMs, incrementMs);
+            }
             break;
         }
         
@@ -353,11 +359,15 @@ void NetworkManager::sendMove(const QPoint& from, const QPoint& to, PieceType pr
     sendMessage(message);
 }
 
-void NetworkManager::sendGameStart(PieceColor playerColor)
+void NetworkManager::sendGameStart(PieceColor playerColor, int whiteTimeMs, int blackTimeMs, int incrementMs)
 {
     NetworkMessage message;
     message.type = NetworkMessageType::GameStart;
-    message.data = QString::number(static_cast<int>(playerColor));
+    message.data = QString("%1,%2,%3,%4")
+                       .arg(static_cast<int>(playerColor))
+                       .arg(whiteTimeMs)
+                       .arg(blackTimeMs)
+                       .arg(incrementMs);
     sendMessage(message);
 }
 

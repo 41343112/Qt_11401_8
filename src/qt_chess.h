@@ -76,7 +76,7 @@ private slots:
     void onNetworkDisconnected();
     void onNetworkError(const QString& error);
     void onNetworkMoveReceived(const QPoint& from, const QPoint& to, PieceType promotionType);
-    void onNetworkGameStartReceived(PieceColor remotePlayerColor);
+    void onNetworkGameStartReceived(PieceColor remotePlayerColor, int whiteTimeMs, int blackTimeMs, int incrementMs);
     void onNetworkResignReceived();
     void onNetworkNewGameRequested();
 
