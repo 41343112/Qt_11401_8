@@ -33,6 +33,7 @@
 #include "soundsettingsdialog.h"
 #include "pieceiconsettingsdialog.h"
 #include "boardcolorsettingsdialog.h"
+#include "updatechecker.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui {
@@ -69,6 +70,9 @@ private slots:
     void onExportPGNClicked();
     void onCopyPGNClicked();
     void onToggleBackgroundMusicClicked();
+    void onCheckForUpdatesClicked();
+    void onUpdateCheckFinished(bool updateAvailable);
+    void onUpdateCheckFailed(const QString& error);
 
 private:
     Ui::Qt_Chess *ui;
@@ -330,5 +334,9 @@ private:
     QPropertyAnimation* m_fadeAnimation; // 淡入淡出動畫
     QPropertyAnimation* m_scaleAnimation; // 縮放動畫
     QGraphicsOpacityEffect* m_opacityEffect; // 透明度效果
+    
+    // 更新檢查器
+    UpdateChecker* m_updateChecker;      // 更新檢查器
+    bool m_manualUpdateCheck;            // 是否為手動檢查更新
 };
 #endif // QT_CHESS_H
