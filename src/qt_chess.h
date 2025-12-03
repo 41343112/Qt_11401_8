@@ -68,6 +68,7 @@ private slots:
     void onStartButtonClicked();
     void onExportPGNClicked();
     void onCopyPGNClicked();
+    void onToggleBackgroundMusicClicked();
 
 private:
     Ui::Qt_Chess *ui;

@@ -668,6 +668,15 @@ void Qt_Chess::setupMenuBar() {
     QAction* toggleFullScreenAction = new QAction("📺 切換全螢幕", this);
     connect(toggleFullScreenAction, &QAction::triggered, this, &Qt_Chess::onToggleFullScreenClicked);
     settingsMenu->addAction(toggleFullScreenAction);
+    
+    settingsMenu->addSeparator();
+    
+    // 背景音樂開關動作
+    QAction* toggleBgmAction = new QAction("🎵 背景音樂", this);
+    toggleBgmAction->setCheckable(true);
+    toggleBgmAction->setChecked(m_bgmEnabled);
+    connect(toggleBgmAction, &QAction::triggered, this, &Qt_Chess::onToggleBackgroundMusicClicked);
+    settingsMenu->addAction(toggleBgmAction);
 }
 
 void Qt_Chess::updateSquareColor(int displayRow, int displayCol) {
@@ -935,6 +944,9 @@ void Qt_Chess::onNewGameClicked() {
     m_pieceSelected = false;
     m_gameStarted = false;  // 重置遊戲開始狀態
     m_uciMoveHistory.clear();  // 清空 UCI 移動歷史
+    
+    // 停止背景音樂（遊戲未開始）
+    stopBackgroundMusic();
     
     // 重置上一步移動高亮
     m_lastMoveFrom = QPoint(-1, -1);
@@ -2714,6 +2726,9 @@ void Qt_Chess::handleGameEnd() {
     stopTimer();
     m_timerStarted = false;
     m_gameStarted = false;  // 標記遊戲已結束
+    
+    // 停止背景音樂（遊戲已結束）
+    stopBackgroundMusic();
 
     // 隱藏放棄按鈕
     if (m_giveUpButton) {
@@ -3018,6 +3033,9 @@ void Qt_Chess::saveTimeControlSettings() {
 void Qt_Chess::showTimeControlAfterTimeout() {
     // 標記遊戲已結束
     m_gameStarted = false;
+    
+    // 停止背景音樂（超時結束）
+    stopBackgroundMusic();
 
     // 顯示時間控制面板 so user can adjust settings
     if (m_timeControlPanel) {
@@ -4352,6 +4370,11 @@ void Qt_Chess::finishGameStartAnimation() {
         m_animationOverlay->hide();
     }
     
+    // 遊戲開始動畫結束後開始播放背景音樂（只在遊戲進行中播放）
+    if (m_gameStarted) {
+        startBackgroundMusic();
+    }
+    
     // 如果有待處理的遊戲開始，現在執行它
     if (m_pendingGameStart) {
         m_pendingGameStart = false;
@@ -4482,8 +4505,8 @@ void Qt_Chess::finishStartupAnimation() {
         m_animationOverlay->hide();
     }
     
-    // 啟動動畫結束後開始播放背景音樂
-    startBackgroundMusic();
+    // 啟動動畫結束後不播放背景音樂
+    // 背景音樂只在遊戲開始時播放
 }
 
 void Qt_Chess::initializeBackgroundMusic() {
@@ -4542,11 +4565,16 @@ void Qt_Chess::stopBackgroundMusic() {
 
 void Qt_Chess::toggleBackgroundMusic() {
     m_bgmEnabled = !m_bgmEnabled;
-    if (m_bgmEnabled) {
+    if (m_bgmEnabled && m_gameStarted) {
+        // 只有在遊戲進行中才啟動背景音樂
         startBackgroundMusic();
     } else {
         stopBackgroundMusic();
     }
+}
+
+void Qt_Chess::onToggleBackgroundMusicClicked() {
+    toggleBackgroundMusic();
 }
 
 void Qt_Chess::setBackgroundMusicVolume(int volume) {
