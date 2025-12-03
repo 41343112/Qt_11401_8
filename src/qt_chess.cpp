@@ -43,6 +43,8 @@ const int MAX_TIME_LIMIT_SECONDS = 1800; // 最大時間限制：30 分鐘
 const int MAX_SLIDER_POSITION = 31; // 滑桿範圍：0（無限制）、1（30秒）、2-31（1-30 分鐘）
 const int MAX_MINUTES = 30; // 最大時間限制（分鐘）
 const QString GAME_ENDED_TEXT = "遊戲結束"; // 遊戲結束時顯示的文字
+const int UPDATE_CHECK_DELAY_MS = 3000; // 啟動後檢查更新的延遲時間（毫秒）
+const int RELEASE_NOTES_PREVIEW_LENGTH = 200; // 更新說明預覽的字元數
 
 // 上一步移動高亮顏色 - 現代科技風格的青色/霓虹色調
 const QString LAST_MOVE_LIGHT_COLOR = "#7FDBDB";  // 淺色格子的高亮（科技青色）
@@ -269,8 +271,8 @@ Qt_Chess::Qt_Chess(QWidget *parent)
     connect(m_updateChecker, &UpdateChecker::updateCheckFailed, 
             this, &Qt_Chess::onUpdateCheckFailed);
     
-    // 啟動後自動檢查更新（延遲3秒以免干擾啟動動畫）
-    QTimer::singleShot(3000, this, [this]() {
+    // 啟動後自動檢查更新（延遲以免干擾啟動動畫）
+    QTimer::singleShot(UPDATE_CHECK_DELAY_MS, this, [this]() {
         m_updateChecker->checkForUpdates();
     });
     
@@ -4618,20 +4620,19 @@ void Qt_Chess::onCheckForUpdatesClicked() {
     checkingBox->setText("正在檢查更新...");
     checkingBox->setStandardButtons(QMessageBox::NoButton);
     checkingBox->setModal(false);
+    checkingBox->setAttribute(Qt::WA_DeleteOnClose); // 確保關閉時自動刪除
     checkingBox->show();
     
     // 開始檢查更新
     m_updateChecker->checkForUpdates();
     
-    // 當檢查完成時關閉訊息框
+    // 當檢查完成時關閉訊息框（使用 SingleShot 連接避免重複連接）
     connect(m_updateChecker, &UpdateChecker::updateCheckFinished, checkingBox, [checkingBox]() {
         checkingBox->close();
-        checkingBox->deleteLater();
-    });
+    }, Qt::SingleShotConnection);
     connect(m_updateChecker, &UpdateChecker::updateCheckFailed, checkingBox, [checkingBox]() {
         checkingBox->close();
-        checkingBox->deleteLater();
-    });
+    }, Qt::SingleShotConnection);
 }
 
 void Qt_Chess::onUpdateCheckFinished(bool updateAvailable) {
@@ -4649,7 +4650,7 @@ void Qt_Chess::onUpdateCheckFinished(bool updateAvailable) {
             "更新說明：\n%3\n\n"
             "是否前往下載頁面？"
         ).arg(currentVersion, latestVersion, 
-              releaseNotes.isEmpty() ? "無更新說明" : releaseNotes.left(200) + (releaseNotes.length() > 200 ? "..." : ""));
+              releaseNotes.isEmpty() ? "無更新說明" : releaseNotes.left(RELEASE_NOTES_PREVIEW_LENGTH) + (releaseNotes.length() > RELEASE_NOTES_PREVIEW_LENGTH ? "..." : ""));
         
         QMessageBox msgBox(this);
         msgBox.setWindowTitle("有可用更新");

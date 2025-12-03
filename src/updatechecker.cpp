@@ -9,6 +9,10 @@
 // 當前版本號
 #define APP_VERSION "1.0.0"
 
+// GitHub repository 資訊
+#define GITHUB_REPO_OWNER "41343112"
+#define GITHUB_REPO_NAME "Qt_Chess"
+
 UpdateChecker::UpdateChecker(QObject *parent)
     : QObject(parent)
     , m_networkManager(new QNetworkAccessManager(this))
@@ -29,7 +33,9 @@ QString UpdateChecker::getCurrentVersion()
 void UpdateChecker::checkForUpdates()
 {
     // GitHub API URL for latest release
-    QUrl url("https://api.github.com/repos/41343112/Qt_Chess/releases/latest");
+    QString apiUrl = QString("https://api.github.com/repos/%1/%2/releases/latest")
+                        .arg(GITHUB_REPO_OWNER, GITHUB_REPO_NAME);
+    QUrl url(apiUrl);
     QNetworkRequest request(url);
     
     // 設定 User-Agent header (GitHub API 需要)
