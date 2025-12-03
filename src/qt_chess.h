@@ -107,6 +107,7 @@ private:
     // 線上對戰
     NetworkManager* m_networkManager;    // 網路管理器
     QPushButton* m_onlineModeButton;     // 線上對戰按鈕
+    QPushButton* m_exitRoomButton;       // 退出房間按鈕
     QLabel* m_connectionStatusLabel;     // 連線狀態標籤
     QLabel* m_roomInfoLabel;             // 房間資訊標籤
     bool m_isOnlineGame;                 // 是否為線上對戰
@@ -325,6 +326,7 @@ private:
     void onSurrenderReceived();          // 收到投降訊息
     void onOpponentDisconnected();       // 對手斷線
     void onCancelRoomClicked();          // 取消房間
+    void onExitRoomClicked();            // 退出房間
     void updateConnectionStatus();       // 更新連線狀態顯示
     bool isOnlineTurn() const;           // 是否輪到線上玩家
     void showRoomInfoDialog(const QString& roomNumber, quint16 port);  // 顯示房間資訊
