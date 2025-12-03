@@ -281,8 +281,11 @@ QString NetworkGameDialog::generateRoomNumber()
     for (const QHostAddress& address : ipAddressesList) {
         if (address != QHostAddress::LocalHost && address.toIPv4Address()) {
             localIp = address.toString();
-            // 優先選擇局域網 IP，但如果沒有找到，就使用第一個非本地 IP
-            if (localIp.startsWith("192.168.") || localIp.startsWith("10.") || localIp.startsWith("172.")) {
+            // 優先選擇 RFC 1918 私有 IP 地址範圍
+            // 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16
+            if (localIp.startsWith("192.168.") || 
+                localIp.startsWith("10.") ||
+                (localIp.startsWith("172.") && localIp.section('.', 1, 1).toInt() >= 16 && localIp.section('.', 1, 1).toInt() <= 31)) {
                 break;
             }
         }
@@ -297,7 +300,15 @@ QString NetworkGameDialog::generateRoomNumber()
     quint16 port = 8000 + QRandomGenerator::global()->bounded(2000);
     
     // 將 IP 和端口編碼為房間號碼
-    return encodeRoomNumber(localIp, port);
+    QString roomNumber = encodeRoomNumber(localIp, port);
+    
+    // 如果編碼失敗，使用默認值重試
+    if (roomNumber.isEmpty()) {
+        qWarning() << "Failed to encode room number with IP:" << localIp << "port:" << port;
+        roomNumber = encodeRoomNumber(DEFAULT_FALLBACK_IP, DEFAULT_FALLBACK_PORT);
+    }
+    
+    return roomNumber;
 }
 
 QString NetworkGameDialog::encodeRoomNumber(const QString& ip, quint16 port) const
@@ -309,7 +320,8 @@ QString NetworkGameDialog::encodeRoomNumber(const QString& ip, quint16 port) con
     // 解析 IP 地址
     QStringList ipParts = ip.split('.');
     if (ipParts.size() != 4) {
-        return "ERROR11111"; // 錯誤情況
+        qWarning() << "Invalid IP address format:" << ip;
+        return QString(); // 返回空字符串表示錯誤
     }
     
     // 將 IP 的 4 個八位元組和端口打包成一個 48 位的數字
@@ -317,7 +329,13 @@ QString NetworkGameDialog::encodeRoomNumber(const QString& ip, quint16 port) con
     quint64 encoded = 0;
     
     for (int i = 0; i < 4; ++i) {
-        encoded = (encoded << 8) | ipParts[i].toUInt();
+        bool ok;
+        uint octet = ipParts[i].toUInt(&ok);
+        if (!ok || octet > 255) {
+            qWarning() << "Invalid IP octet:" << ipParts[i];
+            return QString(); // 返回空字符串表示錯誤
+        }
+        encoded = (encoded << 8) | octet;
     }
     encoded = (encoded << 16) | port;
     
@@ -340,8 +358,8 @@ void NetworkGameDialog::parseRoomNumber(const QString& roomNumber, QString& ip, 
     
     // 驗證房間號碼長度
     if (roomNumber.length() != 10) {
-        ip = "127.0.0.1";
-        port = 8888;
+        ip = DEFAULT_FALLBACK_IP;
+        port = DEFAULT_FALLBACK_PORT;
         return;
     }
     
@@ -351,8 +369,8 @@ void NetworkGameDialog::parseRoomNumber(const QString& roomNumber, QString& ip, 
         int index = base32Chars.indexOf(roomNumber[i].toUpper());
         if (index == -1) {
             // 無效字符
-            ip = "127.0.0.1";
-            port = 8888;
+            ip = DEFAULT_FALLBACK_IP;
+            port = DEFAULT_FALLBACK_PORT;
             return;
         }
         decoded = decoded * 32 + index;

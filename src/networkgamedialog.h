@@ -11,6 +11,10 @@
 #include <QButtonGroup>
 #include "chesspiece.h"
 
+// 預設的回退 IP 和端口常數
+constexpr const char* DEFAULT_FALLBACK_IP = "127.0.0.1";
+constexpr quint16 DEFAULT_FALLBACK_PORT = 8888;
+
 class NetworkGameDialog : public QDialog
 {
     Q_OBJECT
