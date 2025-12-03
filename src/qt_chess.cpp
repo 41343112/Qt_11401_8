@@ -28,6 +28,8 @@
 #include <QDate>
 #include <QTextStream>
 #include <QClipboard>
+#include <QNetworkInterface>
+#include <QHostAddress>
 #include <QApplication>
 #include <QRandomGenerator>
 #include <QDir>
@@ -232,6 +234,12 @@ Qt_Chess::Qt_Chess(QWidget *parent)
     , m_opacityEffect(nullptr)
     , m_updateChecker(nullptr)
     , m_manualUpdateCheck(false)
+    , m_networkManager(nullptr)
+    , m_onlineModeButton(nullptr)
+    , m_connectionStatusLabel(nullptr)
+    , m_roomInfoLabel(nullptr)
+    , m_isOnlineGame(false)
+    , m_waitingForOpponent(false)
 {
     ui->setupUi(this);
     setWindowTitle("♔ 國際象棋 - 科技對弈 ♚");
@@ -259,6 +267,7 @@ Qt_Chess::Qt_Chess(QWidget *parent)
     loadTimeControlSettings();  // 在 setupUI() 之後載入以確保元件存在
     loadEngineSettings();  // 載入引擎設定
     initializeEngine();  // 初始化棋局引擎
+    initializeNetwork(); // 初始化網路管理器
     updateBoard();
     updateStatus();
     updateTimeDisplays();
@@ -878,6 +887,11 @@ void Qt_Chess::onSquareClicked(int displayRow, int displayCol) {
     if (isComputerTurn()) {
         return;
     }
+    
+    // 如果是線上模式且不是本地玩家回合，不能移動
+    if (m_isOnlineGame && !isOnlineTurn()) {
+        return;
+    }
 
     // 將顯示坐標轉換為邏輯坐標
     int logicalRow = getLogicalRow(displayRow);
@@ -938,6 +952,11 @@ void Qt_Chess::onSquareClicked(int displayRow, int displayCol) {
             updateTimeDisplays();
 
             updateStatus();
+            
+            // 如果是線上模式，發送移動給對手
+            if (m_isOnlineGame && m_networkManager) {
+                m_networkManager->sendMove(m_lastMoveFrom, m_lastMoveTo, promType);
+            }
             
             // 如果現在是電腦的回合，請求引擎走棋
             if (isComputerTurn() && m_gameStarted) {
@@ -2352,6 +2371,15 @@ void Qt_Chess::setupTimeControlUI(QVBoxLayout* timeControlPanelLayout) {
     connect(m_computerModeButton, &QPushButton::clicked, this, &Qt_Chess::onComputerModeClicked);
     gameModeButtonsLayout->addWidget(m_computerModeButton);
     
+    // 線上對戰按鈕
+    m_onlineModeButton = new QPushButton("🌐 線上", this);
+    m_onlineModeButton->setFont(labelFont);
+    m_onlineModeButton->setCheckable(true);
+    m_onlineModeButton->setMinimumSize(70, 45);
+    m_onlineModeButton->setStyleSheet(computerModeStyle);
+    connect(m_onlineModeButton, &QPushButton::clicked, this, &Qt_Chess::onOnlineModeClicked);
+    gameModeButtonsLayout->addWidget(m_onlineModeButton);
+    
     timeControlLayout->addLayout(gameModeButtonsLayout);
     
     // 選邊按鈕容器（電腦模式時顯示）
@@ -2412,6 +2440,24 @@ void Qt_Chess::setupTimeControlUI(QVBoxLayout* timeControlPanelLayout) {
     m_gameModeStatusLabel->setAlignment(Qt::AlignCenter);
     m_gameModeStatusLabel->hide();  // 初始隱藏
     timeControlLayout->addWidget(m_gameModeStatusLabel);
+    
+    // 連線狀態標籤（線上模式時顯示）
+    m_connectionStatusLabel = new QLabel("", this);
+    m_connectionStatusLabel->setFont(labelFont);
+    m_connectionStatusLabel->setAlignment(Qt::AlignCenter);
+    m_connectionStatusLabel->setStyleSheet(QString("QLabel { color: %1; padding: 5px; border-radius: 4px; }").arg(THEME_TEXT_PRIMARY));
+    m_connectionStatusLabel->hide();  // 初始隱藏
+    timeControlLayout->addWidget(m_connectionStatusLabel);
+    
+    // 房間資訊標籤（線上模式時顯示）
+    m_roomInfoLabel = new QLabel("", this);
+    m_roomInfoLabel->setFont(labelFont);
+    m_roomInfoLabel->setAlignment(Qt::AlignCenter);
+    m_roomInfoLabel->setWordWrap(true);
+    m_roomInfoLabel->setStyleSheet(QString("QLabel { color: %1; background: rgba(103, 232, 249, 0.15); "
+        "padding: 8px; border-radius: 4px; font-weight: bold; }").arg(THEME_ACCENT_PRIMARY));
+    m_roomInfoLabel->hide();  // 初始隱藏
+    timeControlLayout->addWidget(m_roomInfoLabel);
     
     // 難度設定
     m_difficultyLabel = new QLabel("🎯 電腦難度:", this);
@@ -4699,4 +4745,244 @@ void Qt_Chess::onUpdateCheckFailed(const QString& error) {
     
     // 重設手動檢查標記
     m_manualUpdateCheck = false;
+}
+
+// ==================== 線上對戰功能 ====================
+
+void Qt_Chess::initializeNetwork() {
+    m_networkManager = new NetworkManager(this);
+    
+    // 連接信號
+    connect(m_networkManager, &NetworkManager::connected, this, &Qt_Chess::onNetworkConnected);
+    connect(m_networkManager, &NetworkManager::disconnected, this, &Qt_Chess::onNetworkDisconnected);
+    connect(m_networkManager, &NetworkManager::connectionError, this, &Qt_Chess::onNetworkError);
+    connect(m_networkManager, &NetworkManager::roomCreated, this, &Qt_Chess::onRoomCreated);
+    connect(m_networkManager, &NetworkManager::opponentJoined, this, &Qt_Chess::onOpponentJoined);
+    connect(m_networkManager, &NetworkManager::opponentMove, this, &Qt_Chess::onOpponentMove);
+    connect(m_networkManager, &NetworkManager::gameStartReceived, this, &Qt_Chess::onGameStartReceived);
+    connect(m_networkManager, &NetworkManager::opponentDisconnected, this, &Qt_Chess::onOpponentDisconnected);
+}
+
+void Qt_Chess::onOnlineModeClicked() {
+    if (!m_onlineModeButton->isChecked()) {
+        m_onlineModeButton->setChecked(true);
+        return;
+    }
+    
+    // 如果已在線上模式，先關閉連線
+    if (m_isOnlineGame) {
+        m_networkManager->closeConnection();
+        m_isOnlineGame = false;
+        m_waitingForOpponent = false;
+    }
+    
+    // 取消其他模式
+    m_humanModeButton->setChecked(false);
+    m_computerModeButton->setChecked(false);
+    
+    // 隱藏電腦模式相關UI
+    m_colorSelectionWidget->hide();
+    m_difficultyLabel->hide();
+    m_difficultyValueLabel->hide();
+    m_difficultySlider->hide();
+    m_gameModeStatusLabel->hide();
+    
+    // 停止引擎
+    if (m_chessEngine) {
+        m_chessEngine->stopEngine();
+    }
+    
+    // 顯示線上對戰對話框
+    OnlineDialog dialog(this);
+    if (dialog.exec() == QDialog::Accepted) {
+        OnlineDialog::Mode mode = dialog.getMode();
+        
+        if (mode == OnlineDialog::Mode::CreateRoom) {
+            // 創建房間
+            if (m_networkManager->createRoom()) {
+                m_currentGameMode = GameMode::OnlineGame;
+                m_isOnlineGame = true;
+                m_waitingForOpponent = true;
+                
+                m_connectionStatusLabel->setText("🔄 等待對手加入...");
+                m_connectionStatusLabel->show();
+                m_roomInfoLabel->show();
+                
+                // 不要立即開始遊戲，等待對手加入
+            } else {
+                QMessageBox::warning(this, "創建房間失敗", "無法創建房間，請稍後再試");
+                m_onlineModeButton->setChecked(false);
+                m_humanModeButton->setChecked(true);
+            }
+        } else if (mode == OnlineDialog::Mode::JoinRoom) {
+            // 加入房間
+            QString hostAddress = dialog.getHostAddress();
+            quint16 port = dialog.getPort();
+            
+            if (hostAddress.isEmpty() || port == 0) {
+                QMessageBox::warning(this, "輸入錯誤", "請輸入有效的IP地址和房間號碼");
+                m_onlineModeButton->setChecked(false);
+                m_humanModeButton->setChecked(true);
+                return;
+            }
+            
+            if (m_networkManager->joinRoom(hostAddress, port)) {
+                m_currentGameMode = GameMode::OnlineGame;
+                m_isOnlineGame = true;
+                
+                m_connectionStatusLabel->setText("🔄 正在連接...");
+                m_connectionStatusLabel->show();
+            } else {
+                QMessageBox::warning(this, "加入失敗", "無法加入房間");
+                m_onlineModeButton->setChecked(false);
+                m_humanModeButton->setChecked(true);
+            }
+        }
+    } else {
+        // 用戶取消，返回雙人模式
+        m_onlineModeButton->setChecked(false);
+        m_humanModeButton->setChecked(true);
+    }
+}
+
+void Qt_Chess::onNetworkConnected() {
+    m_connectionStatusLabel->setText("✅ 已連接");
+    updateConnectionStatus();
+}
+
+void Qt_Chess::onNetworkDisconnected() {
+    m_connectionStatusLabel->setText("❌ 已斷線");
+    m_isOnlineGame = false;
+    m_waitingForOpponent = false;
+    updateConnectionStatus();
+}
+
+void Qt_Chess::onNetworkError(const QString& error) {
+    QMessageBox::warning(this, "網路錯誤", error);
+    m_connectionStatusLabel->setText("❌ 連線錯誤");
+    m_isOnlineGame = false;
+    m_waitingForOpponent = false;
+    
+    // 返回雙人模式
+    m_onlineModeButton->setChecked(false);
+    m_humanModeButton->setChecked(true);
+    m_currentGameMode = GameMode::HumanVsHuman;
+    m_connectionStatusLabel->hide();
+    m_roomInfoLabel->hide();
+}
+
+void Qt_Chess::onRoomCreated(const QString& roomNumber, quint16 port) {
+    showRoomInfoDialog(roomNumber, port);
+}
+
+void Qt_Chess::onOpponentJoined() {
+    m_waitingForOpponent = false;
+    m_connectionStatusLabel->setText("✅ 對手已加入");
+    
+    QMessageBox::information(this, "對手已加入", "對手已成功加入房間，遊戲即將開始！");
+    
+    // 開始新遊戲
+    onNewGameClicked();
+}
+
+void Qt_Chess::onOpponentMove(const QPoint& from, const QPoint& to, PieceType promotionType) {
+    // 對手的移動
+    if (m_chessBoard.movePiece(from, to)) {
+        // 檢查是否需要升變
+        if (promotionType != PieceType::None && m_chessBoard.needsPromotion(to)) {
+            m_chessBoard.promotePawn(to, promotionType);
+        }
+        
+        updateBoard();
+        updateStatus();
+        updateMoveList();
+        updateCapturedPiecesDisplay();
+        
+        // 播放音效
+        bool isCapture = isCaptureMove(from, to);
+        bool isCastling = isCastlingMove(from, to);
+        playSoundForMove(isCapture, isCastling);
+        
+        // 檢查將軍
+        if (m_chessBoard.isInCheck(m_chessBoard.getCurrentPlayer())) {
+            m_checkSound.play();
+        }
+        
+        // 應用時間增量
+        if (m_timeControlEnabled && m_timerStarted) {
+            applyIncrement();
+        }
+    }
+}
+
+void Qt_Chess::onGameStartReceived(PieceColor playerColor) {
+    m_connectionStatusLabel->setText("✅ 遊戲開始");
+    
+    // 如果玩家執黑，翻轉棋盤
+    if (playerColor == PieceColor::Black && !m_isBoardFlipped) {
+        m_isBoardFlipped = true;
+        updateBoard();
+    }
+}
+
+void Qt_Chess::onOpponentDisconnected() {
+    QMessageBox::information(this, "對手斷線", "對手已斷開連接");
+    m_isOnlineGame = false;
+    m_waitingForOpponent = false;
+    
+    // 返回雙人模式
+    m_onlineModeButton->setChecked(false);
+    m_humanModeButton->setChecked(true);
+    m_currentGameMode = GameMode::HumanVsHuman;
+    m_connectionStatusLabel->hide();
+    m_roomInfoLabel->hide();
+}
+
+void Qt_Chess::updateConnectionStatus() {
+    if (m_isOnlineGame) {
+        m_connectionStatusLabel->show();
+    } else {
+        m_connectionStatusLabel->hide();
+    }
+}
+
+bool Qt_Chess::isOnlineTurn() const {
+    if (!m_isOnlineGame) {
+        return true;  // 非線上模式，總是可以移動
+    }
+    
+    if (m_waitingForOpponent) {
+        return false;  // 等待對手加入
+    }
+    
+    // 檢查是否輪到本地玩家
+    PieceColor playerColor = m_networkManager->getPlayerColor();
+    return m_chessBoard.getCurrentPlayer() == playerColor;
+}
+
+void Qt_Chess::showRoomInfoDialog(const QString& roomNumber, quint16 port) {
+    // 獲取本機IP地址
+    QString ipAddress = "未知";
+    QList<QHostAddress> ipAddressesList = QNetworkInterface::allAddresses();
+    for (const QHostAddress &entry : ipAddressesList) {
+        if (entry != QHostAddress::LocalHost && 
+            entry.toIPv4Address() && 
+            !entry.toString().startsWith("169.254")) {  // 排除自動配置的IP
+            ipAddress = entry.toString();
+            break;
+        }
+    }
+    
+    QString message = QString(
+        "房間已創建！\n\n"
+        "房間號碼: %1\n"
+        "您的IP地址: %2\n"
+        "端口: %3\n\n"
+        "請將房號和IP地址告訴您的對手。\n"
+        "對手需要輸入您的IP地址和房號才能加入。"
+    ).arg(roomNumber, ipAddress).arg(port);
+    
+    m_roomInfoLabel->setText(QString("房號: %1 | IP: %2").arg(roomNumber, ipAddress));
+    
+    QMessageBox::information(this, "房間資訊", message);
 }

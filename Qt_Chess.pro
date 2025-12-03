@@ -17,7 +17,9 @@ SOURCES += \
     src/soundsettingsdialog.cpp \
     src/pieceiconsettingsdialog.cpp \
     src/boardcolorsettingsdialog.cpp \
-    src/updatechecker.cpp
+    src/updatechecker.cpp \
+    src/networkmanager.cpp \
+    src/onlinedialog.cpp
 
 HEADERS += \
     src/qt_chess.h \
@@ -28,7 +30,9 @@ HEADERS += \
     src/pieceiconsettingsdialog.h \
     src/boardcolorsettingsdialog.h \
     src/theme.h \
-    src/updatechecker.h
+    src/updatechecker.h \
+    src/networkmanager.h \
+    src/onlinedialog.h
 
 FORMS += \
     src/qt_chess.ui

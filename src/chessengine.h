@@ -23,7 +23,8 @@ enum class EngineDifficulty {
 enum class GameMode {
     HumanVsHuman,       // 雙人對弈
     HumanVsComputer,    // 人機對弈（玩家執白）
-    ComputerVsHuman     // 人機對弈（玩家執黑）
+    ComputerVsHuman,    // 人機對弈（玩家執黑）
+    OnlineGame          // 線上對戰
 };
 
 class ChessEngine : public QObject
