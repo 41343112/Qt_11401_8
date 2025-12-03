@@ -4528,8 +4528,8 @@ void Qt_Chess::initializeBackgroundMusic() {
     
     // 設定循環播放 - 當媒體結束時重新播放 (Qt6 使用 playbackStateChanged)
     connect(m_bgmPlayer, &QMediaPlayer::playbackStateChanged, this, [this](QMediaPlayer::PlaybackState state) {
-        if (state == QMediaPlayer::StoppedState && m_bgmEnabled) {
-            // 媒體播放完畢，重新開始
+        if (state == QMediaPlayer::StoppedState && m_bgmEnabled && m_gameStarted) {
+            // 媒體播放完畢，重新開始（只在遊戲進行中才循環播放）
             m_bgmPlayer->setPosition(0);
             m_bgmPlayer->play();
         }
