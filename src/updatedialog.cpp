@@ -131,13 +131,12 @@ void UpdateDialog::downloadComplete(const QString& filePath)
     m_filePath = filePath;
     m_progressBar->setValue(100);
     
-    QFileInfo fileInfo(filePath);
     m_messageLabel->setText(QString("下載完成！\n\n檔案已儲存至：\n%1").arg(filePath));
     
     m_downloadButton->setText("開啟檔案位置");
     m_downloadButton->setEnabled(true);
     m_downloadButton->disconnect();
-    connect(m_downloadButton, &QPushButton::clicked, [this, filePath]() {
+    connect(m_downloadButton, &QPushButton::clicked, [filePath]() {
         QFileInfo fileInfo(filePath);
         QDesktopServices::openUrl(QUrl::fromLocalFile(fileInfo.absolutePath()));
     });

@@ -105,6 +105,11 @@ const int PGN_MOVES_PER_LINE = 6;            // PGN 檔案中每行的移動回�
 const int ELO_BASE = 250;                    // 最低 ELO 評分（對應 Skill Level 0）
 const int ELO_PER_LEVEL = 150;               // 每級增加的 ELO 分數（確保結果能被50整除）
 
+// 更新相關常數
+const QString GITHUB_REPO_OWNER = "41343112";  // GitHub 倉庫擁有者
+const QString GITHUB_REPO_NAME = "Qt_Chess";   // GitHub 倉庫名稱
+const QString APP_VERSION = "1.0.0";           // 應用程式版本
+
 // 計算 ELO 評分的輔助函數
 static int calculateElo(int skillLevel) {
     return ELO_BASE + skillLevel * ELO_PER_LEVEL;
@@ -265,7 +270,7 @@ Qt_Chess::Qt_Chess(QWidget *parent)
     
     // 初始化更新管理器
     m_updateManager = new UpdateManager(this);
-    m_updateManager->setCurrentVersion("1.0.0");  // 設定當前版本
+    m_updateManager->setCurrentVersion(APP_VERSION);  // 設定當前版本
     
     updateBoard();
     updateStatus();
@@ -5110,7 +5115,8 @@ void Qt_Chess::onCheckUpdateClicked() {
         // 從 URL 取得檔案名稱
         QString fileName = downloadUrl.split('/').last();
         if (fileName.isEmpty()) {
-            fileName = "Qt_Chess_Update.zip";
+            // 使用通用名稱作為後備
+            fileName = QString("Qt_Chess_Update_%1").arg(APP_VERSION);
         }
         
         // 連接下載進度信號
@@ -5128,5 +5134,5 @@ void Qt_Chess::onCheckUpdateClicked() {
     });
     
     // 檢查更新
-    m_updateManager->checkForUpdates("41343112", "Qt_Chess");
+    m_updateManager->checkForUpdates(GITHUB_REPO_OWNER, GITHUB_REPO_NAME);
 }

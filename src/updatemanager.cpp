@@ -5,13 +5,14 @@
 #include <QFile>
 #include <QDir>
 #include <QStandardPaths>
+#include <QVersionNumber>
 #include <QDebug>
 
 UpdateManager::UpdateManager(QObject *parent)
     : QObject(parent)
     , m_networkManager(new QNetworkAccessManager(this))
     , m_currentReply(nullptr)
-    , m_currentVersion("1.0.0")  // 預設版本
+    , m_currentVersion("")  // 需要明確設定版本
 {
 }
 
@@ -60,8 +61,14 @@ void UpdateManager::onCheckReplyFinished()
                 latestVersion = latestVersion.mid(1);
             }
             
+            // 正規化當前版本（移除 'v' 前綴）
+            QString normalizedCurrentVersion = m_currentVersion;
+            if (normalizedCurrentVersion.startsWith("v", Qt::CaseInsensitive)) {
+                normalizedCurrentVersion = normalizedCurrentVersion.mid(1);
+            }
+            
             // 比較版本
-            if (compareVersions(latestVersion, m_currentVersion)) {
+            if (compareVersions(latestVersion, normalizedCurrentVersion)) {
                 // 尋找適合當前平台的下載連結
                 QJsonArray assets = obj["assets"].toArray();
                 QString downloadUrl;
@@ -169,22 +176,15 @@ void UpdateManager::onDownloadProgress(qint64 bytesReceived, qint64 bytesTotal)
 
 bool UpdateManager::compareVersions(const QString& version1, const QString& version2)
 {
-    // 簡單的版本比較（假設格式為 x.y.z）
-    QStringList v1Parts = version1.split('.');
-    QStringList v2Parts = version2.split('.');
+    // 使用 QVersionNumber 進行強健的版本比較
+    // 支援語義化版本（例如：1.0.0、1.2.3-beta.1）
+    QVersionNumber v1 = QVersionNumber::fromString(version1);
+    QVersionNumber v2 = QVersionNumber::fromString(version2);
     
-    int maxLen = qMax(v1Parts.size(), v2Parts.size());
-    
-    for (int i = 0; i < maxLen; ++i) {
-        int v1Part = (i < v1Parts.size()) ? v1Parts[i].toInt() : 0;
-        int v2Part = (i < v2Parts.size()) ? v2Parts[i].toInt() : 0;
-        
-        if (v1Part > v2Part) {
-            return true;  // version1 較新
-        } else if (v1Part < v2Part) {
-            return false; // version2 較新
-        }
+    // 如果版本號無效，回退到簡單的字串比較
+    if (v1.isNull() || v2.isNull()) {
+        return version1 > version2;
     }
     
-    return false; // 版本相同
+    return v1 > v2;  // version1 較新返回 true
 }
