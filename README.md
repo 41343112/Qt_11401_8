@@ -1,6 +1,6 @@
 # Qt_Chess
 
-使用 Qt5 開發的功能完整的西洋棋遊戲，支援雙人對戰和 AI 人機對弈。
+使用 Qt5 開發的功能完整的西洋棋遊戲，支援雙人對戰、AI 人機對弈和網路對戰。
 
 ## 功能特色
 
@@ -23,6 +23,15 @@
   - 可調整電腦難度等級（0-20），從初學者到大師級別
   - 電腦思考時會顯示「電腦思考中...」提示
   - 執黑棋時棋盤會自動翻轉
+- **網路對戰**：
+  - 支援跨網域網路對戰功能
+  - 主機/客戶端模式，一方建立遊戲，另一方加入
+  - 即時棋步同步，所有移動即時傳送給對手
+  - 主機可選擇執白或執黑
+  - 連線狀態即時顯示
+  - 支援認輸和新遊戲請求
+  - 使用 TCP/IP 協議確保穩定連線
+  - 參閱 [NETWORK_GAME_GUIDE.md](docs/NETWORK_GAME_GUIDE.md) 以獲得詳細使用說明
 - **時間控制**：
   - 可選擇無限制或 30 秒至 60 分鐘的對局時間
   - 每著加秒功能（0-60 秒增量）
@@ -116,6 +125,11 @@ make
      - 選擇「執白」或「執黑」決定您的棋子顏色
      - 使用「電腦難度」滑桿調整 AI 強度（0-20）
      - 執黑棋時棋盤會自動翻轉
+   - **網路對戰**：點擊「網路」按鈕與遠端玩家對戰
+     - 選擇「主機模式」建立遊戲，或「加入模式」連接到其他玩家
+     - 主機模式需要設定端口並選擇執棋顏色
+     - 加入模式需要輸入對手的 IP 位址和端口
+     - 詳細說明請參閱 [網路對戰使用指南](docs/NETWORK_GAME_GUIDE.md)
 2. **時間控制設定**：
    - 從「總時間」下拉選單選擇對局時間（無限制、30 秒至 60 分鐘）
    - 使用「每著加秒」滑桿設定每步增加的時間（0-60 秒）
@@ -213,12 +227,20 @@ make
 - `chessboard.h/cpp` - 遊戲棋盤邏輯和規則
 - `chesspiece.h/cpp` - 棋子定義和移動驗證
 - `chessengine.h/cpp` - Stockfish 引擎整合，支援人機對弈
+- `networkmanager.h/cpp` - 網路連線管理，處理 TCP/IP 通訊
+- `networkgamedialog.h/cpp` - 網路對戰設定對話框
 - `soundsettingsdialog.h/cpp` - 自訂音訊的音效設定對話框
 - `pieceiconsettingsdialog.h/cpp` - 自訂棋子圖形的圖標設定對話框
 - `boardcolorsettingsdialog.h/cpp` - 自訂棋盤顏色的顏色設定對話框
 - `qt_chess.ui` - Qt UI 設計檔案
 - `resources.qrc` - 嵌入音效檔案的 Qt 資源檔案
 - `engine/` - Stockfish 西洋棋引擎目錄
+- `docs/` - 文件目錄
+  - `NETWORK_GAME_GUIDE.md` - 網路對戰詳細使用指南
+  - `TIME_CONTROL_FEATURE.md` - 時間控制功能說明
+  - `BOARD_FLIP_FEATURE.md` - 棋盤翻轉功能說明
+  - `BOARD_COLOR_QUICK_START.md` - 棋盤顏色設定快速入門
+  - `ADDING_ICON_SETS.md` - 新增棋子圖標集說明
 
 ## 授權條款
 

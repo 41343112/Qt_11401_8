@@ -1,4 +1,4 @@
-QT       += core gui multimedia multimediawidgets
+QT       += core gui multimedia multimediawidgets network
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
@@ -16,7 +16,9 @@ SOURCES += \
     src/chessengine.cpp \
     src/soundsettingsdialog.cpp \
     src/pieceiconsettingsdialog.cpp \
-    src/boardcolorsettingsdialog.cpp
+    src/boardcolorsettingsdialog.cpp \
+    src/networkmanager.cpp \
+    src/networkgamedialog.cpp
 
 HEADERS += \
     src/qt_chess.h \
@@ -26,7 +28,9 @@ HEADERS += \
     src/soundsettingsdialog.h \
     src/pieceiconsettingsdialog.h \
     src/boardcolorsettingsdialog.h \
-    src/theme.h
+    src/theme.h \
+    src/networkmanager.h \
+    src/networkgamedialog.h
 
 FORMS += \
     src/qt_chess.ui

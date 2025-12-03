@@ -33,6 +33,8 @@
 #include "soundsettingsdialog.h"
 #include "pieceiconsettingsdialog.h"
 #include "boardcolorsettingsdialog.h"
+#include "networkmanager.h"
+#include "networkgamedialog.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui {
@@ -69,6 +71,14 @@ private slots:
     void onExportPGNClicked();
     void onCopyPGNClicked();
     void onToggleBackgroundMusicClicked();
+    void onNetworkModeClicked();
+    void onNetworkConnected();
+    void onNetworkDisconnected();
+    void onNetworkError(const QString& error);
+    void onNetworkMoveReceived(const QPoint& from, const QPoint& to, PieceType promotionType);
+    void onNetworkGameStartReceived(PieceColor remotePlayerColor, int whiteTimeMs, int blackTimeMs, int incrementMs);
+    void onNetworkResignReceived();
+    void onNetworkNewGameRequested();
 
 private:
     Ui::Qt_Chess *ui;
@@ -196,6 +206,14 @@ private:
     QLabel* m_thinkingLabel;  // 顯示「電腦思考中...」
     QStringList m_uciMoveHistory;  // UCI 格式的移動歷史
     
+    // 網路對戰
+    NetworkManager* m_networkManager;
+    QPushButton* m_networkModeButton;    // 網路對戰按鈕
+    QLabel* m_connectionStatusLabel;     // 連線狀態標籤
+    QString m_remotePlayerName;          // 遠端玩家名稱
+    QString m_localPlayerName;           // 本地玩家名稱
+    bool m_isNetworkGame;                // 是否為網路對戰
+    
     void setupUI();
     void setupMenuBar();
     void updateBoard();
@@ -315,6 +333,15 @@ private:
     void stopBackgroundMusic();          // 停止背景音樂
     void toggleBackgroundMusic();        // 切換背景音樂開關
     void setBackgroundMusicVolume(int volume);  // 設定背景音樂音量 (0-100)
+    
+    // 網路對戰功能
+    void setupNetworkUI(QVBoxLayout* layout);
+    void initializeNetworkManager();
+    void startNetworkGame();
+    void stopNetworkGame();
+    void updateNetworkStatusUI();
+    bool isNetworkTurn() const;
+    void sendNetworkMove(const QPoint& from, const QPoint& to, PieceType promotionType = PieceType::None);
     
     // 動畫相關成員
     QWidget* m_animationOverlay;         // 動畫疊加層

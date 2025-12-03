@@ -4,6 +4,8 @@
 #include "soundsettingsdialog.h"
 #include "pieceiconsettingsdialog.h"
 #include "boardcolorsettingsdialog.h"
+#include "networkmanager.h"
+#include "networkgamedialog.h"
 #include <QMessageBox>
 #include <QFont>
 #include <QDialog>
@@ -210,6 +212,10 @@ Qt_Chess::Qt_Chess(QWidget *parent)
     , m_difficultyLabel(nullptr)
     , m_difficultyValueLabel(nullptr)
     , m_thinkingLabel(nullptr)
+    , m_networkManager(nullptr)
+    , m_networkModeButton(nullptr)
+    , m_connectionStatusLabel(nullptr)
+    , m_isNetworkGame(false)
     , m_bgmPlayer(nullptr)
     , m_bgmEnabled(true)
     , m_bgmVolume(30)
@@ -252,6 +258,7 @@ Qt_Chess::Qt_Chess(QWidget *parent)
     loadTimeControlSettings();  // 在 setupUI() 之後載入以確保元件存在
     loadEngineSettings();  // 載入引擎設定
     initializeEngine();  // 初始化棋局引擎
+    initializeNetworkManager();  // 初始化網路管理器
     updateBoard();
     updateStatus();
     updateTimeDisplays();
@@ -277,6 +284,14 @@ Qt_Chess::~Qt_Chess()
         delete m_chessEngine;
         m_chessEngine = nullptr;
     }
+    
+    // 停止並清理網路連線
+    if (m_networkManager) {
+        stopNetworkGame();
+        delete m_networkManager;
+        m_networkManager = nullptr;
+    }
+    
     delete ui;
 }
 
@@ -851,6 +866,11 @@ void Qt_Chess::onSquareClicked(int displayRow, int displayCol) {
     if (isComputerTurn()) {
         return;
     }
+    
+    // 如果是網路遊戲且不是本地玩家的回合，不允許移動
+    if (m_isNetworkGame && !isNetworkTurn()) {
+        return;
+    }
 
     // 將顯示坐標轉換為邏輯坐標
     int logicalRow = getLogicalRow(displayRow);
@@ -900,6 +920,11 @@ void Qt_Chess::onSquareClicked(int displayRow, int displayCol) {
             // 記錄 UCI 移動
             QString uciMove = ChessEngine::moveToUCI(m_selectedSquare, clickedSquare, promType);
             m_uciMoveHistory.append(uciMove);
+            
+            // 如果是網路遊戲，發送移動到對手
+            if (m_isNetworkGame && m_networkManager->isConnected()) {
+                sendNetworkMove(m_lastMoveFrom, m_lastMoveTo, promType);
+            }
 
             // 更新棋譜列表
             updateMoveList();
@@ -935,6 +960,20 @@ void Qt_Chess::onSquareClicked(int displayRow, int displayCol) {
 }
 
 void Qt_Chess::onNewGameClicked() {
+    // 如果是網路遊戲且已連線，詢問是否要發送新遊戲請求
+    if (m_isNetworkGame && m_networkManager && m_networkManager->isConnected()) {
+        QMessageBox::StandardButton reply = QMessageBox::question(
+            this,
+            tr("新遊戲"),
+            tr("是否向對手發送新遊戲請求？"),
+            QMessageBox::Yes | QMessageBox::No
+        );
+        
+        if (reply == QMessageBox::Yes) {
+            m_networkManager->sendNewGameRequest();
+        }
+    }
+    
     // 如果在回放模式中，先退出
     if (m_isReplayMode) {
         exitReplayMode();
@@ -1028,6 +1067,11 @@ void Qt_Chess::onGiveUpClicked() {
         );
 
     if (reply == QMessageBox::Yes) {
+        // 如果是網路遊戲，發送認輸訊息給對手
+        if (m_isNetworkGame && m_networkManager->isConnected()) {
+            m_networkManager->sendResign();
+        }
+        
         // 記錄認輸結果
         PieceColor currentPlayer = m_chessBoard.getCurrentPlayer();
         if (currentPlayer == PieceColor::White) {
@@ -1049,6 +1093,30 @@ void Qt_Chess::onGiveUpClicked() {
 }
 
 void Qt_Chess::onStartButtonClicked() {
+    // 如果是網路遊戲且是主機，發送遊戲開始訊息
+    if (m_isNetworkGame && m_networkManager && m_networkManager->getRole() == NetworkRole::Server) {
+        // 獲取時間設定
+        int whiteTimeMs = 0;
+        int blackTimeMs = 0;
+        int incrementMs = 0;
+        
+        if (m_timeControlEnabled) {
+            if (m_whiteTimeLimitSlider) {
+                whiteTimeMs = calculateTimeFromSliderValue(m_whiteTimeLimitSlider->value());
+            }
+            if (m_blackTimeLimitSlider) {
+                blackTimeMs = calculateTimeFromSliderValue(m_blackTimeLimitSlider->value());
+            }
+            if (m_incrementSlider) {
+                incrementMs = m_incrementSlider->value() * 1000;  // 轉換為毫秒
+            }
+        }
+        
+        // 發送遊戲開始訊息給客戶端
+        PieceColor localColor = m_networkManager->getLocalPlayerColor();
+        m_networkManager->sendGameStart(localColor, whiteTimeMs, blackTimeMs, incrementMs);
+    }
+    
     // 清空 UCI 移動歷史
     m_uciMoveHistory.clear();
     
@@ -2325,7 +2393,44 @@ void Qt_Chess::setupTimeControlUI(QVBoxLayout* timeControlPanelLayout) {
     connect(m_computerModeButton, &QPushButton::clicked, this, &Qt_Chess::onComputerModeClicked);
     gameModeButtonsLayout->addWidget(m_computerModeButton);
     
+    // 網路對戰按鈕 - 現代科技風格（霓虹紫色）
+    QString networkModeStyle = QString(
+        "QPushButton { "
+        "  border: 2px solid %1; border-radius: 8px; padding: 8px; "
+        "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 %2, stop:1 %3); "
+        "  color: %4; font-weight: bold; "
+        "}"
+        "QPushButton:checked { "
+        "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 rgba(138, 43, 226, 0.8), stop:1 rgba(138, 43, 226, 0.6)); "
+        "  color: %3; border-color: rgba(138, 43, 226, 1); "
+        "}"
+        "QPushButton:hover { "
+        "  border-color: rgba(138, 43, 226, 1); "
+        "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 %2, stop:0.5 rgba(138, 43, 226, 0.2), stop:1 %3); "
+        "}"
+    ).arg(THEME_BORDER, THEME_BG_PANEL, THEME_BG_DARK, THEME_TEXT_PRIMARY);
+    
+    m_networkModeButton = new QPushButton("🌐 網路", this);
+    m_networkModeButton->setFont(labelFont);
+    m_networkModeButton->setCheckable(true);
+    m_networkModeButton->setMinimumSize(70, 45);
+    m_networkModeButton->setStyleSheet(networkModeStyle);
+    connect(m_networkModeButton, &QPushButton::clicked, this, &Qt_Chess::onNetworkModeClicked);
+    gameModeButtonsLayout->addWidget(m_networkModeButton);
+    
     timeControlLayout->addLayout(gameModeButtonsLayout);
+    
+    // 網路連線狀態標籤（網路模式時顯示）
+    m_connectionStatusLabel = new QLabel("", this);
+    m_connectionStatusLabel->setFont(labelFont);
+    m_connectionStatusLabel->setAlignment(Qt::AlignCenter);
+    m_connectionStatusLabel->setWordWrap(true);
+    m_connectionStatusLabel->setStyleSheet(QString(
+        "QLabel { color: %1; padding: 8px; background: rgba(138, 43, 226, 0.15); "
+        "border: 1px solid rgba(138, 43, 226, 0.5); border-radius: 6px; }"
+    ).arg(THEME_TEXT_PRIMARY));
+    m_connectionStatusLabel->hide();  // 初始隱藏
+    timeControlLayout->addWidget(m_connectionStatusLabel);
     
     // 選邊按鈕容器（電腦模式時顯示）
     m_colorSelectionWidget = new QWidget(this);
@@ -3760,6 +3865,15 @@ QString Qt_Chess::getEnginePath() const {
 }
 
 void Qt_Chess::onHumanModeClicked() {
+    // 如果之前是網路模式，斷開連線
+    if (m_isNetworkGame) {
+        stopNetworkGame();
+        m_isNetworkGame = false;
+        if (m_connectionStatusLabel) {
+            m_connectionStatusLabel->hide();
+        }
+    }
+    
     m_currentGameMode = GameMode::HumanVsHuman;
     updateGameModeUI();
     
@@ -3773,9 +3887,18 @@ void Qt_Chess::onHumanModeClicked() {
 }
 
 void Qt_Chess::onComputerModeClicked() {
+    // 如果之前是網路模式，斷開連線
+    if (m_isNetworkGame) {
+        stopNetworkGame();
+        m_isNetworkGame = false;
+        if (m_connectionStatusLabel) {
+            m_connectionStatusLabel->hide();
+        }
+    }
+    
     // 切換到電腦模式，顯示選邊按鈕
-    // 預設選擇執白（如果尚未選擇）
-    if (m_currentGameMode == GameMode::HumanVsHuman) {
+    // 如果之前不是電腦模式，則預設選擇執白
+    if (m_currentGameMode == GameMode::HumanVsHuman || m_currentGameMode == GameMode::NetworkGame) {
         m_currentGameMode = GameMode::HumanVsComputer;
     }
     
@@ -3832,18 +3955,24 @@ void Qt_Chess::onBlackColorClicked() {
 
 void Qt_Chess::updateGameModeUI() {
     bool isHumanMode = (m_currentGameMode == GameMode::HumanVsHuman);
+    bool isNetworkMode = (m_currentGameMode == GameMode::NetworkGame);
+    bool isComputerMode = (m_currentGameMode == GameMode::HumanVsComputer || 
+                           m_currentGameMode == GameMode::ComputerVsHuman);
     
     // 更新按鈕選中狀態
     if (m_humanModeButton) {
         m_humanModeButton->setChecked(isHumanMode);
     }
     if (m_computerModeButton) {
-        m_computerModeButton->setChecked(!isHumanMode);
+        m_computerModeButton->setChecked(isComputerMode);
+    }
+    if (m_networkModeButton) {
+        m_networkModeButton->setChecked(isNetworkMode);
     }
     
-    // 更新選邊按鈕
+    // 更新選邊按鈕（只在電腦模式顯示）
     if (m_colorSelectionWidget) {
-        m_colorSelectionWidget->setVisible(!isHumanMode);
+        m_colorSelectionWidget->setVisible(isComputerMode);
     }
     if (m_whiteButton) {
         // 如果是隨機選擇，不高亮執白按鈕
@@ -3863,10 +3992,15 @@ void Qt_Chess::updateGameModeUI() {
         m_gameModeStatusLabel->hide();
     }
     
-    // 更新難度控制的可見性
-    if (m_difficultyLabel) m_difficultyLabel->setVisible(!isHumanMode);
-    if (m_difficultyValueLabel) m_difficultyValueLabel->setVisible(!isHumanMode);
-    if (m_difficultySlider) m_difficultySlider->setVisible(!isHumanMode);
+    // 更新難度控制的可見性（只在電腦模式顯示）
+    if (m_difficultyLabel) m_difficultyLabel->setVisible(isComputerMode);
+    if (m_difficultyValueLabel) m_difficultyValueLabel->setVisible(isComputerMode);
+    if (m_difficultySlider) m_difficultySlider->setVisible(isComputerMode);
+    
+    // 更新網路連線狀態標籤的可見性
+    if (m_connectionStatusLabel) {
+        m_connectionStatusLabel->setVisible(isNetworkMode && m_isNetworkGame);
+    }
 }
 
 void Qt_Chess::onDifficultyChanged(int value) {
@@ -4023,6 +4157,12 @@ bool Qt_Chess::isPlayerPiece(PieceColor pieceColor) const {
         case GameMode::ComputerVsHuman:
             // 電腦執白，人執黑
             return pieceColor == PieceColor::Black;
+        case GameMode::NetworkGame:
+            // 網路對戰，只能移動自己顏色的棋子
+            if (m_networkManager && m_networkManager->isConnected()) {
+                return pieceColor == m_networkManager->getLocalPlayerColor();
+            }
+            return false;
         case GameMode::HumanVsHuman:
         default:
             // 雙人對弈，任何顏色都是玩家的
@@ -4581,5 +4721,343 @@ void Qt_Chess::setBackgroundMusicVolume(int volume) {
     m_bgmVolume = qBound(0, volume, 100);
     if (m_audioOutput) {
         m_audioOutput->setVolume(m_bgmVolume / 100.0);
+    }
+}
+
+// ===== 網路對戰功能實現 =====
+
+void Qt_Chess::initializeNetworkManager() {
+    m_networkManager = new NetworkManager(this);
+    
+    // 連接網路信號
+    connect(m_networkManager, &NetworkManager::connected, this, &Qt_Chess::onNetworkConnected);
+    connect(m_networkManager, &NetworkManager::disconnected, this, &Qt_Chess::onNetworkDisconnected);
+    connect(m_networkManager, &NetworkManager::connectionError, this, &Qt_Chess::onNetworkError);
+    connect(m_networkManager, &NetworkManager::moveReceived, this, &Qt_Chess::onNetworkMoveReceived);
+    connect(m_networkManager, &NetworkManager::gameStartReceived, this, &Qt_Chess::onNetworkGameStartReceived);
+    connect(m_networkManager, &NetworkManager::resignReceived, this, &Qt_Chess::onNetworkResignReceived);
+    connect(m_networkManager, &NetworkManager::newGameRequested, this, &Qt_Chess::onNetworkNewGameRequested);
+}
+
+void Qt_Chess::onNetworkModeClicked() {
+    // 顯示網路遊戲對話框
+    NetworkGameDialog dialog(this);
+    if (dialog.exec() == QDialog::Accepted) {
+        NetworkGameDialog::DialogResult result = dialog.getResult();
+        
+        if (result == NetworkGameDialog::DialogResult::Cancelled) {
+            // 用戶取消，返回雙人模式
+            m_networkModeButton->setChecked(false);
+            m_humanModeButton->setChecked(true);
+            return;
+        }
+        
+        // 獲取玩家名稱
+        m_localPlayerName = dialog.getPlayerName();
+        
+        if (result == NetworkGameDialog::DialogResult::HostGame) {
+            // 主機模式
+            quint16 port = dialog.getServerPort();
+            PieceColor playerColor = dialog.getPlayerColor();
+            
+            if (m_networkManager->startServer(port)) {
+                m_isNetworkGame = true;
+                m_currentGameMode = GameMode::NetworkGame;
+                m_networkManager->setLocalPlayerColor(playerColor);
+                
+                // 更新 UI
+                updateNetworkStatusUI();
+                m_connectionStatusLabel->setText(QString("等待對手連線...\n端口: %1").arg(port));
+                m_connectionStatusLabel->show();
+                
+                // 隱藏其他模式的控制項
+                m_colorSelectionWidget->hide();
+                m_difficultyLabel->hide();
+                m_difficultyValueLabel->hide();
+                m_difficultySlider->hide();
+                m_thinkingLabel->hide();
+            } else {
+                QMessageBox::warning(this, tr("錯誤"), tr("無法啟動伺服器！"));
+                m_networkModeButton->setChecked(false);
+                m_humanModeButton->setChecked(true);
+            }
+        } else if (result == NetworkGameDialog::DialogResult::JoinGame) {
+            // 客戶端模式
+            QString host = dialog.getServerAddress();
+            quint16 port = dialog.getServerPort();
+            
+            if (m_networkManager->connectToServer(host, port)) {
+                m_isNetworkGame = true;
+                m_currentGameMode = GameMode::NetworkGame;
+                
+                // 更新 UI
+                updateNetworkStatusUI();
+                m_connectionStatusLabel->setText(QString("正在連接到 %1:%2...").arg(host).arg(port));
+                m_connectionStatusLabel->show();
+                
+                // 隱藏其他模式的控制項
+                m_colorSelectionWidget->hide();
+                m_difficultyLabel->hide();
+                m_difficultyValueLabel->hide();
+                m_difficultySlider->hide();
+                m_thinkingLabel->hide();
+            } else {
+                QMessageBox::warning(this, tr("錯誤"), tr("無法連接到伺服器！"));
+                m_networkModeButton->setChecked(false);
+                m_humanModeButton->setChecked(true);
+            }
+        }
+    } else {
+        // 對話框被取消，返回雙人模式
+        m_networkModeButton->setChecked(false);
+        m_humanModeButton->setChecked(true);
+    }
+}
+
+void Qt_Chess::updateNetworkStatusUI() {
+    // 更新按鈕狀態
+    if (m_humanModeButton) {
+        m_humanModeButton->setChecked(m_currentGameMode == GameMode::HumanVsHuman);
+    }
+    if (m_computerModeButton) {
+        m_computerModeButton->setChecked(m_currentGameMode == GameMode::HumanVsComputer || 
+                                          m_currentGameMode == GameMode::ComputerVsHuman);
+    }
+    if (m_networkModeButton) {
+        m_networkModeButton->setChecked(m_currentGameMode == GameMode::NetworkGame);
+    }
+}
+
+void Qt_Chess::onNetworkConnected() {
+    // 連線成功
+    QString remoteAddr = m_networkManager->getRemoteAddress();
+    
+    if (m_networkManager->getRole() == NetworkRole::Server) {
+        // 主機模式
+        m_connectionStatusLabel->setText(QString("對手已連線！\n點擊開始按鈕啟動遊戲").arg(remoteAddr));
+        m_networkManager->sendPlayerInfo(m_localPlayerName);
+        
+        // 主機保持開始按鈕可見
+        if (m_startButton) {
+            m_startButton->show();
+            m_startButton->setEnabled(true);
+        }
+        
+    } else {
+        // 客戶端模式
+        m_connectionStatusLabel->setText(QString("已連線到伺服器\n等待主機開始遊戲...").arg(remoteAddr));
+        m_networkManager->sendPlayerInfo(m_localPlayerName);
+        
+        // 客戶端隱藏開始按鈕
+        if (m_startButton) {
+            m_startButton->hide();
+        }
+    }
+    
+    QMessageBox::information(this, tr("連線成功"), tr("已成功建立連線！"));
+}
+
+void Qt_Chess::onNetworkDisconnected() {
+    // 連線斷開
+    m_connectionStatusLabel->setText("連線已斷開");
+    
+    QMessageBox::warning(this, tr("連線斷開"), tr("與對手的連線已斷開！"));
+    
+    // 停止網路遊戲
+    stopNetworkGame();
+    
+    // 切換回雙人模式
+    m_isNetworkGame = false;
+    m_currentGameMode = GameMode::HumanVsHuman;
+    m_networkModeButton->setChecked(false);
+    m_humanModeButton->setChecked(true);
+    m_connectionStatusLabel->hide();
+}
+
+void Qt_Chess::onNetworkError(const QString& error) {
+    // 網路錯誤
+    QMessageBox::critical(this, tr("網路錯誤"), error);
+    
+    m_connectionStatusLabel->setText(QString("錯誤: %1").arg(error));
+    
+    // 停止網路遊戲
+    stopNetworkGame();
+}
+
+void Qt_Chess::onNetworkMoveReceived(const QPoint& from, const QPoint& to, PieceType promotionType) {
+    // 收到對手的移動
+    if (!m_isNetworkGame || m_chessBoard.getGameResult() != GameResult::InProgress) {
+        return;
+    }
+    
+    // 執行移動
+    if (m_chessBoard.movePiece(from, to)) {
+        // 檢查是否需要升變
+        if (promotionType != PieceType::None && m_chessBoard.needsPromotion(to)) {
+            m_chessBoard.promotePawn(to, promotionType);
+        }
+        
+        // 更新棋盤和狀態
+        m_lastMoveFrom = from;
+        m_lastMoveTo = to;
+        updateBoard();
+        updateStatus();
+        updateMoveList();
+        updateCapturedPiecesDisplay();
+        
+        // 播放音效
+        bool isCapture = isCaptureMove(from, to);
+        bool isCastling = isCastlingMove(from, to);
+        playSoundForMove(isCapture, isCastling);
+        
+        // 檢查遊戲是否結束
+        if (m_chessBoard.getGameResult() != GameResult::InProgress) {
+            handleGameEnd();
+        }
+    }
+}
+
+void Qt_Chess::onNetworkGameStartReceived(PieceColor remotePlayerColor, int whiteTimeMs, int blackTimeMs, int incrementMs) {
+    // 收到遊戲開始信息（客戶端收到）
+    // 遠端玩家的顏色，本地玩家使用相反的顏色
+    PieceColor localColor = (remotePlayerColor == PieceColor::White) ? PieceColor::Black : PieceColor::White;
+    m_networkManager->setLocalPlayerColor(localColor);
+    
+    QString colorText = (localColor == PieceColor::White) ? "執白" : "執黑";
+    m_connectionStatusLabel->setText(QString("遊戲開始！\n您%1").arg(colorText));
+    
+    // 同步時間設定並啟動遊戲
+    m_whiteTimeMs = whiteTimeMs;
+    m_blackTimeMs = blackTimeMs;
+    m_whiteInitialTimeMs = whiteTimeMs;
+    m_blackInitialTimeMs = blackTimeMs;
+    m_incrementMs = incrementMs;
+    m_timeControlEnabled = (whiteTimeMs > 0 || blackTimeMs > 0);
+    
+    // 重置棋盤到初始狀態
+    resetBoardState();
+    
+    // 清空棋譜列表
+    if (m_moveListWidget) {
+        m_moveListWidget->clear();
+    }
+    
+    // 隱藏時間控制面板
+    if (m_timeControlPanel) {
+        m_timeControlPanel->hide();
+    }
+    
+    // 標記遊戲已開始
+    m_gameStarted = true;
+    
+    if (m_timeControlEnabled) {
+        m_timerStarted = true;
+        startTimer();
+        
+        // 在棋盤左右兩側顯示時間和進度條
+        if (m_whiteTimeLabel && m_blackTimeLabel) {
+            m_whiteTimeLabel->show();
+            m_blackTimeLabel->show();
+        }
+        if (m_whiteTimeProgressBar && m_blackTimeProgressBar) {
+            m_whiteTimeProgressBar->show();
+            m_blackTimeProgressBar->show();
+        }
+        
+        updateTimeDisplays();
+    }
+    
+    // 顯示放棄按鈕
+    if (m_giveUpButton) {
+        m_giveUpButton->show();
+    }
+    
+    // 更新回放按鈕狀態
+    updateReplayButtons();
+    
+    // 顯示右側時間面板
+    if (m_rightTimePanel) {
+        m_rightTimePanel->show();
+    }
+    
+    // 當遊戲開始時，將右側伸展設為 1
+    setRightPanelStretch(1);
+    
+    updateBoard();
+    updateStatus();
+}
+
+void Qt_Chess::onNetworkResignReceived() {
+    // 對手認輸
+    if (!m_isNetworkGame) {
+        return;
+    }
+    
+    // 根據當前玩家設置遊戲結果
+    PieceColor localColor = m_networkManager->getLocalPlayerColor();
+    if (localColor == PieceColor::White) {
+        m_chessBoard.setGameResult(GameResult::WhiteWins);
+    } else {
+        m_chessBoard.setGameResult(GameResult::BlackWins);
+    }
+    
+    updateStatus();
+    handleGameEnd();
+    
+    QMessageBox::information(this, tr("遊戲結束"), tr("對手認輸，您獲勝！"));
+}
+
+void Qt_Chess::onNetworkNewGameRequested() {
+    // 對手請求新遊戲
+    QMessageBox::StandardButton reply = QMessageBox::question(
+        this, 
+        tr("新遊戲請求"), 
+        tr("對手請求開始新遊戲，是否接受？"),
+        QMessageBox::Yes | QMessageBox::No
+    );
+    
+    if (reply == QMessageBox::Yes) {
+        onNewGameClicked();
+    }
+}
+
+void Qt_Chess::startNetworkGame() {
+    // 網路遊戲開始時的處理
+    m_isNetworkGame = true;
+}
+
+void Qt_Chess::stopNetworkGame() {
+    // 停止網路遊戲
+    if (m_networkManager) {
+        if (m_networkManager->getRole() == NetworkRole::Server) {
+            m_networkManager->stopServer();
+        } else {
+            m_networkManager->disconnectFromServer();
+        }
+    }
+    m_isNetworkGame = false;
+}
+
+bool Qt_Chess::isNetworkTurn() const {
+    // 檢查是否輪到本地玩家
+    if (!m_isNetworkGame || !m_networkManager->isConnected()) {
+        return false;
+    }
+    
+    // 檢查遊戲是否還在進行中
+    if (m_chessBoard.getGameResult() != GameResult::InProgress) {
+        return false;
+    }
+    
+    PieceColor localColor = m_networkManager->getLocalPlayerColor();
+    PieceColor currentPlayer = m_chessBoard.getCurrentPlayer();
+    
+    return localColor == currentPlayer;
+}
+
+void Qt_Chess::sendNetworkMove(const QPoint& from, const QPoint& to, PieceType promotionType) {
+    // 發送移動到對手
+    if (m_isNetworkGame && m_networkManager->isConnected()) {
+        m_networkManager->sendMove(from, to, promotionType);
     }
 }
