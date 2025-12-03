@@ -50,6 +50,13 @@ bool UpdateChecker::isUpdateAvailable() const
 
 void UpdateChecker::checkForUpdates()
 {
+    // 如果已有進行中的請求，取消它
+    if (m_currentReply) {
+        m_currentReply->abort();
+        m_currentReply->deleteLater();
+        m_currentReply = nullptr;
+    }
+    
     QNetworkRequest request;
     request.setUrl(QUrl(GITHUB_API_RELEASES_URL));
     request.setHeader(QNetworkRequest::UserAgentHeader, APP_NAME);
@@ -151,6 +158,13 @@ void UpdateChecker::startDownload()
     if (m_downloadUrl.isEmpty()) {
         emit downloadFailed(tr("沒有可用的下載連結"));
         return;
+    }
+
+    // 如果已有進行中的請求，取消它
+    if (m_currentReply) {
+        m_currentReply->abort();
+        m_currentReply->deleteLater();
+        m_currentReply = nullptr;
     }
 
     QNetworkRequest request;

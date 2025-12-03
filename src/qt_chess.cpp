@@ -35,6 +35,7 @@
 #include <QDebug>
 #include <QDesktopServices>
 #include <QUrl>
+#include <QSharedPointer>
 #include <algorithm>
 
 namespace {
@@ -4609,44 +4610,38 @@ void Qt_Chess::onCheckForUpdatesClicked() {
     checkingBox->setAttribute(Qt::WA_DeleteOnClose); // 自動刪除
     checkingBox->show();
     
-    // 使用 lambda 確保連接只觸發一次
-    QMetaObject::Connection* connUpdate = new QMetaObject::Connection();
-    QMetaObject::Connection* connNoUpdate = new QMetaObject::Connection();
-    QMetaObject::Connection* connFailed = new QMetaObject::Connection();
+    // 使用 QSharedPointer 管理連接，確保自動清理
+    struct ConnectionManager {
+        QMetaObject::Connection update;
+        QMetaObject::Connection noUpdate;
+        QMetaObject::Connection failed;
+        
+        void disconnectAll() {
+            QObject::disconnect(update);
+            QObject::disconnect(noUpdate);
+            QObject::disconnect(failed);
+        }
+    };
+    auto connections = QSharedPointer<ConnectionManager>::create();
     
-    *connUpdate = connect(m_updateChecker, &UpdateChecker::updateAvailable, this, 
-        [checkingBox, connUpdate, connNoUpdate, connFailed](const QString&, const QString&, const QString&) {
+    connections->update = connect(m_updateChecker, &UpdateChecker::updateAvailable, this, 
+        [checkingBox, connections](const QString&, const QString&, const QString&) {
             checkingBox->close();
-            QObject::disconnect(*connUpdate);
-            QObject::disconnect(*connNoUpdate);
-            QObject::disconnect(*connFailed);
-            delete connUpdate;
-            delete connNoUpdate;
-            delete connFailed;
+            connections->disconnectAll();
         });
     
-    *connNoUpdate = connect(m_updateChecker, &UpdateChecker::noUpdateAvailable, this,
-        [this, checkingBox, connUpdate, connNoUpdate, connFailed]() {
+    connections->noUpdate = connect(m_updateChecker, &UpdateChecker::noUpdateAvailable, this,
+        [this, checkingBox, connections]() {
             checkingBox->close();
             QMessageBox::information(this, "檢查更新", 
                 QString("目前已是最新版本 %1").arg(m_updateChecker->getCurrentVersion()));
-            QObject::disconnect(*connUpdate);
-            QObject::disconnect(*connNoUpdate);
-            QObject::disconnect(*connFailed);
-            delete connUpdate;
-            delete connNoUpdate;
-            delete connFailed;
+            connections->disconnectAll();
         });
     
-    *connFailed = connect(m_updateChecker, &UpdateChecker::checkFailed, this,
-        [checkingBox, connUpdate, connNoUpdate, connFailed](const QString&) {
+    connections->failed = connect(m_updateChecker, &UpdateChecker::checkFailed, this,
+        [checkingBox, connections](const QString&) {
             checkingBox->close();
-            QObject::disconnect(*connUpdate);
-            QObject::disconnect(*connNoUpdate);
-            QObject::disconnect(*connFailed);
-            delete connUpdate;
-            delete connNoUpdate;
-            delete connFailed;
+            connections->disconnectAll();
         });
     
     // 檢查更新
