@@ -32,6 +32,8 @@
 #include <QDir>
 #include <QCoreApplication>
 #include <QDebug>
+#include <QDesktopServices>
+#include <QUrl>
 #include <algorithm>
 
 namespace {
@@ -225,6 +227,7 @@ Qt_Chess::Qt_Chess(QWidget *parent)
     , m_fadeAnimation(nullptr)
     , m_scaleAnimation(nullptr)
     , m_opacityEffect(nullptr)
+    , m_updateChecker(nullptr)
 {
     ui->setupUi(this);
     setWindowTitle("♔ 國際象棋 - 科技對弈 ♚");
@@ -257,6 +260,13 @@ Qt_Chess::Qt_Chess(QWidget *parent)
     updateTimeDisplays();
     updateReplayButtons();  // 設置回放按鈕初始狀態
     updateCapturedPiecesDisplay();  // 初始化被吃掉棋子顯示
+    
+    // 初始化更新檢查器
+    m_updateChecker = new UpdateChecker(this);
+    connect(m_updateChecker, &UpdateChecker::updateCheckFinished, 
+            this, &Qt_Chess::onUpdateCheckFinished);
+    connect(m_updateChecker, &UpdateChecker::updateCheckFailed, 
+            this, &Qt_Chess::onUpdateCheckFailed);
     
     // 在視窗顯示後播放啟動動畫
     QTimer::singleShot(100, this, &Qt_Chess::playStartupAnimation);
@@ -677,6 +687,14 @@ void Qt_Chess::setupMenuBar() {
     toggleBgmAction->setChecked(m_bgmEnabled);
     connect(toggleBgmAction, &QAction::triggered, this, &Qt_Chess::onToggleBackgroundMusicClicked);
     settingsMenu->addAction(toggleBgmAction);
+    
+    // 說明選單
+    QMenu* helpMenu = m_menuBar->addMenu("❓ 說明");
+    
+    // 檢查更新動作
+    QAction* checkUpdateAction = new QAction("🔄 檢查更新", this);
+    connect(checkUpdateAction, &QAction::triggered, this, &Qt_Chess::onCheckForUpdatesClicked);
+    helpMenu->addAction(checkUpdateAction);
 }
 
 void Qt_Chess::updateSquareColor(int displayRow, int displayCol) {
@@ -4582,4 +4600,68 @@ void Qt_Chess::setBackgroundMusicVolume(int volume) {
     if (m_audioOutput) {
         m_audioOutput->setVolume(m_bgmVolume / 100.0);
     }
+}
+
+void Qt_Chess::onCheckForUpdatesClicked() {
+    // 顯示檢查中訊息
+    QMessageBox* checkingBox = new QMessageBox(this);
+    checkingBox->setWindowTitle("檢查更新");
+    checkingBox->setText("正在檢查更新...");
+    checkingBox->setStandardButtons(QMessageBox::NoButton);
+    checkingBox->setModal(false);
+    checkingBox->show();
+    
+    // 開始檢查更新
+    m_updateChecker->checkForUpdates();
+    
+    // 當檢查完成時關閉訊息框
+    connect(m_updateChecker, &UpdateChecker::updateCheckFinished, checkingBox, [checkingBox]() {
+        checkingBox->close();
+        checkingBox->deleteLater();
+    });
+    connect(m_updateChecker, &UpdateChecker::updateCheckFailed, checkingBox, [checkingBox]() {
+        checkingBox->close();
+        checkingBox->deleteLater();
+    });
+}
+
+void Qt_Chess::onUpdateCheckFinished(bool updateAvailable) {
+    if (updateAvailable) {
+        QString currentVersion = UpdateChecker::getCurrentVersion();
+        QString latestVersion = m_updateChecker->getLatestVersion();
+        QString releaseUrl = m_updateChecker->getReleaseUrl();
+        QString releaseNotes = m_updateChecker->getReleaseNotes();
+        
+        // 建立訊息內容
+        QString message = QString(
+            "發現新版本！\n\n"
+            "目前版本：%1\n"
+            "最新版本：%2\n\n"
+            "更新說明：\n%3\n\n"
+            "是否前往下載頁面？"
+        ).arg(currentVersion, latestVersion, 
+              releaseNotes.isEmpty() ? "無更新說明" : releaseNotes.left(200) + (releaseNotes.length() > 200 ? "..." : ""));
+        
+        QMessageBox msgBox(this);
+        msgBox.setWindowTitle("有可用更新");
+        msgBox.setText(message);
+        msgBox.setIcon(QMessageBox::Information);
+        msgBox.setStandardButtons(QMessageBox::Yes | QMessageBox::No);
+        msgBox.setButtonText(QMessageBox::Yes, "前往下載");
+        msgBox.setButtonText(QMessageBox::No, "稍後再說");
+        
+        int ret = msgBox.exec();
+        if (ret == QMessageBox::Yes) {
+            // 開啟瀏覽器到 GitHub 發行頁面
+            QDesktopServices::openUrl(QUrl(releaseUrl));
+        }
+    } else {
+        QMessageBox::information(this, "已是最新版本", 
+            QString("您目前使用的是最新版本 %1").arg(UpdateChecker::getCurrentVersion()));
+    }
+}
+
+void Qt_Chess::onUpdateCheckFailed(const QString& error) {
+    QMessageBox::warning(this, "檢查更新失敗", 
+        QString("無法檢查更新：%1").arg(error));
 }
