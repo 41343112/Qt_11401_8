@@ -337,5 +337,6 @@ private:
     
     // 更新檢查器
     UpdateChecker* m_updateChecker;      // 更新檢查器
+    bool m_manualUpdateCheck;            // 是否為手動檢查更新
 };
 #endif // QT_CHESS_H

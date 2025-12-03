@@ -228,6 +228,7 @@ Qt_Chess::Qt_Chess(QWidget *parent)
     , m_scaleAnimation(nullptr)
     , m_opacityEffect(nullptr)
     , m_updateChecker(nullptr)
+    , m_manualUpdateCheck(false)
 {
     ui->setupUi(this);
     setWindowTitle("♔ 國際象棋 - 科技對弈 ♚");
@@ -267,6 +268,11 @@ Qt_Chess::Qt_Chess(QWidget *parent)
             this, &Qt_Chess::onUpdateCheckFinished);
     connect(m_updateChecker, &UpdateChecker::updateCheckFailed, 
             this, &Qt_Chess::onUpdateCheckFailed);
+    
+    // 啟動後自動檢查更新（延遲3秒以免干擾啟動動畫）
+    QTimer::singleShot(3000, this, [this]() {
+        m_updateChecker->checkForUpdates();
+    });
     
     // 在視窗顯示後播放啟動動畫
     QTimer::singleShot(100, this, &Qt_Chess::playStartupAnimation);
@@ -4603,6 +4609,9 @@ void Qt_Chess::setBackgroundMusicVolume(int volume) {
 }
 
 void Qt_Chess::onCheckForUpdatesClicked() {
+    // 標記為手動檢查
+    m_manualUpdateCheck = true;
+    
     // 顯示檢查中訊息
     QMessageBox* checkingBox = new QMessageBox(this);
     checkingBox->setWindowTitle("檢查更新");
@@ -4655,13 +4664,23 @@ void Qt_Chess::onUpdateCheckFinished(bool updateAvailable) {
             // 開啟瀏覽器到 GitHub 發行頁面
             QDesktopServices::openUrl(QUrl(releaseUrl));
         }
-    } else {
+    } else if (m_manualUpdateCheck) {
+        // 只有在手動檢查時才顯示「已是最新版本」訊息
         QMessageBox::information(this, "已是最新版本", 
             QString("您目前使用的是最新版本 %1").arg(UpdateChecker::getCurrentVersion()));
     }
+    
+    // 重設手動檢查標記
+    m_manualUpdateCheck = false;
 }
 
 void Qt_Chess::onUpdateCheckFailed(const QString& error) {
-    QMessageBox::warning(this, "檢查更新失敗", 
-        QString("無法檢查更新：%1").arg(error));
+    // 只有在手動檢查時才顯示錯誤訊息
+    if (m_manualUpdateCheck) {
+        QMessageBox::warning(this, "檢查更新失敗", 
+            QString("無法檢查更新：%1").arg(error));
+    }
+    
+    // 重設手動檢查標記
+    m_manualUpdateCheck = false;
 }
