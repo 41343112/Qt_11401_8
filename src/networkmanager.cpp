@@ -340,6 +340,18 @@ void NetworkManager::processMessage(const QJsonObject& message)
             int incrementMs = message["incrementMs"].toInt();
             QString hostColorStr = message["hostColor"].toString();
             PieceColor hostColor = (hostColorStr == "White") ? PieceColor::White : PieceColor::Black;
+            
+            // 根據房主的顏色選擇更新玩家顏色
+            if (m_role == NetworkRole::Server) {
+                // 房主：使用自己選擇的顏色
+                m_playerColor = hostColor;
+                m_opponentColor = (hostColor == PieceColor::White) ? PieceColor::Black : PieceColor::White;
+            } else if (m_role == NetworkRole::Client) {
+                // 房客：使用與房主相反的顏色
+                m_playerColor = (hostColor == PieceColor::White) ? PieceColor::Black : PieceColor::White;
+                m_opponentColor = hostColor;
+            }
+            
             emit startGameReceived(whiteTimeMs, blackTimeMs, incrementMs, hostColor);
         }
         break;
