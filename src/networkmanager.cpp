@@ -157,13 +157,14 @@ void NetworkManager::sendGameStart(PieceColor playerColor)
     sendMessage(message);
 }
 
-void NetworkManager::sendStartGame(int whiteTimeMs, int blackTimeMs, int incrementMs)
+void NetworkManager::sendStartGame(int whiteTimeMs, int blackTimeMs, int incrementMs, PieceColor hostColor)
 {
     QJsonObject message;
     message["type"] = messageTypeToString(MessageType::StartGame);
     message["whiteTimeMs"] = whiteTimeMs;
     message["blackTimeMs"] = blackTimeMs;
     message["incrementMs"] = incrementMs;
+    message["hostColor"] = (hostColor == PieceColor::White) ? "White" : "Black";
     sendMessage(message);
 }
 
@@ -332,12 +333,14 @@ void NetworkManager::processMessage(const QJsonObject& message)
     }
     
     case MessageType::StartGame:
-        // 收到房主的開始遊戲通知（包含時間設定）
+        // 收到房主的開始遊戲通知（包含時間設定和顏色選擇）
         {
             int whiteTimeMs = message["whiteTimeMs"].toInt();
             int blackTimeMs = message["blackTimeMs"].toInt();
             int incrementMs = message["incrementMs"].toInt();
-            emit startGameReceived(whiteTimeMs, blackTimeMs, incrementMs);
+            QString hostColorStr = message["hostColor"].toString();
+            PieceColor hostColor = (hostColorStr == "White") ? PieceColor::White : PieceColor::Black;
+            emit startGameReceived(whiteTimeMs, blackTimeMs, incrementMs, hostColor);
         }
         break;
     

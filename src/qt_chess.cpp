@@ -224,6 +224,8 @@ Qt_Chess::Qt_Chess(QWidget *parent)
     , m_roomInfoLabel(nullptr)
     , m_isOnlineGame(false)
     , m_waitingForOpponent(false)
+    , m_onlineHostSelectedColor(PieceColor::White)
+    , m_newGameAction(nullptr)
     , m_bgmPlayer(nullptr)
     , m_bgmEnabled(true)
     , m_bgmVolume(30)
@@ -657,9 +659,9 @@ void Qt_Chess::setupMenuBar() {
     QMenu* gameMenu = m_menuBar->addMenu("🎮 遊戲");
 
     // 新遊戲動作
-    QAction* newGameAction = new QAction("🔄 新遊戲", this);
-    connect(newGameAction, &QAction::triggered, this, &Qt_Chess::onNewGameClicked);
-    gameMenu->addAction(newGameAction);
+    m_newGameAction = new QAction("🔄 新遊戲", this);
+    connect(m_newGameAction, &QAction::triggered, this, &Qt_Chess::onNewGameClicked);
+    gameMenu->addAction(m_newGameAction);
 
     gameMenu->addSeparator();
 
@@ -1124,7 +1126,7 @@ void Qt_Chess::onStartButtonClicked() {
             incrementMs = m_incrementSlider->value() * 1000;  // 轉換為毫秒
         }
         
-        m_networkManager->sendStartGame(whiteTimeMs, blackTimeMs, incrementMs);
+        m_networkManager->sendStartGame(whiteTimeMs, blackTimeMs, incrementMs, m_onlineHostSelectedColor);
         
         // 暫時設定 m_gameStarted 為 false，等待對手處理 StartGame 訊息
         // 延遲 200ms 後才允許房主走棋，確保對手已準備好接收移動
@@ -3979,42 +3981,65 @@ void Qt_Chess::onComputerModeClicked() {
 
 void Qt_Chess::onWhiteColorClicked() {
     m_isRandomColorSelected = false;  // 清除隨機選擇標記
-    m_currentGameMode = GameMode::HumanVsComputer;
-    updateGameModeUI();
     
-    if (m_chessEngine) {
-        m_chessEngine->setGameMode(m_currentGameMode);
+    // 線上模式：記錄房主選擇的顏色
+    if (m_isOnlineGame) {
+        m_onlineHostSelectedColor = PieceColor::White;
+    } else {
+        // 電腦模式
+        m_currentGameMode = GameMode::HumanVsComputer;
+        updateGameModeUI();
+        
+        if (m_chessEngine) {
+            m_chessEngine->setGameMode(m_currentGameMode);
+        }
+        saveEngineSettings();
     }
-    saveEngineSettings();
 }
 
 void Qt_Chess::onRandomColorClicked() {
     // 設定隨機選擇標記
     m_isRandomColorSelected = true;
     
-    // 隨機選擇執白或執黑
-    if (QRandomGenerator::global()->bounded(2) == 0) {
-        m_currentGameMode = GameMode::HumanVsComputer;
+    // 線上模式：隨機選擇顏色
+    if (m_isOnlineGame) {
+        if (QRandomGenerator::global()->bounded(2) == 0) {
+            m_onlineHostSelectedColor = PieceColor::White;
+        } else {
+            m_onlineHostSelectedColor = PieceColor::Black;
+        }
     } else {
-        m_currentGameMode = GameMode::ComputerVsHuman;
+        // 電腦模式：隨機選擇執白或執黑
+        if (QRandomGenerator::global()->bounded(2) == 0) {
+            m_currentGameMode = GameMode::HumanVsComputer;
+        } else {
+            m_currentGameMode = GameMode::ComputerVsHuman;
+        }
+        updateGameModeUI();
+        
+        if (m_chessEngine) {
+            m_chessEngine->setGameMode(m_currentGameMode);
+        }
+        saveEngineSettings();
     }
-    updateGameModeUI();
-    
-    if (m_chessEngine) {
-        m_chessEngine->setGameMode(m_currentGameMode);
-    }
-    saveEngineSettings();
 }
 
 void Qt_Chess::onBlackColorClicked() {
     m_isRandomColorSelected = false;  // 清除隨機選擇標記
-    m_currentGameMode = GameMode::ComputerVsHuman;
-    updateGameModeUI();
     
-    if (m_chessEngine) {
-        m_chessEngine->setGameMode(m_currentGameMode);
+    // 線上模式：記錄房主選擇的顏色
+    if (m_isOnlineGame) {
+        m_onlineHostSelectedColor = PieceColor::Black;
+    } else {
+        // 電腦模式
+        m_currentGameMode = GameMode::ComputerVsHuman;
+        updateGameModeUI();
+        
+        if (m_chessEngine) {
+            m_chessEngine->setGameMode(m_currentGameMode);
+        }
+        saveEngineSettings();
     }
-    saveEngineSettings();
 }
 
 void Qt_Chess::updateGameModeUI() {
@@ -4904,8 +4929,7 @@ void Qt_Chess::onOnlineModeClicked() {
     m_humanModeButton->setChecked(false);
     m_computerModeButton->setChecked(false);
     
-    // 隱藏電腦模式相關UI
-    m_colorSelectionWidget->hide();
+    // 隱藏電腦模式相關UI（但保留顏色選擇widget用於線上模式）
     m_difficultyLabel->hide();
     m_difficultyValueLabel->hide();
     m_difficultySlider->hide();
@@ -4931,6 +4955,16 @@ void Qt_Chess::onOnlineModeClicked() {
                 m_connectionStatusLabel->setText("🔄 等待對手加入...");
                 m_connectionStatusLabel->show();
                 m_roomInfoLabel->show();
+                
+                // 顯示顏色選擇widget讓房主選擇要執的顏色
+                if (m_colorSelectionWidget) {
+                    m_colorSelectionWidget->show();
+                }
+                
+                // 停用新遊戲功能
+                if (m_newGameAction) {
+                    m_newGameAction->setEnabled(false);
+                }
                 
                 // 修改開始按鈕為取消功能（紅色）
                 if (m_startButton) {
@@ -4982,6 +5016,16 @@ void Qt_Chess::onOnlineModeClicked() {
                 m_connectionStatusLabel->setText("🔄 正在連接...");
                 m_connectionStatusLabel->show();
                 
+                // 房客不顯示顏色選擇widget
+                if (m_colorSelectionWidget) {
+                    m_colorSelectionWidget->hide();
+                }
+                
+                // 停用新遊戲功能
+                if (m_newGameAction) {
+                    m_newGameAction->setEnabled(false);
+                }
+                
                 // 修改開始按鈕為取消功能（紅色）
                 if (m_startButton) {
                     m_startButton->setText("✗ 取消連接");
@@ -5028,6 +5072,17 @@ void Qt_Chess::onNetworkDisconnected() {
     m_connectionStatusLabel->setText("❌ 已斷線");
     m_isOnlineGame = false;
     m_waitingForOpponent = false;
+    
+    // 恢復新遊戲功能
+    if (m_newGameAction) {
+        m_newGameAction->setEnabled(true);
+    }
+    
+    // 隱藏顏色選擇widget
+    if (m_colorSelectionWidget) {
+        m_colorSelectionWidget->hide();
+    }
+    
     updateConnectionStatus();
 }
 
@@ -5320,6 +5375,16 @@ void Qt_Chess::onCancelRoomClicked() {
         if (m_blackTimeLimitSlider) m_blackTimeLimitSlider->setEnabled(true);
         if (m_incrementSlider) m_incrementSlider->setEnabled(true);
         
+        // 恢復新遊戲功能
+        if (m_newGameAction) {
+            m_newGameAction->setEnabled(true);
+        }
+        
+        // 隱藏顏色選擇widget
+        if (m_colorSelectionWidget) {
+            m_colorSelectionWidget->hide();
+        }
+        
         // 返回雙人模式
         m_onlineModeButton->setChecked(false);
         m_humanModeButton->setChecked(true);
@@ -5395,6 +5460,16 @@ void Qt_Chess::onExitRoomClicked() {
         if (m_blackTimeLimitSlider) m_blackTimeLimitSlider->setEnabled(true);
         if (m_incrementSlider) m_incrementSlider->setEnabled(true);
         
+        // 恢復新遊戲功能
+        if (m_newGameAction) {
+            m_newGameAction->setEnabled(true);
+        }
+        
+        // 隱藏顏色選擇widget
+        if (m_colorSelectionWidget) {
+            m_colorSelectionWidget->hide();
+        }
+        
         // 返回雙人模式
         if (m_onlineModeButton) m_onlineModeButton->setChecked(false);
         if (m_humanModeButton) m_humanModeButton->setChecked(true);
@@ -5418,7 +5493,7 @@ void Qt_Chess::onExitRoomClicked() {
     }
 }
 
-void Qt_Chess::onStartGameReceived(int whiteTimeMs, int blackTimeMs, int incrementMs) {
+void Qt_Chess::onStartGameReceived(int whiteTimeMs, int blackTimeMs, int incrementMs, PieceColor hostColor) {
     // 收到房主的開始遊戲通知，設定時間後客戶端自動開始遊戲
     
     // 設定時間值（房主設定的時間）
@@ -5461,9 +5536,16 @@ void Qt_Chess::onStartGameReceived(int whiteTimeMs, int blackTimeMs, int increme
         m_chessEngine->newGame();
     }
     
-    // 房客（執黑棋）自動翻轉棋盤
+    // 根據房主選擇的顏色決定棋盤翻轉
+    // 如果房主選擇黑色，則房主的棋盤翻轉，房客的棋盤不翻轉
+    // 如果房主選擇白色，則房主的棋盤不翻轉，房客的棋盤翻轉
     if (m_networkManager && m_networkManager->getRole() == NetworkRole::Client) {
-        m_isBoardFlipped = true;
+        // 房客的棋盤翻轉與房主相反
+        m_isBoardFlipped = (hostColor == PieceColor::White);
+        saveBoardFlipSettings();
+    } else if (m_networkManager && m_networkManager->getRole() == NetworkRole::Server) {
+        // 房主根據自己的選擇決定是否翻轉（執黑則翻轉）
+        m_isBoardFlipped = (hostColor == PieceColor::Black);
         saveBoardFlipSettings();
     }
     

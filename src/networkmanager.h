@@ -61,7 +61,7 @@ public:
     // 遊戲同步
     void sendMove(const QPoint& from, const QPoint& to, PieceType promotionType = PieceType::None);
     void sendGameStart(PieceColor playerColor);
-    void sendStartGame(int whiteTimeMs, int blackTimeMs, int incrementMs);  // 房主通知開始遊戲（包含時間設定）
+    void sendStartGame(int whiteTimeMs, int blackTimeMs, int incrementMs, PieceColor hostColor);  // 房主通知開始遊戲（包含時間設定和顏色選擇）
     void sendTimeSettings(int whiteTimeMs, int blackTimeMs, int incrementMs);  // 房主發送時間設定更新
     void sendSurrender();  // 發送投降訊息
     void sendGameOver(const QString& result);
@@ -79,7 +79,7 @@ signals:
     void opponentJoined();
     void opponentMove(const QPoint& from, const QPoint& to, PieceType promotionType);
     void gameStartReceived(PieceColor playerColor);
-    void startGameReceived(int whiteTimeMs, int blackTimeMs, int incrementMs);  // 收到開始遊戲通知（包含時間設定）
+    void startGameReceived(int whiteTimeMs, int blackTimeMs, int incrementMs, PieceColor hostColor);  // 收到開始遊戲通知（包含時間設定和房主顏色）
     void timeSettingsReceived(int whiteTimeMs, int blackTimeMs, int incrementMs);  // 收到時間設定更新
     void surrenderReceived();  // 收到投降訊息
     void gameOverReceived(const QString& result);

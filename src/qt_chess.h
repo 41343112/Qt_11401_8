@@ -112,6 +112,8 @@ private:
     QLabel* m_roomInfoLabel;             // 房間資訊標籤
     bool m_isOnlineGame;                 // 是否為線上對戰
     bool m_waitingForOpponent;           // 等待對手
+    PieceColor m_onlineHostSelectedColor;  // 房主選擇的顏色（線上模式）
+    QAction* m_newGameAction;            // 新遊戲動作（用於啟用/停用）
     
     // 背景音樂
     QMediaPlayer* m_bgmPlayer;
@@ -322,7 +324,7 @@ private:
     void onOpponentJoined();             // 對手加入
     void onOpponentMove(const QPoint& from, const QPoint& to, PieceType promotionType);  // 對手移動
     void onGameStartReceived(PieceColor playerColor);  // 遊戲開始
-    void onStartGameReceived(int whiteTimeMs, int blackTimeMs, int incrementMs);  // 收到開始遊戲通知（包含時間設定）
+    void onStartGameReceived(int whiteTimeMs, int blackTimeMs, int incrementMs, PieceColor hostColor);  // 收到開始遊戲通知（包含時間設定和房主顏色）
     void onTimeSettingsReceived(int whiteTimeMs, int blackTimeMs, int incrementMs);  // 收到時間設定更新
     void onSurrenderReceived();          // 收到投降訊息
     void onOpponentDisconnected();       // 對手斷線
