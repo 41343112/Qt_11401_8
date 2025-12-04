@@ -5297,9 +5297,22 @@ void Qt_Chess::onExitRoomClicked() {
         QMessageBox::Yes | QMessageBox::No);
     
     if (response == QMessageBox::Yes) {
+        // 首先停止計時器，避免計時器在清理過程中觸發
+        stopTimer();
+        m_timerStarted = false;
+        
+        // 設定標記，表示正在退出線上模式
+        bool wasOnlineGame = m_isOnlineGame;
+        
         // 關閉網路連線（會自動通知對手）
         if (m_networkManager) {
             m_networkManager->closeConnection();
+            
+            // 等待網路完全關閉（給予短暫時間處理斷線訊息）
+            // 這可以避免在處理對手的最後訊息時訪問已重置的變數
+            QEventLoop loop;
+            QTimer::singleShot(100, &loop, &QEventLoop::quit);
+            loop.exec();
         }
         
         // 重置線上模式狀態
@@ -5361,8 +5374,11 @@ void Qt_Chess::onExitRoomClicked() {
         if (m_humanModeButton) m_humanModeButton->setChecked(true);
         m_currentGameMode = GameMode::HumanVsHuman;
         
-        // 開始新遊戲
-        onNewGameClicked();
+        // 只有在確實是線上遊戲時才重置棋盤
+        // 確保在網路完全斷開後才重置遊戲，避免崩潰
+        if (wasOnlineGame) {
+            onNewGameClicked();
+        }
         
         QMessageBox::information(this, "已退出", "已退出線上對戰，返回雙人模式");
     }
