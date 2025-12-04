@@ -167,6 +167,16 @@ void NetworkManager::sendStartGame(int whiteTimeMs, int blackTimeMs, int increme
     sendMessage(message);
 }
 
+void NetworkManager::sendTimeSettings(int whiteTimeMs, int blackTimeMs, int incrementMs)
+{
+    QJsonObject message;
+    message["type"] = messageTypeToString(MessageType::TimeSettings);
+    message["whiteTimeMs"] = whiteTimeMs;
+    message["blackTimeMs"] = blackTimeMs;
+    message["incrementMs"] = incrementMs;
+    sendMessage(message);
+}
+
 void NetworkManager::sendSurrender()
 {
     QJsonObject message;
@@ -331,6 +341,16 @@ void NetworkManager::processMessage(const QJsonObject& message)
         }
         break;
     
+    case MessageType::TimeSettings:
+        // 收到房主的時間設定更新
+        {
+            int whiteTimeMs = message["whiteTimeMs"].toInt();
+            int blackTimeMs = message["blackTimeMs"].toInt();
+            int incrementMs = message["incrementMs"].toInt();
+            emit timeSettingsReceived(whiteTimeMs, blackTimeMs, incrementMs);
+        }
+        break;
+    
     case MessageType::Surrender:
         // 收到對手投降訊息
         emit surrenderReceived();
@@ -387,6 +407,7 @@ MessageType NetworkManager::stringToMessageType(const QString& type) const
         {"JoinRejected", MessageType::JoinRejected},
         {"GameStart", MessageType::GameStart},
         {"StartGame", MessageType::StartGame},
+        {"TimeSettings", MessageType::TimeSettings},
         {"Move", MessageType::Move},
         {"GameOver", MessageType::GameOver},
         {"Surrender", MessageType::Surrender},
@@ -408,6 +429,7 @@ QString NetworkManager::messageTypeToString(MessageType type) const
         {MessageType::JoinRejected, "JoinRejected"},
         {MessageType::GameStart, "GameStart"},
         {MessageType::StartGame, "StartGame"},
+        {MessageType::TimeSettings, "TimeSettings"},
         {MessageType::Move, "Move"},
         {MessageType::GameOver, "GameOver"},
         {MessageType::Surrender, "Surrender"},

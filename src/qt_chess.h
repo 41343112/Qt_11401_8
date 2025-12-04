@@ -323,6 +323,7 @@ private:
     void onOpponentMove(const QPoint& from, const QPoint& to, PieceType promotionType);  // 對手移動
     void onGameStartReceived(PieceColor playerColor);  // 遊戲開始
     void onStartGameReceived(int whiteTimeMs, int blackTimeMs, int incrementMs);  // 收到開始遊戲通知（包含時間設定）
+    void onTimeSettingsReceived(int whiteTimeMs, int blackTimeMs, int incrementMs);  // 收到時間設定更新
     void onSurrenderReceived();          // 收到投降訊息
     void onOpponentDisconnected();       // 對手斷線
     void onCancelRoomClicked();          // 取消房間

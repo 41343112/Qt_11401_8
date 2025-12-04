@@ -2693,6 +2693,13 @@ void Qt_Chess::onWhiteTimeLimitChanged(int value) {
 
     updateTimeDisplays();
     saveTimeControlSettings();
+    
+    // 如果是線上模式且是房主，並且對手已加入，發送時間設定更新
+    if (m_isOnlineGame && m_networkManager && 
+        m_networkManager->getRole() == NetworkRole::Server && 
+        m_networkManager->getStatus() == ConnectionStatus::Connected) {
+        m_networkManager->sendTimeSettings(m_whiteTimeMs, m_blackTimeMs, m_incrementMs);
+    }
 }
 
 void Qt_Chess::onBlackTimeLimitChanged(int value) {
@@ -2713,6 +2720,13 @@ void Qt_Chess::onBlackTimeLimitChanged(int value) {
 
     updateTimeDisplays();
     saveTimeControlSettings();
+    
+    // 如果是線上模式且是房主，並且對手已加入，發送時間設定更新
+    if (m_isOnlineGame && m_networkManager && 
+        m_networkManager->getRole() == NetworkRole::Server && 
+        m_networkManager->getStatus() == ConnectionStatus::Connected) {
+        m_networkManager->sendTimeSettings(m_whiteTimeMs, m_blackTimeMs, m_incrementMs);
+    }
 }
 
 void Qt_Chess::updateTimeDisplays() {
@@ -2818,6 +2832,13 @@ void Qt_Chess::onIncrementChanged(int value) {
     m_incrementMs = value * 1000;
     m_incrementLabel->setText(QString("%1秒").arg(value));
     saveTimeControlSettings();
+    
+    // 如果是線上模式且是房主，並且對手已加入，發送時間設定更新
+    if (m_isOnlineGame && m_networkManager && 
+        m_networkManager->getRole() == NetworkRole::Server && 
+        m_networkManager->getStatus() == ConnectionStatus::Connected) {
+        m_networkManager->sendTimeSettings(m_whiteTimeMs, m_blackTimeMs, m_incrementMs);
+    }
 }
 
 void Qt_Chess::onGameTimerTick() {
@@ -4861,6 +4882,7 @@ void Qt_Chess::initializeNetwork() {
     connect(m_networkManager, &NetworkManager::opponentMove, this, &Qt_Chess::onOpponentMove);
     connect(m_networkManager, &NetworkManager::gameStartReceived, this, &Qt_Chess::onGameStartReceived);
     connect(m_networkManager, &NetworkManager::startGameReceived, this, &Qt_Chess::onStartGameReceived);
+    connect(m_networkManager, &NetworkManager::timeSettingsReceived, this, &Qt_Chess::onTimeSettingsReceived);
     connect(m_networkManager, &NetworkManager::surrenderReceived, this, &Qt_Chess::onSurrenderReceived);
     connect(m_networkManager, &NetworkManager::opponentDisconnected, this, &Qt_Chess::onOpponentDisconnected);
 }
@@ -5521,6 +5543,56 @@ void Qt_Chess::onStartGameReceived(int whiteTimeMs, int blackTimeMs, int increme
     clearHighlights();
     
     QMessageBox::information(this, "遊戲開始", "對手已開始遊戲！");
+}
+
+void Qt_Chess::onTimeSettingsReceived(int whiteTimeMs, int blackTimeMs, int incrementMs) {
+    // 房客收到房主的時間設定更新
+    // 只有房客才需要更新（房主自己已經設定好了）
+    if (m_networkManager && m_networkManager->getRole() == NetworkRole::Client) {
+        // 更新時間變數
+        m_whiteTimeMs = whiteTimeMs;
+        m_blackTimeMs = blackTimeMs;
+        m_whiteInitialTimeMs = whiteTimeMs;
+        m_blackInitialTimeMs = blackTimeMs;
+        
+        // 更新增量
+        m_incrementMs = incrementMs;
+        
+        // 更新時間控制啟用狀態
+        m_timeControlEnabled = (whiteTimeMs > 0 || blackTimeMs > 0);
+        
+        // 更新滑桿顯示（僅用於顯示，房客的滑桿已被停用）
+        if (m_incrementSlider && m_incrementLabel) {
+            m_incrementSlider->blockSignals(true);
+            m_incrementSlider->setValue(incrementMs / 1000);
+            m_incrementLabel->setText(QString("%1秒").arg(incrementMs / 1000));
+            m_incrementSlider->blockSignals(false);
+        }
+        
+        // 更新時間顯示標籤
+        if (m_whiteTimeLimitLabel) {
+            int minutes = whiteTimeMs / 60000;
+            if (minutes == 0) {
+                m_whiteTimeLimitLabel->setText("無限制");
+            } else {
+                m_whiteTimeLimitLabel->setText(QString("%1分鐘").arg(minutes));
+            }
+        }
+        
+        if (m_blackTimeLimitLabel) {
+            int minutes = blackTimeMs / 60000;
+            if (minutes == 0) {
+                m_blackTimeLimitLabel->setText("無限制");
+            } else {
+                m_blackTimeLimitLabel->setText(QString("%1分鐘").arg(minutes));
+            }
+        }
+        
+        // 如果遊戲尚未開始，更新時間顯示
+        if (!m_gameStarted) {
+            updateTimeDisplays();
+        }
+    }
 }
 
 void Qt_Chess::onSurrenderReceived() {
