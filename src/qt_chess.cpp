@@ -1145,7 +1145,7 @@ void Qt_Chess::onStartButtonClicked() {
     // 當玩家執黑時（ComputerVsHuman 或 線上模式中房主執黑），棋盤應該翻轉使黑棋在下方
     GameMode mode = getCurrentGameMode();
     bool shouldFlip = (mode == GameMode::ComputerVsHuman) || 
-                      (mode == GameMode::OnlineGame && m_isOnlineGame && 
+                      (mode == GameMode::OnlineGame && 
                        m_networkManager && m_networkManager->getRole() == NetworkRole::Server &&
                        m_onlineHostSelectedColor == PieceColor::Black);
     if (m_isBoardFlipped != shouldFlip) {
