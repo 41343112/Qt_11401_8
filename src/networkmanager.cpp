@@ -94,11 +94,20 @@ void NetworkManager::closeConnection()
         QJsonObject message;
         message["type"] = messageTypeToString(MessageType::PlayerDisconnected);
         sendMessage(message);
+        
+        // 確保訊息發送完成
+        if (m_clientSocket) {
+            m_clientSocket->flush();
+        }
+        if (m_socket) {
+            m_socket->flush();
+        }
     }
     
+    // 先關閉並刪除 server，確保不再接受新連接
     if (m_server) {
         m_server->close();
-        delete m_server;
+        m_server->deleteLater();  // 使用 deleteLater 確保安全刪除
         m_server = nullptr;
     }
     
