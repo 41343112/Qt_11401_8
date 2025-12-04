@@ -89,6 +89,13 @@ bool NetworkManager::joinRoom(const QString& hostAddress, quint16 port)
 
 void NetworkManager::closeConnection()
 {
+    // 發送斷線通知（如果有連接）
+    if (m_clientSocket || m_socket) {
+        QJsonObject message;
+        message["type"] = messageTypeToString(MessageType::Disconnect);
+        sendMessage(message);
+    }
+    
     if (m_server) {
         m_server->close();
         delete m_server;
@@ -107,10 +114,13 @@ void NetworkManager::closeConnection()
         m_socket = nullptr;
     }
     
+    // 完整重置所有狀態
     m_role = NetworkRole::None;
     m_status = ConnectionStatus::Disconnected;
     m_roomNumber.clear();
     m_port = 0;
+    m_playerColor = PieceColor::None;      // 重置玩家顏色
+    m_opponentColor = PieceColor::None;    // 重置對手顏色
 }
 
 void NetworkManager::sendMove(const QPoint& from, const QPoint& to, PieceType promotionType)
