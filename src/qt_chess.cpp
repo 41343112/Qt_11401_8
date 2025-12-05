@@ -6048,7 +6048,7 @@ void Qt_Chess::showRoomInfoDialog(const QString& roomNumber, quint16 port) {
         tr("<p><b>詳細資訊：</b><br>"
            "房間號碼：<span style='color: #2196F3; font-weight: bold;'>%1</span><br>"
            "本機IP地址：<span style='color: #2196F3; font-weight: bold;'>%2</span><br>"
-           "端口：<span style='color: #2196F3; font-weight: bold;'>%3</span></p>").arg(roomNumber).arg(localIP).arg(port), &dialog);
+           "端口：<span style='color: #2196F3; font-weight: bold;'>%3</span></p>").arg(roomNumber, localIP, QString::number(port)), &dialog);
     detailLabel->setWordWrap(true);
     detailLabel->setStyleSheet("QLabel { padding: 10px; background-color: #f5f5f5; border-radius: 5px; }");
     layout->addWidget(detailLabel);
