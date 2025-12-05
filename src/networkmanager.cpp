@@ -13,23 +13,37 @@ static const int MAX_ROOM_NUMBER = 9999;
 static const int PORT_BASE = 10000;
 static const int MIN_AUTO_PORT = 10000;
 static const int MAX_AUTO_PORT = 20000;
+static const quint16 DISCOVERY_PORT = 45678;  // UDP 探索端口
+static const int DISCOVERY_TIMEOUT_MS = 3000;  // 探索超時時間（3秒）
 
 NetworkManager::NetworkManager(QObject *parent)
     : QObject(parent)
     , m_server(nullptr)
     , m_socket(nullptr)
     , m_clientSocket(nullptr)
+    , m_discoverySocket(nullptr)
+    , m_discoveryTimer(nullptr)
     , m_role(NetworkRole::None)
     , m_status(ConnectionStatus::Disconnected)
     , m_port(0)
     , m_playerColor(PieceColor::None)
     , m_opponentColor(PieceColor::None)
 {
+    // 初始化 UDP 探索套接字
+    m_discoverySocket = new QUdpSocket(this);
+    m_discoverySocket->bind(QHostAddress::Any, DISCOVERY_PORT, QUdpSocket::ShareAddress | QUdpSocket::ReuseAddressHint);
+    connect(m_discoverySocket, &QUdpSocket::readyRead, this, &NetworkManager::onDiscoveryReadyRead);
+    
+    // 初始化探索超時計時器
+    m_discoveryTimer = new QTimer(this);
+    m_discoveryTimer->setSingleShot(true);
+    connect(m_discoveryTimer, &QTimer::timeout, this, &NetworkManager::onDiscoveryTimeout);
 }
 
 NetworkManager::~NetworkManager()
 {
     closeConnection();
+    stopDiscovery();
 }
 
 bool NetworkManager::createRoom(quint16 port)
@@ -490,4 +504,143 @@ QTcpSocket* NetworkManager::getActiveSocket() const
     } else {
         return m_socket;
     }
+}
+
+// UDP 探索相關實現
+bool NetworkManager::discoverAndJoinRoom(const QString& roomNumber)
+{
+    if (m_status != ConnectionStatus::Disconnected) {
+        return false;
+    }
+    
+    qDebug() << "[NetworkManager::discoverAndJoinRoom] Discovering room:" << roomNumber;
+    
+    m_searchingRoomNumber = roomNumber;
+    m_status = ConnectionStatus::Connecting;
+    
+    // 發送探索請求
+    sendDiscoveryRequest(roomNumber);
+    
+    // 啟動超時計時器
+    m_discoveryTimer->start(DISCOVERY_TIMEOUT_MS);
+    
+    return true;
+}
+
+void NetworkManager::sendDiscoveryRequest(const QString& roomNumber)
+{
+    QJsonObject request;
+    request["type"] = "DISCOVER_ROOM";
+    request["roomNumber"] = roomNumber;
+    
+    QJsonDocument doc(request);
+    QByteArray data = doc.toJson(QJsonDocument::Compact);
+    
+    // 發送廣播到本地網路
+    m_discoverySocket->writeDatagram(data, QHostAddress::Broadcast, DISCOVERY_PORT);
+    
+    qDebug() << "[NetworkManager::sendDiscoveryRequest] Sent discovery request for room:" << roomNumber;
+}
+
+void NetworkManager::sendDiscoveryResponse(const QHostAddress& sender, quint16 senderPort)
+{
+    QJsonObject response;
+    response["type"] = "ROOM_FOUND";
+    response["roomNumber"] = m_roomNumber;
+    response["port"] = m_port;
+    
+    QJsonDocument doc(response);
+    QByteArray data = doc.toJson(QJsonDocument::Compact);
+    
+    // 發送回應給請求者
+    m_discoverySocket->writeDatagram(data, sender, senderPort);
+    
+    qDebug() << "[NetworkManager::sendDiscoveryResponse] Sent discovery response to" << sender.toString();
+}
+
+void NetworkManager::onDiscoveryReadyRead()
+{
+    while (m_discoverySocket->hasPendingDatagrams()) {
+        QByteArray datagram;
+        datagram.resize(m_discoverySocket->pendingDatagramSize());
+        
+        QHostAddress sender;
+        quint16 senderPort;
+        
+        m_discoverySocket->readDatagram(datagram.data(), datagram.size(), &sender, &senderPort);
+        
+        QJsonDocument doc = QJsonDocument::fromJson(datagram);
+        if (!doc.isObject()) {
+            continue;
+        }
+        
+        QJsonObject obj = doc.object();
+        QString type = obj["type"].toString();
+        
+        if (type == "DISCOVER_ROOM") {
+            // 收到探索請求
+            QString requestedRoom = obj["roomNumber"].toString();
+            
+            qDebug() << "[NetworkManager::onDiscoveryReadyRead] Received discovery request for room:" << requestedRoom 
+                     << "from" << sender.toString();
+            
+            // 如果是我們的房間，回應
+            if (m_role == NetworkRole::Server && requestedRoom == m_roomNumber) {
+                qDebug() << "[NetworkManager::onDiscoveryReadyRead] Room matches! Sending response.";
+                sendDiscoveryResponse(sender, senderPort);
+            }
+        }
+        else if (type == "ROOM_FOUND") {
+            // 收到房間回應
+            QString foundRoom = obj["roomNumber"].toString();
+            quint16 foundPort = obj["port"].toInt();
+            
+            qDebug() << "[NetworkManager::onDiscoveryReadyRead] Received room found response:"
+                     << "room=" << foundRoom << "port=" << foundPort << "from" << sender.toString();
+            
+            // 如果是我們要找的房間
+            if (foundRoom == m_searchingRoomNumber) {
+                qDebug() << "[NetworkManager::onDiscoveryReadyRead] Found the room we're looking for!";
+                
+                stopDiscovery();
+                
+                // 發送探索成功信號
+                emit roomDiscovered(sender.toString(), foundPort);
+                
+                // 自動連接到找到的房間
+                if (joinRoom(sender.toString(), foundPort)) {
+                    qDebug() << "[NetworkManager::onDiscoveryReadyRead] Joining discovered room...";
+                } else {
+                    qDebug() << "[NetworkManager::onDiscoveryReadyRead] Failed to join discovered room!";
+                    emit connectionError(tr("無法連接到探索到的房間"));
+                }
+            }
+        }
+    }
+}
+
+void NetworkManager::onDiscoveryTimeout()
+{
+    qDebug() << "[NetworkManager::onDiscoveryTimeout] Discovery timeout for room:" << m_searchingRoomNumber;
+    
+    stopDiscovery();
+    m_status = ConnectionStatus::Disconnected;
+    
+    emit connectionError(tr("找不到房號 %1 的房間\n\n請確認：\n1. 房主已創建房間\n2. 雙方在同一WiFi網路\n3. 房號輸入正確").arg(m_searchingRoomNumber));
+}
+
+void NetworkManager::startDiscovery()
+{
+    // 確保 UDP socket 已綁定
+    if (!m_discoverySocket->isOpen()) {
+        m_discoverySocket->bind(QHostAddress::Any, DISCOVERY_PORT, QUdpSocket::ShareAddress | QUdpSocket::ReuseAddressHint);
+    }
+}
+
+void NetworkManager::stopDiscovery()
+{
+    if (m_discoveryTimer->isActive()) {
+        m_discoveryTimer->stop();
+    }
+    m_searchingRoomNumber.clear();
 }

@@ -90,7 +90,7 @@ void OnlineDialog::setupUI()
     m_hostAddressEdit->setPlaceholderText(tr("例如: 192.168.1.100 或 example.com"));
     
     m_roomNumberEdit = new QLineEdit(this);
-    m_roomNumberEdit->setPlaceholderText(tr("4位數字"));
+    m_roomNumberEdit->setPlaceholderText(tr("4位數字（可單獨使用於本地網路）"));
     m_roomNumberEdit->setMaxLength(4);
     QIntValidator* validator = new QIntValidator(1000, 9999, this);
     m_roomNumberEdit->setValidator(validator);
@@ -108,6 +108,7 @@ void OnlineDialog::setupUI()
         tr("💡 <b>簡單說明：</b><br>"
            "• <b>創建房間</b>：系統會給您一個連線碼，複製後傳給朋友<br>"
            "• <b>加入房間</b>：把朋友給的連線碼貼上即可<br>"
+           "• <b>快速加入</b>：如在同一WiFi，直接輸入4位數房號即可<br>"
            "• 房主（創建者）執白棋先走，加入者執黑棋"), this);
     tipLabel->setWordWrap(true);
     tipLabel->setStyleSheet("QLabel { color: #666; font-size: 10pt; padding: 10px; background-color: #f5f5f5; border-radius: 5px; }");
@@ -176,8 +177,22 @@ void OnlineDialog::parseConnectionInfo(const QString& info)
     // 1. IP:房號 格式 (192.168.1.100:1234)
     // 2. IP 房號 格式 (192.168.1.100 1234)
     // 3. 連線碼：IP:房號 格式
+    // 4. 僅房號格式 (1234) - 用於本地網路探索
     
     QString text = info.trimmed();
+    
+    // 檢查是否僅為4位數字（房號）
+    if (text.length() == 4) {
+        bool ok;
+        int roomNum = text.toInt(&ok);
+        if (ok && roomNum >= 1000 && roomNum <= 9999) {
+            m_hostAddressEdit->clear();  // 清空IP，表示使用探索模式
+            m_roomNumberEdit->setText(text);
+            QMessageBox::information(this, tr("房號模式"), 
+                tr("已填入房號：%1\n\n系統將在本地網路中搜尋此房間").arg(text));
+            return;
+        }
+    }
     
     // 移除可能的前綴文字
     if (text.contains("連線碼") || text.contains("Connection")) {
@@ -214,7 +229,7 @@ void OnlineDialog::parseConnectionInfo(const QString& info)
     }
     
     QMessageBox::warning(this, tr("格式錯誤"), 
-        tr("無法識別連線碼格式\n\n正確格式範例：\n192.168.1.100:1234\nexample.com:1234\n或\n192.168.1.100 1234"));
+        tr("無法識別連線碼格式\n\n正確格式範例：\n• 192.168.1.100:1234\n• example.com:1234\n• 192.168.1.100 1234\n• 1234（僅房號，本地網路）"));
 }
 
 QString OnlineDialog::getHostAddress() const
@@ -234,4 +249,18 @@ quint16 OnlineDialog::getPort() const
         }
     }
     return 0;
+}
+
+QString OnlineDialog::getRoomNumber() const
+{
+    return m_roomNumberEdit->text().trimmed();
+}
+
+bool OnlineDialog::isRoomNumberOnly() const
+{
+    // 檢查是否只提供了房號，沒有提供IP地址
+    QString hostAddress = m_hostAddressEdit->text().trimmed();
+    QString roomNumber = m_roomNumberEdit->text().trimmed();
+    
+    return hostAddress.isEmpty() && !roomNumber.isEmpty() && roomNumber.length() == 4;
 }

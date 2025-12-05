@@ -28,6 +28,8 @@ public:
     Mode getMode() const { return m_mode; }
     QString getHostAddress() const;
     quint16 getPort() const;
+    QString getRoomNumber() const;  // 取得房號（用於僅房號連線）
+    bool isRoomNumberOnly() const;  // 檢查是否僅提供房號
 
 private slots:
     void onCreateRoomClicked();

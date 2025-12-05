@@ -5128,15 +5128,43 @@ void Qt_Chess::onOnlineModeClicked() {
             // 加入房間
             QString hostAddress = dialog.getHostAddress();
             quint16 port = dialog.getPort();
+            QString roomNumber = dialog.getRoomNumber();
             
-            if (hostAddress.isEmpty() || port == 0) {
-                QMessageBox::warning(this, "輸入錯誤", "請輸入有效的IP地址和房間號碼");
+            // 檢查是否使用房號探索模式（僅提供房號，不提供IP）
+            if (dialog.isRoomNumberOnly()) {
+                // 使用房號探索模式
+                qDebug() << "[Qt_Chess] Room number only mode, discovering room:" << roomNumber;
+                
+                if (m_networkManager->discoverAndJoinRoom(roomNumber)) {
+                    m_currentGameMode = GameMode::OnlineGame;
+                    m_isOnlineGame = true;
+                    
+                    m_connectionStatusLabel->setText(QString("🔍 正在搜尋房號 %1...").arg(roomNumber));
+                    m_connectionStatusLabel->show();
+                    
+                    // 房客不顯示顏色選擇widget
+                    if (m_colorSelectionWidget) {
+                        m_colorSelectionWidget->hide();
+                    }
+                    
+                    // 停用新遊戲功能
+                    if (m_newGameAction) {
+                        m_newGameAction->setEnabled(false);
+                    }
+                } else {
+                    QMessageBox::warning(this, "探索失敗", "無法啟動房間探索");
+                    m_onlineModeButton->setChecked(false);
+                    m_humanModeButton->setChecked(true);
+                    return;
+                }
+            }
+            else if (hostAddress.isEmpty() || port == 0) {
+                QMessageBox::warning(this, "輸入錯誤", "請輸入有效的IP地址和房間號碼，\n或僅輸入房號使用本地網路探索");
                 m_onlineModeButton->setChecked(false);
                 m_humanModeButton->setChecked(true);
                 return;
             }
-            
-            if (m_networkManager->joinRoom(hostAddress, port)) {
+            else if (m_networkManager->joinRoom(hostAddress, port)) {
                 m_currentGameMode = GameMode::OnlineGame;
                 m_isOnlineGame = true;
                 

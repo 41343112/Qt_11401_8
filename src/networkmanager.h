@@ -4,10 +4,12 @@
 #include <QObject>
 #include <QTcpSocket>
 #include <QTcpServer>
+#include <QUdpSocket>
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QString>
 #include <QPoint>
+#include <QTimer>
 #include "chesspiece.h"
 
 enum class NetworkRole {
@@ -51,6 +53,7 @@ public:
     // 房間管理
     bool createRoom(quint16 port = 0);  // 創建房間，返回房號
     bool joinRoom(const QString& hostAddress, quint16 port);
+    bool discoverAndJoinRoom(const QString& roomNumber);  // 使用房號探索並加入房間（本地網路）
     void closeConnection();
     
     QString getRoomNumber() const { return m_roomNumber; }
@@ -78,6 +81,7 @@ signals:
     void disconnected();
     void connectionError(const QString& error);
     void roomCreated(const QString& roomNumber, quint16 port);
+    void roomDiscovered(const QString& hostAddress, quint16 port);  // 探索到房間
     void opponentJoined();
     void opponentMove(const QPoint& from, const QPoint& to, PieceType promotionType);
     void gameStartReceived(PieceColor playerColor);
@@ -95,11 +99,18 @@ private slots:
     void onReadyRead();
     void onError(QAbstractSocket::SocketError socketError);
     void onServerError(QAbstractSocket::SocketError socketError);
+    void onDiscoveryReadyRead();  // UDP 探索訊息接收
+    void onDiscoveryTimeout();     // UDP 探索超時
 
 private:
     QTcpServer* m_server;
     QTcpSocket* m_socket;
     QTcpSocket* m_clientSocket;  // 用於服務器端連接的客戶端套接字
+    
+    // UDP 探索
+    QUdpSocket* m_discoverySocket;
+    QTimer* m_discoveryTimer;
+    QString m_searchingRoomNumber;
     
     NetworkRole m_role;
     ConnectionStatus m_status;
@@ -117,6 +128,12 @@ private:
     MessageType stringToMessageType(const QString& type) const;
     QString messageTypeToString(MessageType type) const;
     QTcpSocket* getActiveSocket() const;
+    
+    // UDP 探索相關
+    void startDiscovery();
+    void stopDiscovery();
+    void sendDiscoveryRequest(const QString& roomNumber);
+    void sendDiscoveryResponse(const QHostAddress& sender, quint16 senderPort);
 };
 
 #endif // NETWORKMANAGER_H
