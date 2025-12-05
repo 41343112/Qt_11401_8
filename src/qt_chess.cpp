@@ -1126,6 +1126,12 @@ void Qt_Chess::onStartButtonClicked() {
             incrementMs = m_incrementSlider->value() * 1000;  // 轉換為毫秒
         }
         
+        // 房主需要在發送開始遊戲訊息前設定自己的玩家顏色
+        // 這樣 isPlayerPiece() 才能正確判斷哪些棋子可以移動
+        if (m_networkManager->getRole() == NetworkRole::Server) {
+            m_networkManager->setPlayerColors(m_onlineHostSelectedColor);
+        }
+        
         m_networkManager->sendStartGame(whiteTimeMs, blackTimeMs, incrementMs, m_onlineHostSelectedColor);
         
         // 暫時設定 m_gameStarted 為 false，等待對手處理 StartGame 訊息
