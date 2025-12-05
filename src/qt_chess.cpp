@@ -5948,10 +5948,10 @@ void Qt_Chess::showRoomInfoDialog(const QString& roomNumber, quint16 port) {
     codeEdit->setStyleSheet("QTextEdit { background-color: #E3F2FD; border: 2px solid #2196F3; border-radius: 5px; padding: 10px; }");
     
     // 自動更新連線碼的函數
-    auto updateConnectionCode = [ipEdit, codeEdit, roomNumber]() {
+    auto updateConnectionCode = [=]() {
         QString ip = ipEdit->text().trimmed();
         if (ip.isEmpty()) {
-            ip = "未知";
+            ip = tr("未知");
         }
         QString connectionCode = QString("%1:%2").arg(ip, roomNumber);
         codeEdit->setPlainText(connectionCode);
