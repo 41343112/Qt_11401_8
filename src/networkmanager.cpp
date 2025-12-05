@@ -122,9 +122,10 @@ void NetworkManager::sendMove(const QPoint& from, const QPoint& to, PieceType pr
         return;
     }
     
+    // 使用伺服器期望的格式
     QJsonObject message;
-    message["type"] = messageTypeToString(MessageType::Move);
-    message["roomNumber"] = m_roomNumber;
+    message["action"] = "move";
+    message["room"] = m_roomNumber;
     message["fromRow"] = from.y();
     message["fromCol"] = from.x();
     message["toRow"] = to.y();
@@ -245,19 +246,18 @@ void NetworkManager::onConnected()
     
     // 根據角色發送相應的請求
     if (m_role == NetworkRole::Host) {
-        // 房主請求創建房間，發送客戶端生成的房號
+        // 房主請求創建房間
         QJsonObject message;
-        message["type"] = messageTypeToString(MessageType::CreateRoom);
-        message["roomNumber"] = m_roomNumber;  // 發送客戶端生成的房號
+        message["action"] = "createRoom";  // 使用伺服器期望的格式
         sendMessage(message);
-        qDebug() << "[NetworkManager] Sent CreateRoom request with room number:" << m_roomNumber;
+        qDebug() << "[NetworkManager] Sent createRoom request";
     } else if (m_role == NetworkRole::Guest) {
         // 加入者請求加入房間
         QJsonObject message;
-        message["type"] = messageTypeToString(MessageType::JoinRoom);
-        message["roomNumber"] = m_roomNumber;
+        message["action"] = "joinRoom";  // 使用伺服器期望的格式
+        message["room"] = m_roomNumber;  // 使用 "room" 而不是 "roomNumber"
         sendMessage(message);
-        qDebug() << "[NetworkManager] Sent JoinRoom request for room:" << m_roomNumber;
+        qDebug() << "[NetworkManager] Sent joinRoom request for room:" << m_roomNumber;
     }
 }
 
@@ -316,17 +316,17 @@ void NetworkManager::sendMessage(const QJsonObject& message)
 
 void NetworkManager::processMessage(const QJsonObject& message)
 {
-    QString typeStr = message["type"].toString();
-    MessageType type = stringToMessageType(typeStr);
+    // 檢查是伺服器格式 (action) 還是舊格式 (type)
+    QString actionStr = message["action"].toString();
     
-    qDebug() << "[NetworkManager::processMessage] Received message:" << typeStr 
+    qDebug() << "[NetworkManager::processMessage] Received message with action:" << actionStr 
              << "| Role:" << (m_role == NetworkRole::Host ? "Host" : "Guest");
     
-    switch (type) {
-    case MessageType::RoomCreated:
-        // 服務器確認創建的房間號（如果服務器返回不同的房號則更新）
+    // 處理伺服器的回應格式
+    if (actionStr == "roomCreated") {
+        // 伺服器確認創建的房間號
         if (m_role == NetworkRole::Host) {
-            QString serverRoomNumber = message["roomNumber"].toString();
+            QString serverRoomNumber = message["room"].toString();
             if (!serverRoomNumber.isEmpty() && serverRoomNumber != m_roomNumber) {
                 qDebug() << "[NetworkManager] Server assigned different room number:" << serverRoomNumber;
                 m_roomNumber = serverRoomNumber;
@@ -335,26 +335,90 @@ void NetworkManager::processMessage(const QJsonObject& message)
                 qDebug() << "[NetworkManager] Room created confirmed with number:" << m_roomNumber;
             }
         }
-        break;
-        
-    case MessageType::JoinAccepted:
+    }
+    else if (actionStr == "joinedRoom") {
         // 加入房間成功
-        qDebug() << "[NetworkManager] Join accepted";
+        qDebug() << "[NetworkManager] Joined room successfully";
         emit opponentJoined();
         
-        // 發送遊戲開始確認
+        // 發送遊戲開始確認（使用舊協議格式）
         sendGameStart(m_playerColor);
-        break;
+    }
+    else if (actionStr == "error") {
+        // 伺服器錯誤
+        QString errorMsg = message["message"].toString();
+        qDebug() << "[NetworkManager] Server error:" << errorMsg;
+        emit connectionError(tr("伺服器錯誤: ") + errorMsg);
+        closeConnection();
+    }
+    else if (actionStr == "move") {
+        // 收到對手的移動
+        QString roomId = message["room"].toString();
+        int fromRow = message["fromRow"].toInt();
+        int fromCol = message["fromCol"].toInt();
+        int toRow = message["toRow"].toInt();
+        int toCol = message["toCol"].toInt();
         
-    case MessageType::JoinRejected:
-        // 加入房間失敗
-        {
-            QString reason = message["reason"].toString();
-            qDebug() << "[NetworkManager] Join rejected:" << reason;
-            emit connectionError(tr("無法加入房間: ") + reason);
-            closeConnection();
+        qDebug() << "[NetworkManager::processMessage] Move in room" << roomId 
+                 << ": from (" << fromCol << "," << fromRow 
+                 << ") to (" << toCol << "," << toRow << ")";
+        
+        QPoint from(fromCol, fromRow);
+        QPoint to(toCol, toRow);
+        
+        PieceType promotionType = PieceType::None;
+        if (message.contains("promotion")) {
+            promotionType = static_cast<PieceType>(message["promotion"].toInt());
         }
-        break;
+        
+        qDebug() << "[NetworkManager::processMessage] Emitting opponentMove signal";
+        emit opponentMove(from, to, promotionType);
+    }
+    else {
+        // 處理舊格式訊息（type 欄位）
+        QString typeStr = message["type"].toString();
+        if (typeStr.isEmpty()) {
+            qDebug() << "[NetworkManager] Unknown message format:" << message;
+            return;
+        }
+        
+        MessageType type = stringToMessageType(typeStr);
+        
+        qDebug() << "[NetworkManager::processMessage] Received old format message:" << typeStr;
+        
+        switch (type) {
+        case MessageType::RoomCreated:
+            // 舊格式：伺服器確認創建的房間號
+            if (m_role == NetworkRole::Host) {
+                QString serverRoomNumber = message["roomNumber"].toString();
+                if (!serverRoomNumber.isEmpty() && serverRoomNumber != m_roomNumber) {
+                    qDebug() << "[NetworkManager] Server assigned different room number:" << serverRoomNumber;
+                    m_roomNumber = serverRoomNumber;
+                    emit roomCreated(m_roomNumber);
+                } else {
+                    qDebug() << "[NetworkManager] Room created confirmed with number:" << m_roomNumber;
+                }
+            }
+            break;
+            
+        case MessageType::JoinAccepted:
+            // 加入房間成功
+            qDebug() << "[NetworkManager] Join accepted";
+            emit opponentJoined();
+            
+            // 發送遊戲開始確認
+            sendGameStart(m_playerColor);
+            break;
+            
+        case MessageType::JoinRejected:
+            // 加入房間失敗
+            {
+                QString reason = message["reason"].toString();
+                qDebug() << "[NetworkManager] Join rejected:" << reason;
+                emit connectionError(tr("無法加入房間: ") + reason);
+                closeConnection();
+            }
+            break;
     
     case MessageType::GameStart: {
         PieceColor opponentColor = static_cast<PieceColor>(message["playerColor"].toInt());
@@ -444,6 +508,7 @@ void NetworkManager::processMessage(const QJsonObject& message)
     default:
         qDebug() << "[NetworkManager] Unknown message type:" << typeStr;
         break;
+        }
     }
 }
 
