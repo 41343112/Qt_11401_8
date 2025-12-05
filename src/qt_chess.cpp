@@ -1145,14 +1145,23 @@ void Qt_Chess::onStartButtonClicked() {
         
         m_networkManager->sendStartGame(whiteTimeMs, blackTimeMs, incrementMs, m_onlineHostSelectedColor);
         
-        qDebug() << "[Qt_Chess::onStartButtonClicked] Host sending StartGame"
+        qDebug() << "[Qt_Chess::onStartButtonClicked] Host sending StartGame to server"
                  << "| Host color:" << (m_onlineHostSelectedColor == PieceColor::White ? "White" : "Black")
-                 << "| m_timeControlEnabled:" << m_timeControlEnabled
-                 << "| m_timerStarted:" << m_timerStarted;
+                 << "| Waiting for server gameStart broadcast...";
         
-        // 暫時設定 m_gameStarted 為 false，等待對手處理 StartGame 訊息
-        // 延遲 200ms 後才允許房主走棋，確保對手已準備好接收移動
+        // 房主也等待伺服器廣播的 gameStart 訊息，確保與房客同步開始
+        // 不再在這裡直接啟動遊戲，而是等待 onStartGameReceived() 被觸發
         m_gameStarted = false;
+        m_timerStarted = false;
+        
+        // 隱藏開始按鈕，顯示等待訊息
+        if (m_startButton) {
+            m_startButton->setEnabled(false);
+            m_startButton->setText("等待同步開始...");
+        }
+        
+        // 不繼續執行下面的初始化，等待伺服器回應
+        return;
     }
     
     // 清空 UCI 移動歷史
@@ -1204,17 +1213,7 @@ void Qt_Chess::onStartButtonClicked() {
         }
 
         m_timerStarted = true;
-        
-        // 在線上模式下，延遲啟動遊戲以確保對手已準備好
-        if (m_isOnlineGame) {
-            // 200ms 後啟用走棋（給對手時間接收和處理訊息）
-            QTimer::singleShot(200, this, [this]() {
-                m_gameStarted = true;
-                qDebug() << "[Qt_Chess] Host: m_gameStarted set to true (timer path 1)";
-            });
-        } else {
-            m_gameStarted = true;  // 非線上模式立即啟動
-        }
+        m_gameStarted = true;  // 非線上模式立即啟動（線上模式不會執行到這裡）
         
         startTimer();
 
@@ -1272,17 +1271,7 @@ void Qt_Chess::onStartButtonClicked() {
         m_whiteTimeMs = 0;
         m_blackTimeMs = 0;
 
-        // 即使沒有時間控制也允許遊戲開始
-        // 在線上模式下，延遲啟動遊戲以確保對手已準備好
-        if (m_isOnlineGame) {
-            // 200ms 後啟用走棋
-            QTimer::singleShot(200, this, [this]() {
-                m_gameStarted = true;
-                qDebug() << "[Qt_Chess] Host: m_gameStarted set to true (timer path 2)";
-            });
-        } else {
-            m_gameStarted = true;  // 非線上模式立即啟動
-        }
+        m_gameStarted = true;  // 非線上模式立即啟動（線上模式不會執行到這裡）
 
         // 隱藏時間控制面板
         if (m_timeControlPanel) {
@@ -5741,7 +5730,8 @@ void Qt_Chess::onStartGameReceived(int whiteTimeMs, int blackTimeMs, int increme
     m_gameStarted = true;  // 設定為 true，允許走棋
     m_timerStarted = true;
     
-    qDebug() << "[Qt_Chess::onStartGameReceived] Client: m_gameStarted set to true"
+    qDebug() << "[Qt_Chess::onStartGameReceived] Game starting synchronously for both players"
+             << "| My role:" << (m_networkManager->getRole() == NetworkRole::Host ? "Host" : "Guest")
              << "| Player color:" << (m_networkManager ? (int)m_networkManager->getPlayerColor() : -1);
     
     // 顯示放棄按鈕和退出房間按鈕（無論是否有時間控制）
@@ -5752,9 +5742,17 @@ void Qt_Chess::onStartGameReceived(int whiteTimeMs, int blackTimeMs, int increme
         m_exitRoomButton->show();
     }
     
-    // 隱藏開始按鈕（房客無開始按鈕）
+    // 更新開始按鈕
     if (m_startButton) {
-        m_startButton->hide();
+        if (m_networkManager->getRole() == NetworkRole::Host) {
+            // 房主顯示「進行中」
+            m_startButton->setText("進行中");
+            m_startButton->setEnabled(false);
+            m_startButton->show();
+        } else {
+            // 房客隱藏開始按鈕
+            m_startButton->hide();
+        }
     }
     
     // 更新回放按鈕狀態（遊戲開始時停用）

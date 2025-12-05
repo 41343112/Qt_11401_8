@@ -157,8 +157,8 @@ void NetworkManager::sendStartGame(int whiteTimeMs, int blackTimeMs, int increme
     }
     
     QJsonObject message;
-    message["type"] = messageTypeToString(MessageType::StartGame);
-    message["roomNumber"] = m_roomNumber;
+    message["action"] = "startGame";  // Server expects "action" field
+    message["room"] = m_roomNumber;  // Server expects "room" field
     message["whiteTimeMs"] = whiteTimeMs;
     message["blackTimeMs"] = blackTimeMs;
     message["incrementMs"] = incrementMs;
@@ -344,6 +344,33 @@ void NetworkManager::processMessage(const QJsonObject& message)
         
         // 發送遊戲開始確認（使用舊協議格式）
         sendGameStart(m_playerColor);
+    }
+    else if (actionStr == "gameStart") {
+        // 伺服器廣播遊戲開始（同步開始）
+        qDebug() << "[NetworkManager] Server broadcast gameStart";
+        
+        int whiteTimeMs = message["whiteTimeMs"].toInt();
+        int blackTimeMs = message["blackTimeMs"].toInt();
+        int incrementMs = message["incrementMs"].toInt();
+        QString hostColorStr = message["hostColor"].toString();
+        PieceColor hostColor = (hostColorStr == "White") ? PieceColor::White : PieceColor::Black;
+        qint64 serverTimestamp = message["serverTimestamp"].toVariant().toLongLong();
+        
+        // 根據房主的顏色選擇更新玩家顏色
+        if (m_role == NetworkRole::Host) {
+            m_playerColor = hostColor;
+            m_opponentColor = (hostColor == PieceColor::White) ? PieceColor::Black : PieceColor::White;
+        } else if (m_role == NetworkRole::Guest) {
+            m_playerColor = (hostColor == PieceColor::White) ? PieceColor::Black : PieceColor::White;
+            m_opponentColor = hostColor;
+        }
+        
+        qDebug() << "[NetworkManager] Game starting with server timestamp:" << serverTimestamp
+                 << "| Host color:" << hostColorStr
+                 << "| My role:" << (m_role == NetworkRole::Host ? "Host" : "Guest")
+                 << "| My color:" << (m_playerColor == PieceColor::White ? "White" : "Black");
+        
+        emit startGameReceived(whiteTimeMs, blackTimeMs, incrementMs, hostColor);
     }
     else if (actionStr == "error") {
         // 伺服器錯誤

@@ -43,6 +43,30 @@ wss.on('connection', ws => {
             }
         }
 
+        // 開始遊戲 - 伺服器廣播給房間內所有玩家以確保同步
+        else if(msg.action === "startGame"){
+            const roomId = msg.room;
+            if(rooms[roomId] && rooms[roomId].length === 2){
+                // 加上伺服器時間戳記以確保同步
+                const startMessage = {
+                    action: "gameStart",
+                    room: roomId,
+                    whiteTimeMs: msg.whiteTimeMs,
+                    blackTimeMs: msg.blackTimeMs,
+                    incrementMs: msg.incrementMs,
+                    hostColor: msg.hostColor,
+                    serverTimestamp: Date.now()
+                };
+                
+                // 廣播給房間內所有玩家
+                rooms[roomId].forEach(client => {
+                    if(client.readyState === WebSocket.OPEN){
+                        client.send(JSON.stringify(startMessage));
+                    }
+                });
+            }
+        }
+
         // 廣播落子訊息
         else if(msg.action === "move"){
             const roomId = msg.room;
