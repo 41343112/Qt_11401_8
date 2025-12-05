@@ -5,6 +5,7 @@
 #include <QRandomGenerator>
 #include <QNetworkInterface>
 #include <QHostAddress>
+#include <QDebug>
 
 // Network constants
 static const int MIN_ROOM_NUMBER = 1000;
@@ -134,6 +135,10 @@ void NetworkManager::closeConnection()
 
 void NetworkManager::sendMove(const QPoint& from, const QPoint& to, PieceType promotionType)
 {
+    qDebug() << "[NetworkManager::sendMove] Sending move from" << from << "to" << to 
+             << "| Role:" << (m_role == NetworkRole::Server ? "Server" : "Client")
+             << "| Socket connected:" << (getActiveSocket() && getActiveSocket()->state() == QAbstractSocket::ConnectedState);
+    
     QJsonObject message;
     message["type"] = messageTypeToString(MessageType::Move);
     message["fromRow"] = from.y();
@@ -146,6 +151,8 @@ void NetworkManager::sendMove(const QPoint& from, const QPoint& to, PieceType pr
     }
     
     sendMessage(message);
+    
+    qDebug() << "[NetworkManager::sendMove] Move sent successfully";
 }
 
 void NetworkManager::sendGameStart(PieceColor playerColor)
@@ -293,12 +300,17 @@ void NetworkManager::sendMessage(const QJsonObject& message)
 {
     QTcpSocket* socket = getActiveSocket();
     if (!socket || socket->state() != QAbstractSocket::ConnectedState) {
+        qDebug() << "[NetworkManager::sendMessage] ERROR: Cannot send message, socket not connected"
+                 << "| Socket:" << socket 
+                 << "| State:" << (socket ? socket->state() : -1);
         return;
     }
     
     QJsonDocument doc(message);
     QByteArray data = doc.toJson(QJsonDocument::Compact);
     data.append('\n');
+    
+    qDebug() << "[NetworkManager::sendMessage] Sending message:" << message["type"].toString();
     
     socket->write(data);
     socket->flush();
@@ -308,6 +320,9 @@ void NetworkManager::processMessage(const QJsonObject& message)
 {
     QString typeStr = message["type"].toString();
     MessageType type = stringToMessageType(typeStr);
+    
+    qDebug() << "[NetworkManager::processMessage] Received message:" << typeStr 
+             << "| Role:" << (m_role == NetworkRole::Server ? "Server" : "Client");
     
     switch (type) {
     case MessageType::JoinRoom:
@@ -384,6 +399,9 @@ void NetworkManager::processMessage(const QJsonObject& message)
         int toRow = message["toRow"].toInt();
         int toCol = message["toCol"].toInt();
         
+        qDebug() << "[NetworkManager::processMessage] Move message: from (" << fromCol << "," << fromRow 
+                 << ") to (" << toCol << "," << toRow << ")";
+        
         QPoint from(fromCol, fromRow);
         QPoint to(toCol, toRow);
         
@@ -392,6 +410,7 @@ void NetworkManager::processMessage(const QJsonObject& message)
             promotionType = static_cast<PieceType>(message["promotion"].toInt());
         }
         
+        qDebug() << "[NetworkManager::processMessage] Emitting opponentMove signal";
         emit opponentMove(from, to, promotionType);
         break;
     }
