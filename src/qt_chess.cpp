@@ -1750,6 +1750,12 @@ void Qt_Chess::mouseReleaseEvent(QMouseEvent *event) {
                 updateStatus();
                 clearHighlights();
                 
+                // 如果是線上模式，發送移動給對手
+                if (m_isOnlineGame && m_networkManager) {
+                    qDebug() << "[Qt_Chess] Sending move to opponent (drag): from" << m_lastMoveFrom << "to" << m_lastMoveTo;
+                    m_networkManager->sendMove(m_lastMoveFrom, m_lastMoveTo, promType);
+                }
+                
                 // 如果現在是電腦的回合，請求引擎走棋
                 if (isComputerTurn() && m_gameStarted) {
                     // 使用短暫延遲讓 UI 更新
