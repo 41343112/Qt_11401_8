@@ -79,6 +79,25 @@ wss.on('connection', ws => {
             }
         }
 
+        // 離開房間（遊戲開始前）
+        else if(msg.action === "leaveRoom"){
+            const roomId = msg.room;
+            if(rooms[roomId]){
+                // 通知房間內其他玩家
+                rooms[roomId].forEach(client => {
+                    if(client !== ws && client.readyState === WebSocket.OPEN){
+                        client.send(JSON.stringify({ action: "playerLeft", room: roomId }));
+                    }
+                });
+                
+                // 從房間移除離開的玩家
+                rooms[roomId] = rooms[roomId].filter(c => c !== ws);
+                if(rooms[roomId].length === 0){
+                    delete rooms[roomId];
+                }
+            }
+        }
+
         // 廣播投降訊息
         else if(msg.action === "surrender"){
             const roomId = msg.room;
@@ -95,6 +114,15 @@ wss.on('connection', ws => {
     // 玩家斷線
     ws.on('close', () => {
         for(const roomId in rooms){
+            // 通知房間內其他玩家有人斷線
+            if(rooms[roomId] && rooms[roomId].includes(ws)){
+                rooms[roomId].forEach(client => {
+                    if(client !== ws && client.readyState === WebSocket.OPEN){
+                        client.send(JSON.stringify({ action: "playerLeft", room: roomId }));
+                    }
+                });
+            }
+            
             rooms[roomId] = rooms[roomId].filter(c => c !== ws);
             if(rooms[roomId].length === 0) delete rooms[roomId];
         }

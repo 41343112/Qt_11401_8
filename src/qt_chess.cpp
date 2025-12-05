@@ -5019,6 +5019,7 @@ void Qt_Chess::initializeNetwork() {
     connect(m_networkManager, &NetworkManager::connectionError, this, &Qt_Chess::onNetworkError);
     connect(m_networkManager, &NetworkManager::roomCreated, this, &Qt_Chess::onRoomCreated);
     connect(m_networkManager, &NetworkManager::opponentJoined, this, &Qt_Chess::onOpponentJoined);
+    connect(m_networkManager, &NetworkManager::playerLeft, this, &Qt_Chess::onPlayerLeft);
     connect(m_networkManager, &NetworkManager::opponentMove, this, &Qt_Chess::onOpponentMove);
     connect(m_networkManager, &NetworkManager::gameStartReceived, this, &Qt_Chess::onGameStartReceived);
     connect(m_networkManager, &NetworkManager::startGameReceived, this, &Qt_Chess::onStartGameReceived);
@@ -5258,6 +5259,20 @@ void Qt_Chess::onNetworkError(const QString& error) {
 
 void Qt_Chess::onRoomCreated(const QString& roomNumber) {
     showRoomInfoDialog(roomNumber);
+    
+    // 房間創建成功後，立即顯示退出房間按鈕和等待狀態
+    m_waitingForOpponent = true;
+    
+    // 更新狀態標籤
+    m_connectionStatusLabel->setText("⏳ 等待對手加入...");
+    
+    // 顯示退出房間按鈕（而非開始按鈕）
+    if (m_startButton) {
+        m_startButton->hide();
+    }
+    if (m_exitRoomButton) {
+        m_exitRoomButton->show();
+    }
 }
 
 void Qt_Chess::onOpponentJoined() {
@@ -5301,6 +5316,29 @@ void Qt_Chess::onOpponentJoined() {
     
     // 房主：等待客戶端確認連線後再開始遊戲
     // 遊戲將在收到 gameStartReceived 信號時開始
+}
+
+void Qt_Chess::onPlayerLeft() {
+    // 對手在遊戲開始前離開房間
+    qDebug() << "[Qt_Chess::onPlayerLeft] Opponent left the room before game started";
+    
+    // 只有房主會收到這個通知（因為只有房主在等待對手）
+    if (m_networkManager->getRole() == NetworkRole::Host) {
+        m_waitingForOpponent = true;
+        
+        // 更新狀態標籤
+        m_connectionStatusLabel->setText("⏳ 對手已離開，等待新對手加入...");
+        
+        // 隱藏開始按鈕
+        if (m_startButton) {
+            m_startButton->hide();
+        }
+        
+        // 保持退出房間按鈕可見
+        if (m_exitRoomButton) {
+            m_exitRoomButton->show();
+        }
+    }
 }
 
 void Qt_Chess::onOpponentMove(const QPoint& from, const QPoint& to, PieceType promotionType) {
@@ -5482,8 +5520,8 @@ void Qt_Chess::onCancelRoomClicked() {
         QMessageBox::Yes | QMessageBox::No);
     
     if (response == QMessageBox::Yes) {
-        // 關閉網路連線
-        m_networkManager->closeConnection();
+        // 使用 leaveRoom 明確通知對手
+        m_networkManager->leaveRoom();
         
         m_isOnlineGame = false;
         m_waitingForOpponent = false;
@@ -5627,7 +5665,7 @@ void Qt_Chess::onExitRoomClicked() {
         
         // 關閉網路連線（在重置遊戲狀態之前關閉，確保訊息處理完成）
         if (m_networkManager) {
-            m_networkManager->closeConnection();
+            m_networkManager->leaveRoom();  // 使用 leaveRoom 明確通知對手
         }
         
         // 重置線上模式標記（在關閉連接後）

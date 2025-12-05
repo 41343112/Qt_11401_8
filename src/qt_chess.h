@@ -322,6 +322,7 @@ private:
     void onNetworkError(const QString& error);  // 網路錯誤
     void onRoomCreated(const QString& roomNumber);  // 房間創建
     void onOpponentJoined();             // 對手加入
+    void onPlayerLeft();                 // 對手離開（遊戲開始前）
     void onOpponentMove(const QPoint& from, const QPoint& to, PieceType promotionType);  // 對手移動
     void onGameStartReceived(PieceColor playerColor);  // 遊戲開始
     void onStartGameReceived(int whiteTimeMs, int blackTimeMs, int incrementMs, PieceColor hostColor);  // 收到開始遊戲通知（包含時間設定和房主顏色）

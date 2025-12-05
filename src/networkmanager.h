@@ -51,6 +51,7 @@ public:
     // 房間管理
     bool createRoom();  // 創建房間，通過服務器生成房號
     bool joinRoom(const QString& roomNumber);  // 通過房號加入房間
+    void leaveRoom();  // 明確離開房間（通知伺服器和對手）
     void closeConnection();
     
     QString getRoomNumber() const { return m_roomNumber; }
@@ -78,6 +79,7 @@ signals:
     void connectionError(const QString& error);
     void roomCreated(const QString& roomNumber);
     void opponentJoined();
+    void playerLeft();  // 對手在遊戲開始前離開房間
     void opponentMove(const QPoint& from, const QPoint& to, PieceType promotionType);
     void gameStartReceived(PieceColor playerColor);
     void startGameReceived(int whiteTimeMs, int blackTimeMs, int incrementMs, PieceColor hostColor);  // 收到開始遊戲通知（包含時間設定和房主顏色）

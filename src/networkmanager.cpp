@@ -79,6 +79,25 @@ bool NetworkManager::joinRoom(const QString& roomNumber)
     return true;
 }
 
+void NetworkManager::leaveRoom()
+{
+    qDebug() << "[NetworkManager::leaveRoom] Sending leave room message";
+    
+    // 發送離開房間通知給伺服器
+    if (m_webSocket && m_webSocket->state() == QAbstractSocket::ConnectedState && !m_roomNumber.isEmpty()) {
+        QJsonObject message;
+        message["action"] = "leaveRoom";
+        message["room"] = m_roomNumber;
+        sendMessage(message);
+        
+        // 確保訊息發送完成
+        m_webSocket->flush();
+    }
+    
+    // 關閉連接
+    closeConnection();
+}
+
 void NetworkManager::closeConnection()
 {
     // 發送斷線通知（如果有連接）
@@ -406,6 +425,11 @@ void NetworkManager::processMessage(const QJsonObject& message)
         // 收到對手投降訊息（新格式）
         qDebug() << "[NetworkManager] Opponent surrendered";
         emit surrenderReceived();
+    }
+    else if (actionStr == "playerLeft") {
+        // 對手離開房間（遊戲開始前）
+        qDebug() << "[NetworkManager] Opponent left the room before game started";
+        emit playerLeft();
     }
     else {
         // 處理舊格式訊息（type 欄位）
