@@ -5290,17 +5290,23 @@ void Qt_Chess::onOpponentJoined() {
             disconnect(m_startButton, &QPushButton::clicked, this, &Qt_Chess::onCancelRoomClicked);
             connect(m_startButton, &QPushButton::clicked, this, &Qt_Chess::onStartButtonClicked);
         }
+        
+        // 房主顯示退出房間按鈕
+        if (m_exitRoomButton) {
+            m_exitRoomButton->show();
+        }
     } else {
         // 房客：成功加入房間，等待房主開始
         m_connectionStatusLabel->setText("✅ 已加入房間，等待房主開始遊戲...");
         
+        // 房客隱藏開始按鈕，只顯示退出按鈕
         if (m_startButton) {
-            m_startButton->setText("等待中...");
-            m_startButton->setEnabled(false);  // 停用按鈕
-            m_startButton->setStyleSheet("");  // 恢復預設樣式
-            
-            // 確保沒有連接到取消功能
-            disconnect(m_startButton, &QPushButton::clicked, this, &Qt_Chess::onCancelRoomClicked);
+            m_startButton->hide();
+        }
+        
+        // 房客顯示退出房間按鈕
+        if (m_exitRoomButton) {
+            m_exitRoomButton->show();
         }
     }
     

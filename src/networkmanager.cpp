@@ -330,6 +330,13 @@ void NetworkManager::processMessage(const QJsonObject& message)
             }
         }
     }
+    else if (actionStr == "playerJoined") {
+        // 房主收到玩家加入通知
+        if (m_role == NetworkRole::Host) {
+            qDebug() << "[NetworkManager] Host notified: player joined room";
+            emit opponentJoined();
+        }
+    }
     else if (actionStr == "joinedRoom") {
         // 加入房間成功
         qDebug() << "[NetworkManager] Joined room successfully";

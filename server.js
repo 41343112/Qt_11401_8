@@ -32,6 +32,12 @@ wss.on('connection', ws => {
             if(rooms[roomId]){
                 rooms[roomId].push(ws);
                 ws.send(JSON.stringify({ action: "joinedRoom", room: roomId }));
+                
+                // 通知房主有玩家加入
+                const host = rooms[roomId][0];
+                if(host && host.readyState === WebSocket.OPEN){
+                    host.send(JSON.stringify({ action: "playerJoined", room: roomId }));
+                }
             } else {
                 ws.send(JSON.stringify({ action: "error", message: "房間不存在" }));
             }
