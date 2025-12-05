@@ -5288,7 +5288,7 @@ void Qt_Chess::onOpponentJoined() {
         if (m_startButton) {
             m_startButton->setText("▶ 開始");
             m_startButton->setEnabled(true);
-            m_startButton->setStyleSheet("");  // 恢復預設樣式
+            m_startButton->setStyleSheet("background-color: #4CAF50; color: white; font-weight: bold;");  // 綠色開始按鈕
             m_startButton->show();  // 確保按鈕顯示
             
             // 重新連接到開始遊戲功能
