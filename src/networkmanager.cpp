@@ -34,7 +34,8 @@ bool NetworkManager::createRoom()
         return false;
     }
     
-    // 生成房號（4位數字）
+    // 生成臨時房號（4位數字），但不立即發送給UI
+    // 等待伺服器分配正式房號
     m_roomNumber = generateRoomNumber();
     
     // 創建 WebSocket 連接
@@ -51,10 +52,9 @@ bool NetworkManager::createRoom()
     m_opponentColor = PieceColor::Black;
     
     qDebug() << "[NetworkManager] Connecting to server:" << m_serverUrl;
-    qDebug() << "[NetworkManager] Generated room number:" << m_roomNumber;
+    qDebug() << "[NetworkManager] Generated temporary room number:" << m_roomNumber;
     
-    // 立即發送房號給UI顯示
-    emit roomCreated(m_roomNumber);
+    // 不要立即發送 roomCreated 信號，等待伺服器回應
     
     m_webSocket->open(QUrl(m_serverUrl));
     return true;
@@ -327,12 +327,12 @@ void NetworkManager::processMessage(const QJsonObject& message)
         // 伺服器確認創建的房間號
         if (m_role == NetworkRole::Host) {
             QString serverRoomNumber = message["room"].toString();
-            if (!serverRoomNumber.isEmpty() && serverRoomNumber != m_roomNumber) {
-                qDebug() << "[NetworkManager] Server assigned different room number:" << serverRoomNumber;
+            if (!serverRoomNumber.isEmpty()) {
+                qDebug() << "[NetworkManager] Server created room with number:" << serverRoomNumber;
                 m_roomNumber = serverRoomNumber;
                 emit roomCreated(m_roomNumber);
             } else {
-                qDebug() << "[NetworkManager] Room created confirmed with number:" << m_roomNumber;
+                qDebug() << "[NetworkManager] Server response missing room number";
             }
         }
     }
@@ -391,12 +391,12 @@ void NetworkManager::processMessage(const QJsonObject& message)
             // 舊格式：伺服器確認創建的房間號
             if (m_role == NetworkRole::Host) {
                 QString serverRoomNumber = message["roomNumber"].toString();
-                if (!serverRoomNumber.isEmpty() && serverRoomNumber != m_roomNumber) {
-                    qDebug() << "[NetworkManager] Server assigned different room number:" << serverRoomNumber;
+                if (!serverRoomNumber.isEmpty()) {
+                    qDebug() << "[NetworkManager] Server created room with number:" << serverRoomNumber;
                     m_roomNumber = serverRoomNumber;
                     emit roomCreated(m_roomNumber);
                 } else {
-                    qDebug() << "[NetworkManager] Room created confirmed with number:" << m_roomNumber;
+                    qDebug() << "[NetworkManager] Server response missing room number";
                 }
             }
             break;
