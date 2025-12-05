@@ -1126,6 +1126,12 @@ void Qt_Chess::onStartButtonClicked() {
             incrementMs = m_incrementSlider->value() * 1000;  // 轉換為毫秒
         }
         
+        // 房主需要在發送開始遊戲訊息前設定自己的玩家顏色
+        // 這樣 isPlayerPiece() 才能正確判斷哪些棋子可以移動
+        if (m_networkManager->getRole() == NetworkRole::Server) {
+            m_networkManager->setPlayerColors(m_onlineHostSelectedColor);
+        }
+        
         m_networkManager->sendStartGame(whiteTimeMs, blackTimeMs, incrementMs, m_onlineHostSelectedColor);
         
         // 暫時設定 m_gameStarted 為 false，等待對手處理 StartGame 訊息
@@ -1142,9 +1148,12 @@ void Qt_Chess::onStartButtonClicked() {
     }
     
     // 根據選擇的遊戲模式決定是否翻轉棋盤
-    // 當玩家執黑時（ComputerVsHuman），棋盤應該翻轉使黑棋在下方
+    // 當玩家執黑時（ComputerVsHuman 或 線上模式中房主執黑），棋盤應該翻轉使黑棋在下方
     GameMode mode = getCurrentGameMode();
-    bool shouldFlip = (mode == GameMode::ComputerVsHuman);
+    bool shouldFlip = (mode == GameMode::ComputerVsHuman) || 
+                      (mode == GameMode::OnlineGame && 
+                       m_networkManager && m_networkManager->getRole() == NetworkRole::Server &&
+                       m_onlineHostSelectedColor == PieceColor::Black);
     if (m_isBoardFlipped != shouldFlip) {
         m_isBoardFlipped = shouldFlip;
         saveBoardFlipSettings();
@@ -5570,6 +5579,11 @@ void Qt_Chess::onStartGameReceived(int whiteTimeMs, int blackTimeMs, int increme
     
     // 將時間和吃子紀錄恢復到右側面板
     restoreWidgetsFromGameEnd();
+    
+    // 顯示右側時間面板
+    if (m_rightTimePanel) {
+        m_rightTimePanel->show();
+    }
     
     // 隱藏時間控制面板
     if (m_timeControlPanel) {

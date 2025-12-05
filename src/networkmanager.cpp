@@ -185,6 +185,13 @@ void NetworkManager::sendSurrender()
     sendMessage(message);
 }
 
+void NetworkManager::setPlayerColors(PieceColor playerColor)
+{
+    // 設定玩家顏色和對手顏色
+    m_playerColor = playerColor;
+    m_opponentColor = (playerColor == PieceColor::White) ? PieceColor::Black : PieceColor::White;
+}
+
 void NetworkManager::sendGameOver(const QString& result)
 {
     QJsonObject message;

@@ -67,9 +67,11 @@ public:
     void sendGameOver(const QString& result);
     void sendChat(const QString& message);
     
-    // 對手顏色
+    // 玩家顏色管理
     PieceColor getOpponentColor() const { return m_opponentColor; }
     PieceColor getPlayerColor() const { return m_playerColor; }
+    void setPlayerColors(PieceColor playerColor);  // 設定玩家顏色（同時設定對手顏色為相反顏色）
+
 
 signals:
     void connected();
