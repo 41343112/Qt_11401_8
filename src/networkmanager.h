@@ -106,7 +106,6 @@ private:
     
     void sendMessage(const QJsonObject& message);
     void processMessage(const QJsonObject& message);
-    QString generateRoomNumber() const;
     MessageType stringToMessageType(const QString& type) const;
     QString messageTypeToString(MessageType type) const;
 };

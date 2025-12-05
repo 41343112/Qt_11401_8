@@ -2,15 +2,10 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QJsonArray>
-#include <QRandomGenerator>
 #include <QDebug>
 
 // Server configuration
 static const QString SERVER_URL = "wss://chess-server-mjg6.onrender.com";
-
-// Room number constants
-static const int MIN_ROOM_NUMBER = 1000;
-static const int MAX_ROOM_NUMBER = 9999;
 
 NetworkManager::NetworkManager(QObject *parent)
     : QObject(parent)
@@ -34,9 +29,8 @@ bool NetworkManager::createRoom()
         return false;
     }
     
-    // 生成臨時房號（4位數字），但不立即發送給UI
-    // 等待伺服器分配正式房號
-    m_roomNumber = generateRoomNumber();
+    // 不生成臨時房號，完全依賴伺服器分配
+    m_roomNumber.clear();
     
     // 創建 WebSocket 連接
     m_webSocket = new QWebSocket();
@@ -52,9 +46,9 @@ bool NetworkManager::createRoom()
     m_opponentColor = PieceColor::Black;
     
     qDebug() << "[NetworkManager] Connecting to server:" << m_serverUrl;
-    qDebug() << "[NetworkManager] Generated temporary room number:" << m_roomNumber;
+    qDebug() << "[NetworkManager] Waiting for server to assign room number";
     
-    // 不要立即發送 roomCreated 信號，等待伺服器回應
+    // 等待伺服器回應分配房號
     
     m_webSocket->open(QUrl(m_serverUrl));
     return true;
@@ -556,11 +550,4 @@ QString NetworkManager::messageTypeToString(MessageType type) const
     };
     
     return stringMap.value(type, "Unknown");
-}
-
-QString NetworkManager::generateRoomNumber() const
-{
-    // 生成4位數字房號 (MIN_ROOM_NUMBER to MAX_ROOM_NUMBER inclusive)
-    int roomNum = QRandomGenerator::global()->bounded(MIN_ROOM_NUMBER, MAX_ROOM_NUMBER + 1);
-    return QString::number(roomNum);
 }
