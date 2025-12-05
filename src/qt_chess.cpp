@@ -5070,20 +5070,10 @@ void Qt_Chess::onOnlineModeClicked() {
     OnlineDialog dialog(this);
     if (dialog.exec() == QDialog::Accepted) {
         OnlineDialog::Mode mode = dialog.getMode();
-        bool useRelay = dialog.useRelayServer();
         
         if (mode == OnlineDialog::Mode::CreateRoom) {
-            // 創建房間
-            bool success = false;
-            if (useRelay) {
-                // 使用中繼伺服器
-                success = m_networkManager->createRoomViaRelay();
-            } else {
-                // 直接連接
-                success = m_networkManager->createRoom();
-            }
-            
-            if (success) {
+            // 創建房間（使用中繼伺服器）
+            if (m_networkManager->createRoomViaRelay()) {
                 m_currentGameMode = GameMode::OnlineGame;
                 m_isOnlineGame = true;
                 m_waitingForOpponent = true;
@@ -5134,37 +5124,17 @@ void Qt_Chess::onOnlineModeClicked() {
                 m_humanModeButton->setChecked(true);
             }
         } else if (mode == OnlineDialog::Mode::JoinRoom) {
-            // 加入房間
-            bool success = false;
+            // 加入房間（使用中繼伺服器 - 只需房號）
+            QString roomCode = dialog.getRoomCode();
             
-            if (useRelay) {
-                // 使用中繼伺服器 - 只需房號
-                QString roomCode = dialog.getRoomCode();
-                
-                if (roomCode.isEmpty() || roomCode.length() != 4) {
-                    QMessageBox::warning(this, "輸入錯誤", "請輸入有效的4位數字房號");
-                    m_onlineModeButton->setChecked(false);
-                    m_humanModeButton->setChecked(true);
-                    return;
-                }
-                
-                success = m_networkManager->joinRoomViaRelay(roomCode);
-            } else {
-                // 直接連接 - 需要IP和端口
-                QString hostAddress = dialog.getHostAddress();
-                quint16 port = dialog.getPort();
-                
-                if (hostAddress.isEmpty() || port == 0) {
-                    QMessageBox::warning(this, "輸入錯誤", "請輸入有效的IP地址和房間號碼");
-                    m_onlineModeButton->setChecked(false);
-                    m_humanModeButton->setChecked(true);
-                    return;
-                }
-                
-                success = m_networkManager->joinRoom(hostAddress, port);
+            if (roomCode.isEmpty() || roomCode.length() != 4) {
+                QMessageBox::warning(this, "輸入錯誤", "請輸入有效的4位數字房號");
+                m_onlineModeButton->setChecked(false);
+                m_humanModeButton->setChecked(true);
+                return;
             }
             
-            if (success) {
+            if (m_networkManager->joinRoomViaRelay(roomCode)) {
                 m_currentGameMode = GameMode::OnlineGame;
                 m_isOnlineGame = true;
                 
@@ -5919,28 +5889,8 @@ bool Qt_Chess::isOnlineTurn() const {
 }
 
 void Qt_Chess::showRoomInfoDialog(const QString& roomNumber, quint16 port) {
-    bool isRelayMode = m_networkManager->isUsingRelay();
-    
-    QString connectionCode;
-    QString ipAddress = "未知";
-    
-    if (isRelayMode) {
-        // 中繼伺服器模式 - 只顯示房號
-        connectionCode = roomNumber;
-    } else {
-        // 直接連接模式 - 顯示IP:房號
-        // 獲取本機IP地址
-        QList<QHostAddress> ipAddressesList = QNetworkInterface::allAddresses();
-        for (const QHostAddress &entry : ipAddressesList) {
-            if (entry != QHostAddress::LocalHost && 
-                entry.toIPv4Address() && 
-                !entry.toString().startsWith("169.254")) {  // 排除自動配置的IP
-                ipAddress = entry.toString();
-                break;
-            }
-        }
-        connectionCode = QString("%1:%2").arg(ipAddress, roomNumber);
-    }
+    // Always use relay mode - simplified
+    QString connectionCode = roomNumber;
     
     // 創建自訂對話框
     QDialog dialog(this);
@@ -5956,68 +5906,46 @@ void Qt_Chess::showRoomInfoDialog(const QString& roomNumber, quint16 port) {
     layout->addWidget(titleLabel);
     
     // 說明文字
-    QString instructionText;
-    if (isRelayMode) {
-        instructionText = tr("<p><b>📱 請將以下房號傳給您的朋友：</b></p>"
-                           "<p style='color: #666; font-size: 10pt;'>使用中繼伺服器模式，朋友只需輸入房號即可跨網域連線！</p>");
-    } else {
-        instructionText = tr("<p><b>📱 請將以下連線碼傳給您的朋友：</b></p>");
-    }
-    
-    QLabel* instructionLabel = new QLabel(instructionText, &dialog);
+    QLabel* instructionLabel = new QLabel(
+        tr("<p><b>📱 請將以下房號傳給您的朋友：</b></p>"
+           "<p style='color: #666; font-size: 10pt;'>使用中繼伺服器模式，朋友只需輸入房號即可跨網域連線！</p>"), &dialog);
     instructionLabel->setWordWrap(true);
     instructionLabel->setStyleSheet("QLabel { font-size: 11pt; padding: 5px; }");
     layout->addWidget(instructionLabel);
     
-    // 連線碼/房號顯示（大字體，可選取）
+    // 房號顯示（大字體，可選取）
     QTextEdit* codeEdit = new QTextEdit(&dialog);
     codeEdit->setPlainText(connectionCode);
     codeEdit->setReadOnly(true);
     codeEdit->setMaximumHeight(60);
     codeEdit->setAlignment(Qt::AlignCenter);
     QFont codeFont = codeEdit->font();
-    codeFont.setPointSize(isRelayMode ? 24 : 16);  // 房號用更大字體
+    codeFont.setPointSize(24);  // 房號用大字體
     codeFont.setBold(true);
     codeEdit->setFont(codeFont);
     codeEdit->setStyleSheet("QTextEdit { background-color: #E3F2FD; border: 2px solid #2196F3; border-radius: 5px; padding: 10px; }");
     layout->addWidget(codeEdit);
     
     // 複製按鈕
-    QString copyButtonText = isRelayMode ? tr("📋 複製房號") : tr("📋 複製連線碼");
-    QPushButton* copyButton = new QPushButton(copyButtonText, &dialog);
+    QPushButton* copyButton = new QPushButton(tr("📋 複製房號"), &dialog);
     copyButton->setStyleSheet("QPushButton { background-color: #4CAF50; color: white; padding: 10px; font-size: 12pt; font-weight: bold; border-radius: 5px; }");
-    connect(copyButton, &QPushButton::clicked, [connectionCode, isRelayMode]() {
+    connect(copyButton, &QPushButton::clicked, [connectionCode]() {
         QClipboard* clipboard = QApplication::clipboard();
         clipboard->setText(connectionCode);
-        QString message;
-        if (isRelayMode) {
-            message = tr("房號已複製到剪貼簿！\n\n請用通訊軟體（如LINE、WeChat）傳給朋友");
-        } else {
-            message = tr("連線碼已複製到剪貼簿！\n\n請用通訊軟體（如LINE、WeChat）傳給朋友");
-        }
-        QMessageBox::information(nullptr, tr("已複製"), message);
+        QMessageBox::information(nullptr, tr("已複製"), 
+            tr("房號已複製到剪貼簿！\n\n請用通訊軟體（如LINE、WeChat）傳給朋友"));
     });
     layout->addWidget(copyButton);
     
     layout->addSpacing(10);
     
-    // 詳細資訊（可摺疊）
-    QString detailText;
-    if (isRelayMode) {
-        detailText = tr("<p><b>詳細資訊：</b><br>"
-                       "房間號碼：<span style='color: #2196F3; font-weight: bold;'>%1</span><br>"
-                       "連線模式：<span style='color: #4CAF50; font-weight: bold;'>中繼伺服器</span></p>"
-                       "<p style='color: #666; font-size: 9pt;'>"
-                       "💡 朋友收到房號後，選擇「加入房間」並輸入房號即可</p>").arg(roomNumber);
-    } else {
-        detailText = tr("<p><b>詳細資訊：</b><br>"
-                       "房間號碼：<span style='color: #2196F3; font-weight: bold;'>%1</span><br>"
-                       "您的IP地址：<span style='color: #2196F3; font-weight: bold;'>%2</span></p>"
-                       "<p style='color: #666; font-size: 9pt;'>"
-                       "💡 朋友收到連線碼後，選擇「加入房間」並貼上即可</p>").arg(roomNumber, ipAddress);
-    }
-    
-    QLabel* detailLabel = new QLabel(detailText, &dialog);
+    // 詳細資訊
+    QLabel* detailLabel = new QLabel(
+        tr("<p><b>詳細資訊：</b><br>"
+           "房間號碼：<span style='color: #2196F3; font-weight: bold;'>%1</span><br>"
+           "連線模式：<span style='color: #4CAF50; font-weight: bold;'>中繼伺服器</span></p>"
+           "<p style='color: #666; font-size: 9pt;'>"
+           "💡 朋友收到房號後，選擇「加入房間」並輸入房號即可</p>").arg(roomNumber), &dialog);
     detailLabel->setWordWrap(true);
     detailLabel->setStyleSheet("QLabel { padding: 10px; background-color: #f5f5f5; border-radius: 5px; }");
     layout->addWidget(detailLabel);
@@ -6031,11 +5959,7 @@ void Qt_Chess::showRoomInfoDialog(const QString& roomNumber, quint16 port) {
     layout->addWidget(closeButton);
     
     // 更新房間資訊標籤
-    if (isRelayMode) {
-        m_roomInfoLabel->setText(QString("🎮 房號: %1 (中繼模式)").arg(roomNumber));
-    } else {
-        m_roomInfoLabel->setText(QString("🎮 房號: %1 | IP: %2").arg(roomNumber, ipAddress));
-    }
+    m_roomInfoLabel->setText(QString("🎮 房號: %1 (中繼模式)").arg(roomNumber));
     
     dialog.exec();
 }

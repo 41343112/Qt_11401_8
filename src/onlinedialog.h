@@ -27,35 +27,22 @@ public:
     ~OnlineDialog();
 
     Mode getMode() const { return m_mode; }
-    QString getHostAddress() const;
-    quint16 getPort() const;
     QString getRoomCode() const;  // For relay mode
-    bool useRelayServer() const { return m_useRelay; }
+    bool useRelayServer() const { return true; }  // Always use relay
 
 private slots:
     void onCreateRoomClicked();
     void onJoinRoomClicked();
-    void onPasteConnectionInfo();
-    void onUseRelayToggled(bool checked);
 
 private:
     void setupUI();
-    void parseConnectionInfo(const QString& info);
-    void updateUIForMode();
 
     Mode m_mode;
-    bool m_useRelay;
     
     QRadioButton* m_createRoomRadio;
     QRadioButton* m_joinRoomRadio;
     
-    QCheckBox* m_useRelayCheckbox;
-    
     QWidget* m_joinRoomWidget;
-    QLineEdit* m_hostAddressEdit;
-    QLineEdit* m_roomNumberEdit;
-    QTextEdit* m_connectionInfoEdit;
-    QPushButton* m_pasteButton;
     
     // Relay mode widgets
     QLineEdit* m_roomCodeEdit;
