@@ -2,10 +2,15 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QJsonArray>
+#include <QRandomGenerator>
 #include <QDebug>
 
 // Server configuration
 static const QString SERVER_URL = "wss://chess-server-mjg6.onrender.com";
+
+// Room number constants
+static const int MIN_ROOM_NUMBER = 1000;
+static const int MAX_ROOM_NUMBER = 9999;
 
 NetworkManager::NetworkManager(QObject *parent)
     : QObject(parent)
@@ -29,6 +34,9 @@ bool NetworkManager::createRoom()
         return false;
     }
     
+    // 生成房號（4位數字）
+    m_roomNumber = generateRoomNumber();
+    
     // 創建 WebSocket 連接
     m_webSocket = new QWebSocket();
     connect(m_webSocket, &QWebSocket::connected, this, &NetworkManager::onConnected);
@@ -43,6 +51,11 @@ bool NetworkManager::createRoom()
     m_opponentColor = PieceColor::Black;
     
     qDebug() << "[NetworkManager] Connecting to server:" << m_serverUrl;
+    qDebug() << "[NetworkManager] Generated room number:" << m_roomNumber;
+    
+    // 立即發送房號給UI顯示
+    emit roomCreated(m_roomNumber);
+    
     m_webSocket->open(QUrl(m_serverUrl));
     return true;
 }
@@ -232,11 +245,12 @@ void NetworkManager::onConnected()
     
     // 根據角色發送相應的請求
     if (m_role == NetworkRole::Host) {
-        // 房主請求創建房間
+        // 房主請求創建房間，發送客戶端生成的房號
         QJsonObject message;
         message["type"] = messageTypeToString(MessageType::CreateRoom);
+        message["roomNumber"] = m_roomNumber;  // 發送客戶端生成的房號
         sendMessage(message);
-        qDebug() << "[NetworkManager] Sent CreateRoom request";
+        qDebug() << "[NetworkManager] Sent CreateRoom request with room number:" << m_roomNumber;
     } else if (m_role == NetworkRole::Guest) {
         // 加入者請求加入房間
         QJsonObject message;
@@ -310,11 +324,16 @@ void NetworkManager::processMessage(const QJsonObject& message)
     
     switch (type) {
     case MessageType::RoomCreated:
-        // 服務器返回創建的房間號
+        // 服務器確認創建的房間號（如果服務器返回不同的房號則更新）
         if (m_role == NetworkRole::Host) {
-            m_roomNumber = message["roomNumber"].toString();
-            qDebug() << "[NetworkManager] Room created with number:" << m_roomNumber;
-            emit roomCreated(m_roomNumber);
+            QString serverRoomNumber = message["roomNumber"].toString();
+            if (!serverRoomNumber.isEmpty() && serverRoomNumber != m_roomNumber) {
+                qDebug() << "[NetworkManager] Server assigned different room number:" << serverRoomNumber;
+                m_roomNumber = serverRoomNumber;
+                emit roomCreated(m_roomNumber);
+            } else {
+                qDebug() << "[NetworkManager] Room created confirmed with number:" << m_roomNumber;
+            }
         }
         break;
         
@@ -472,4 +491,11 @@ QString NetworkManager::messageTypeToString(MessageType type) const
     };
     
     return stringMap.value(type, "Unknown");
+}
+
+QString NetworkManager::generateRoomNumber() const
+{
+    // 生成4位數字房號 (MIN_ROOM_NUMBER to MAX_ROOM_NUMBER inclusive)
+    int roomNum = QRandomGenerator::global()->bounded(MIN_ROOM_NUMBER, MAX_ROOM_NUMBER + 1);
+    return QString::number(roomNum);
 }
