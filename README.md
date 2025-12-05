@@ -115,8 +115,38 @@
 
 ### 需求條件
 - Qt5（qt5-qtbase-devel 或 qtbase5-dev）
+- **Qt5 WebSockets**（線上對戰功能必需，詳見下方安裝說明）
 - 支援 C++17 的編譯器
 - qmake
+
+### 安裝 Qt WebSockets 模組
+
+線上對戰模式需要 Qt WebSockets 模組，此模組可能不包含在預設安裝中。
+
+**Ubuntu/Debian:**
+```bash
+sudo apt-get install libqt5websockets5-dev
+```
+
+**Fedora/RHEL:**
+```bash
+sudo dnf install qt5-qtwebsockets-devel
+```
+
+**Arch Linux:**
+```bash
+sudo pacman -S qt5-websockets
+```
+
+**macOS (Homebrew):**
+```bash
+brew install qt5  # WebSockets 已包含
+```
+
+**Windows:**
+使用 Qt Maintenance Tool 安裝 WebSockets 元件
+
+📖 **詳細建置說明請參閱 [BUILDING.md](BUILDING.md)**
 
 ### 建置指令
 ```bash
