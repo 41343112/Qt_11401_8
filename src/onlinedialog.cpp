@@ -70,7 +70,7 @@ void OnlineDialog::setupUI()
     easyLayout->addWidget(easyLabel);
     
     m_connectionInfoEdit = new QTextEdit(this);
-    m_connectionInfoEdit->setPlaceholderText(tr("在此貼上朋友給您的房號\n格式如：ABCD1234"));
+    m_connectionInfoEdit->setPlaceholderText(tr("在此貼上朋友給您的房號\n格式如：1234"));
     m_connectionInfoEdit->setMaximumHeight(60);
     easyLayout->addWidget(m_connectionInfoEdit);
     
@@ -87,7 +87,10 @@ void OnlineDialog::setupUI()
     QFormLayout* manualLayout = new QFormLayout(manualGroup);
     
     m_roomNumberEdit = new QLineEdit(this);
-    m_roomNumberEdit->setPlaceholderText(tr("例如: ABCD1234"));
+    m_roomNumberEdit->setPlaceholderText(tr("例如: 1234"));
+    m_roomNumberEdit->setMaxLength(4);
+    QIntValidator* validator = new QIntValidator(1000, 9999, this);
+    m_roomNumberEdit->setValidator(validator);
     
     manualLayout->addRow(tr("房號:"), m_roomNumberEdit);
     
@@ -185,15 +188,20 @@ void OnlineDialog::parseConnectionInfo(const QString& info)
     // 清理可能的空白字符
     text = text.simplified();
     
-    // 驗證房號格式（應該是字母數字組合）
-    if (!text.isEmpty() && text.length() >= 4 && text.length() <= 12) {
-        m_roomNumberEdit->setText(text);
-        QMessageBox::information(this, tr("成功"), 
-            tr("已自動填入房號: %1").arg(text));
-    } else {
-        QMessageBox::warning(this, tr("格式錯誤"), 
-            tr("無法識別房號格式\n\n請確認房號格式正確"));
+    // 驗證房號格式（應該是4位數字）
+    if (text.length() == 4) {
+        bool ok;
+        int roomNum = text.toInt(&ok);
+        if (ok && roomNum >= 1000 && roomNum <= 9999) {
+            m_roomNumberEdit->setText(text);
+            QMessageBox::information(this, tr("成功"), 
+                tr("已自動填入房號: %1").arg(text));
+            return;
+        }
     }
+    
+    QMessageBox::warning(this, tr("格式錯誤"), 
+        tr("無法識別房號格式\n\n房號必須是4位數字（1000-9999）"));
 }
 
 QString OnlineDialog::getRoomNumber() const
