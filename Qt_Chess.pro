@@ -2,14 +2,6 @@ QT       += core gui multimedia multimediawidgets network websockets
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
-# Note: Qt WebSockets module is required for online mode
-# If you get "Unknown module(s) in QT: websockets" error:
-#   Ubuntu/Debian: sudo apt-get install libqt5websockets5-dev
-#   Fedora/RHEL:   sudo dnf install qt5-qtwebsockets-devel
-#   Arch Linux:    sudo pacman -S qt5-websockets
-#   macOS:         brew install qt5 (includes websockets)
-#   Windows:       Install via Qt Maintenance Tool (select WebSockets component)
-
 CONFIG += c++17
 
 # Enable console output for qDebug() on Windows
