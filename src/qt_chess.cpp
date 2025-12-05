@@ -183,6 +183,7 @@ Qt_Chess::Qt_Chess(QWidget *parent)
     , m_timerStarted(false)
     , m_serverTimeOffset(0)
     , m_gameStartLocalTime(0)
+    , m_currentTurnStartTime(0)
     , m_boardContainer(nullptr)
     , m_timeControlPanel(nullptr)
     , m_contentLayout(nullptr)
@@ -2948,36 +2949,90 @@ void Qt_Chess::onIncrementChanged(int value) {
 void Qt_Chess::onGameTimerTick() {
     if (!m_timeControlEnabled) return;
 
-    // 減少當前玩家的時間
-    // 在回放模式中，使用進入回放時儲存的玩家，而不是棋盤上的當前玩家
-    // 這樣可以確保在回放過程中時間只從同一個玩家倒數，不會隨著棋步切換
-    PieceColor currentPlayer = m_isReplayMode ? m_savedCurrentPlayer : m_chessBoard.getCurrentPlayer();
-    if (currentPlayer == PieceColor::White) {
-        // 僅當白方有時間限制（非無限制）時才減少時間
-        if (m_whiteTimeMs > 0) {
-            m_whiteTimeMs -= 100; // 減少 100ms（計時器每 100ms 觸發一次）
-            if (m_whiteTimeMs <= 0) {
-                m_whiteTimeMs = 0;
-                updateTimeDisplays();
-                stopTimer();
-                m_timerStarted = false;  // 重置計時器狀態
-                showTimeControlAfterTimeout();
-                QMessageBox::information(this, "時間到", "白方超時！黑方獲勝！");
-                return;
+    // 在線上模式中，使用伺服器同步的時間計算
+    // 這確保兩位玩家看到相同的經過時間，即使他們的本地時鐘不同步
+    if (m_isOnlineGame && m_gameStartLocalTime > 0) {
+        // 獲取當前同步時間（使用伺服器時間偏移）
+        qint64 currentSyncTime = QDateTime::currentMSecsSinceEpoch() + m_serverTimeOffset;
+        qint64 gameStartSyncTime = m_gameStartLocalTime + m_serverTimeOffset;
+        
+        // 如果這是當前回合的第一個 tick，記錄回合開始時間
+        if (m_currentTurnStartTime == 0) {
+            m_currentTurnStartTime = currentSyncTime;
+        }
+        
+        // 計算當前玩家在這個回合已用的時間
+        qint64 turnElapsedMs = currentSyncTime - m_currentTurnStartTime;
+        
+        // 更新當前玩家的剩餘時間
+        PieceColor currentPlayer = m_isReplayMode ? m_savedCurrentPlayer : m_chessBoard.getCurrentPlayer();
+        if (currentPlayer == PieceColor::White) {
+            if (m_whiteTimeMs > 0) {
+                // 基於實際經過時間更新，而不是固定減少100ms
+                int newWhiteTime = m_whiteInitialTimeMs - static_cast<int>(turnElapsedMs);
+                
+                // 防止時間跳躍（如果計算出的時間比當前剩餘時間多，保持當前時間）
+                if (newWhiteTime < m_whiteTimeMs) {
+                    m_whiteTimeMs = newWhiteTime;
+                }
+                
+                if (m_whiteTimeMs <= 0) {
+                    m_whiteTimeMs = 0;
+                    updateTimeDisplays();
+                    stopTimer();
+                    m_timerStarted = false;
+                    showTimeControlAfterTimeout();
+                    QMessageBox::information(this, "時間到", "白方超時！黑方獲勝！");
+                    return;
+                }
+            }
+        } else {
+            if (m_blackTimeMs > 0) {
+                int newBlackTime = m_blackInitialTimeMs - static_cast<int>(turnElapsedMs);
+                
+                if (newBlackTime < m_blackTimeMs) {
+                    m_blackTimeMs = newBlackTime;
+                }
+                
+                if (m_blackTimeMs <= 0) {
+                    m_blackTimeMs = 0;
+                    updateTimeDisplays();
+                    stopTimer();
+                    m_timerStarted = false;
+                    showTimeControlAfterTimeout();
+                    QMessageBox::information(this, "時間到", "黑方超時！白方獲勝！");
+                    return;
+                }
             }
         }
     } else {
-        // 僅當黑方有時間限制（非無限制）時才減少時間
-        if (m_blackTimeMs > 0) {
-            m_blackTimeMs -= 100;
-            if (m_blackTimeMs <= 0) {
-                m_blackTimeMs = 0;
-                updateTimeDisplays();
-                stopTimer();
-                m_timerStarted = false;  // 重置計時器狀態
-                showTimeControlAfterTimeout();
-                QMessageBox::information(this, "時間到", "黑方超時！白方獲勝！");
-                return;
+        // 非線上模式：使用原本的遞減邏輯
+        PieceColor currentPlayer = m_isReplayMode ? m_savedCurrentPlayer : m_chessBoard.getCurrentPlayer();
+        if (currentPlayer == PieceColor::White) {
+            if (m_whiteTimeMs > 0) {
+                m_whiteTimeMs -= 100;
+                if (m_whiteTimeMs <= 0) {
+                    m_whiteTimeMs = 0;
+                    updateTimeDisplays();
+                    stopTimer();
+                    m_timerStarted = false;
+                    showTimeControlAfterTimeout();
+                    QMessageBox::information(this, "時間到", "白方超時！黑方獲勝！");
+                    return;
+                }
+            }
+        } else {
+            if (m_blackTimeMs > 0) {
+                m_blackTimeMs -= 100;
+                if (m_blackTimeMs <= 0) {
+                    m_blackTimeMs = 0;
+                    updateTimeDisplays();
+                    stopTimer();
+                    m_timerStarted = false;
+                    showTimeControlAfterTimeout();
+                    QMessageBox::information(this, "時間到", "黑方超時！白方獲勝！");
+                    return;
+                }
             }
         }
     }
@@ -3009,6 +3064,18 @@ void Qt_Chess::applyIncrement() {
         m_whiteTimeMs += m_incrementMs;
     } else {
         m_blackTimeMs += m_incrementMs;
+    }
+    
+    // 在線上模式中，重置回合計時器，因為現在輪到新玩家了
+    if (m_isOnlineGame && m_gameStartLocalTime > 0) {
+        m_currentTurnStartTime = QDateTime::currentMSecsSinceEpoch() + m_serverTimeOffset;
+        // 更新當前回合的初始時間（用於計算經過時間）
+        PieceColor currentPlayer = m_chessBoard.getCurrentPlayer();
+        if (currentPlayer == PieceColor::White) {
+            m_whiteInitialTimeMs = m_whiteTimeMs;
+        } else {
+            m_blackInitialTimeMs = m_blackTimeMs;
+        }
     }
 }
 
@@ -5695,6 +5762,7 @@ void Qt_Chess::onStartGameReceived(int whiteTimeMs, int blackTimeMs, int increme
     // 儲存伺服器時間偏移和遊戲開始時間，用於線上模式的時間同步
     m_serverTimeOffset = serverTimeOffset;
     m_gameStartLocalTime = QDateTime::currentMSecsSinceEpoch();
+    m_currentTurnStartTime = m_gameStartLocalTime + m_serverTimeOffset;  // 初始化當前回合開始時間（使用同步時間）
     
     // 收到房主的開始遊戲通知，設定時間後客戶端自動開始遊戲
     

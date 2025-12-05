@@ -162,6 +162,7 @@ private:
     bool m_timerStarted;  // 追蹤計時器是否已手動啟動
     qint64 m_serverTimeOffset;  // 伺服器時間偏移（ms）：serverTime - localTime，用於線上模式同步計時器顯示
     qint64 m_gameStartLocalTime;  // 遊戲開始時的本地時間戳（ms），用於計算經過時間
+    qint64 m_currentTurnStartTime;  // 當前回合開始的時間戳（ms），用於線上模式計算當前玩家已用時間
     QWidget* m_boardContainer;  // 帶有疊加時間顯示的棋盤容器
     QWidget* m_timeControlPanel;  // 時間控制設定面板
     QHBoxLayout* m_contentLayout;  // 主內容佈局，用於調整伸展因子
