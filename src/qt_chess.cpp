@@ -4248,6 +4248,7 @@ QString Qt_Chess::getEnginePath() const {
 
 void Qt_Chess::onHumanModeClicked() {
     m_currentGameMode = GameMode::HumanVsHuman;
+    m_isOnlineGame = false;  // 確保切換到離線模式
     updateGameModeUI();
     
     // 更新引擎的遊戲模式
@@ -4266,6 +4267,7 @@ void Qt_Chess::onComputerModeClicked() {
         m_currentGameMode = GameMode::HumanVsComputer;
     }
     
+    m_isOnlineGame = false;  // 確保切換到離線模式
     updateGameModeUI();
     
     // 更新引擎的遊戲模式
