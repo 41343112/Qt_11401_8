@@ -2597,7 +2597,7 @@ void Qt_Chess::setupTimeControlUI(QVBoxLayout* timeControlPanelLayout) {
     m_onlineModeButton->setStyleSheet(onlineModeStyle);
     connect(m_onlineModeButton, &QPushButton::clicked, this, &Qt_Chess::onOnlineModeClicked);
     onlineModeButtonLayout->addWidget(m_onlineModeButton);
-    // 添加彈性空間使按鈕與上方本機按鈕寬度一致
+    // 添加彈性空間使按鈕靠左對齊
     onlineModeButtonLayout->addStretch();
     
     timeControlLayout->addLayout(onlineModeButtonLayout);
