@@ -5173,13 +5173,12 @@ void Qt_Chess::finishStartupAnimation() {
 }
 
 void Qt_Chess::initializeBackgroundMusic() {
-    // 創建背景音樂播放器 (Qt6 API)
+    // 創建背景音樂播放器 (Qt5 API)
     m_bgmPlayer = new QMediaPlayer(this);
-    m_audioOutput = new QAudioOutput(this);
-    m_bgmPlayer->setAudioOutput(m_audioOutput);
+    m_audioOutput = nullptr;  // Qt5 不使用 QAudioOutput
     
-    // 設定音量 (Qt6 使用 0.0-1.0 浮點數)
-    m_audioOutput->setVolume(m_bgmVolume / 100.0);
+    // 設定音量 (Qt5 使用 0-100 整數)
+    m_bgmPlayer->setVolume(m_bgmVolume);
     
     // 初始化背景音樂列表 - 使用 resources/backgroundsounds 中的5首音樂
     m_bgmList.clear();
@@ -5189,8 +5188,8 @@ void Qt_Chess::initializeBackgroundMusic() {
               << "qrc:/resources/backgroundsounds/backgroundsound_4.mp3"
               << "qrc:/resources/backgroundsounds/backgroundsound_5.mp3";
     
-    // 設定循環播放 - 當媒體結束時重新播放 (Qt6 使用 playbackStateChanged)
-    connect(m_bgmPlayer, &QMediaPlayer::playbackStateChanged, this, [this](QMediaPlayer::PlaybackState state) {
+    // 設定循環播放 - 當媒體結束時重新播放 (Qt5 使用 stateChanged)
+    connect(m_bgmPlayer, &QMediaPlayer::stateChanged, this, [this](QMediaPlayer::State state) {
         if (state == QMediaPlayer::StoppedState && m_bgmEnabled && m_gameStarted) {
             // 媒體播放完畢，重新開始（只在遊戲進行中才循環播放）
             m_bgmPlayer->setPosition(0);
@@ -5215,8 +5214,8 @@ void Qt_Chess::startBackgroundMusic() {
     m_lastBgmIndex = newIndex;
     QString bgmPath = m_bgmList[newIndex];
     
-    // 設定並播放背景音樂 (Qt6 使用 setSource)
-    m_bgmPlayer->setSource(QUrl(bgmPath));
+    // 設定並播放背景音樂 (Qt5 使用 setMedia)
+    m_bgmPlayer->setMedia(QUrl(bgmPath));
     m_bgmPlayer->play();
 }
 
@@ -5242,8 +5241,8 @@ void Qt_Chess::onToggleBackgroundMusicClicked() {
 
 void Qt_Chess::setBackgroundMusicVolume(int volume) {
     m_bgmVolume = qBound(0, volume, 100);
-    if (m_audioOutput) {
-        m_audioOutput->setVolume(m_bgmVolume / 100.0);
+    if (m_bgmPlayer) {
+        m_bgmPlayer->setVolume(m_bgmVolume);
     }
 }
 
@@ -5263,18 +5262,18 @@ void Qt_Chess::onCheckForUpdatesClicked() {
     // 開始檢查更新
     m_updateChecker->checkForUpdates();
     
-    // 當檢查完成時關閉訊息框（使用 SingleShot 連接避免重複連接）
+    // 當檢查完成時關閉訊息框（使用 UniqueConnection 避免重複連接）
     // 使用 QPointer 檢查對話框是否仍然有效
     connect(m_updateChecker, &UpdateChecker::updateCheckFinished, this, [checkingBox]() {
         if (checkingBox) {
             checkingBox->close();
         }
-    }, Qt::SingleShotConnection);
+    }, Qt::UniqueConnection);
     connect(m_updateChecker, &UpdateChecker::updateCheckFailed, this, [checkingBox]() {
         if (checkingBox) {
             checkingBox->close();
         }
-    }, Qt::SingleShotConnection);
+    }, Qt::UniqueConnection);
 }
 
 void Qt_Chess::onUpdateCheckFinished(bool updateAvailable) {
