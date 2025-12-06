@@ -2990,7 +2990,7 @@ void Qt_Chess::onGameTimerTick() {
         // 更新當前玩家的剩餘時間
         PieceColor currentPlayer = m_isReplayMode ? m_savedCurrentPlayer : m_chessBoard.getCurrentPlayer();
         if (currentPlayer == PieceColor::White) {
-            if (m_whiteTimeMs > 0) {
+            if (m_whiteTimeMs > 0 && m_whiteInitialTimeMs > 0) {  // 檢查初始時間也 > 0（非無限制）
                 // 基於實際經過時間更新，而不是固定減少100ms
                 int newWhiteTime = m_whiteInitialTimeMs - static_cast<int>(turnElapsedMs);
                 
@@ -3010,7 +3010,7 @@ void Qt_Chess::onGameTimerTick() {
                 }
             }
         } else {
-            if (m_blackTimeMs > 0) {
+            if (m_blackTimeMs > 0 && m_blackInitialTimeMs > 0) {  // 檢查初始時間也 > 0（非無限制）
                 int newBlackTime = m_blackInitialTimeMs - static_cast<int>(turnElapsedMs);
                 
                 if (newBlackTime < m_blackTimeMs) {
@@ -3155,13 +3155,13 @@ void Qt_Chess::updateTimeDisplaysFromServer() {
     // 更新顯示
     updateTimeDisplays();
     
-    // 檢查超時
-    if (m_whiteTimeMs <= 0 && m_timeControlEnabled) {
+    // 檢查超時（只檢查有設定時間限制的玩家）
+    if (m_whiteTimeMs <= 0 && m_timeControlEnabled && m_whiteInitialTimeMs > 0) {
         stopTimer();
         m_timerStarted = false;
         showTimeControlAfterTimeout();
         QMessageBox::information(this, "時間到", "白方超時！黑方獲勝！");
-    } else if (m_blackTimeMs <= 0 && m_timeControlEnabled) {
+    } else if (m_blackTimeMs <= 0 && m_timeControlEnabled && m_blackInitialTimeMs > 0) {
         stopTimer();
         m_timerStarted = false;
         showTimeControlAfterTimeout();
@@ -5282,6 +5282,10 @@ void Qt_Chess::onOnlineModeClicked() {
                     m_newGameAction->setEnabled(false);
                 }
                 
+                // 停用雙人和電腦模式按鈕（連線上後不能切換模式）
+                if (m_humanModeButton) m_humanModeButton->setEnabled(false);
+                if (m_computerModeButton) m_computerModeButton->setEnabled(false);
+                
                 // 修改開始按鈕為取消功能（紅色）
                 if (m_startButton) {
                     m_startButton->setText("✗ 取消等待");
@@ -5336,10 +5340,19 @@ void Qt_Chess::onOnlineModeClicked() {
                     m_colorSelectionWidget->hide();
                 }
                 
+                // 房客：禁用時間控制（只有房主可以設定時間）
+                if (m_whiteTimeLimitSlider) m_whiteTimeLimitSlider->setEnabled(false);
+                if (m_blackTimeLimitSlider) m_blackTimeLimitSlider->setEnabled(false);
+                if (m_incrementSlider) m_incrementSlider->setEnabled(false);
+                
                 // 停用新遊戲功能
                 if (m_newGameAction) {
                     m_newGameAction->setEnabled(false);
                 }
+                
+                // 停用雙人和電腦模式按鈕（連線上後不能切換模式）
+                if (m_humanModeButton) m_humanModeButton->setEnabled(false);
+                if (m_computerModeButton) m_computerModeButton->setEnabled(false);
                 
                 // 修改開始按鈕為取消功能（紅色）
                 if (m_startButton) {
@@ -5546,14 +5559,30 @@ void Qt_Chess::onPromotedToHost() {
     // 房主離開，自己被提升為新房主
     qDebug() << "[Qt_Chess::onPromotedToHost] Promoted from Guest to Host";
     
-    // 通知玩家角色變更
-    QMessageBox::information(this, tr("角色變更"), tr("原房主已離開，您已成為新房主。\n等待新對手加入房間..."));
+    // 獲取房號用於顯示
+    QString roomNumber = m_networkManager ? m_networkManager->getRoomNumber() : QString();
     
     // 更新狀態為等待對手
     m_waitingForOpponent = true;
     
-    // 更新狀態標籤
-    m_connectionStatusLabel->setText(tr("⏳ 您已成為房主，等待對手加入..."));
+    // 更新狀態標籤顯示角色變更和等待狀態
+    m_connectionStatusLabel->setText(tr("👑 您已成為房主 | 原房主已離開，等待新對手加入..."));
+    
+    // 更新房間資訊標籤顯示房號（與初始創建房間時一致）
+    if (m_roomInfoLabel && !roomNumber.isEmpty()) {
+        m_roomInfoLabel->setText(QString("🎮 房號: %1").arg(roomNumber));
+        m_roomInfoLabel->show();
+    }
+    
+    // 顯示顏色選擇widget讓新房主選擇要執的顏色（與初始房主一致）
+    if (m_colorSelectionWidget) {
+        m_colorSelectionWidget->show();
+    }
+    
+    // 啟用時間控制滑桿（新房主可以調整時間設定）
+    if (m_whiteTimeLimitSlider) m_whiteTimeLimitSlider->setEnabled(true);
+    if (m_blackTimeLimitSlider) m_blackTimeLimitSlider->setEnabled(true);
+    if (m_incrementSlider) m_incrementSlider->setEnabled(true);
     
     // 隱藏開始按鈕（因為還沒有對手）
     if (m_startButton) {
@@ -5682,7 +5711,32 @@ void Qt_Chess::onGameStartReceived(PieceColor playerColor) {
 }
 
 void Qt_Chess::onOpponentDisconnected() {
-    QMessageBox::information(this, "對手斷線", "對手已斷開連接");
+    // 獲取房號用於顯示
+    QString roomNumber = m_networkManager ? m_networkManager->getRoomNumber() : QString();
+    
+    // 檢查遊戲是否已開始或正在進行中，如果是則自動結束遊戲並退出棋盤
+    // 即使遊戲剛開始還沒有走任何一步，也要結束遊戲
+    if (m_gameStarted || m_timerStarted) {
+        // 更新連線狀態標籤顯示對手退出和遊戲結束
+        m_connectionStatusLabel->setText(QString("❌ 對手已退出遊戲 | 遊戲自動結束"));
+        
+        // 結束遊戲並更新狀態
+        handleGameEnd();
+        updateStatus();
+        
+        // 確保遊戲完全重置到初始狀態
+        resetBoardState();
+    } else {
+        // 更新連線狀態標籤顯示對手斷線
+        m_connectionStatusLabel->setText(QString("❌ 對手已斷開連接"));
+    }
+    
+    // 更新房間資訊標籤顯示房號
+    if (m_roomInfoLabel && !roomNumber.isEmpty()) {
+        m_roomInfoLabel->setText(QString("🎮 房號: %1").arg(roomNumber));
+        m_roomInfoLabel->show();
+    }
+    
     m_isOnlineGame = false;
     m_waitingForOpponent = false;
     
@@ -5727,6 +5781,10 @@ void Qt_Chess::onOpponentDisconnected() {
     if (m_whiteTimeLimitSlider) m_whiteTimeLimitSlider->setEnabled(true);
     if (m_blackTimeLimitSlider) m_blackTimeLimitSlider->setEnabled(true);
     if (m_incrementSlider) m_incrementSlider->setEnabled(true);
+    
+    // 恢復模式選擇按鈕
+    if (m_humanModeButton) m_humanModeButton->setEnabled(true);
+    if (m_computerModeButton) m_computerModeButton->setEnabled(true);
     
     // 返回雙人模式
     m_onlineModeButton->setChecked(false);
@@ -5787,6 +5845,10 @@ void Qt_Chess::onCancelRoomClicked() {
         if (m_whiteTimeLimitSlider) m_whiteTimeLimitSlider->setEnabled(true);
         if (m_blackTimeLimitSlider) m_blackTimeLimitSlider->setEnabled(true);
         if (m_incrementSlider) m_incrementSlider->setEnabled(true);
+        
+        // 恢復模式選擇按鈕
+        if (m_humanModeButton) m_humanModeButton->setEnabled(true);
+        if (m_computerModeButton) m_computerModeButton->setEnabled(true);
         
         // 恢復新遊戲功能
         if (m_newGameAction) {
@@ -5872,6 +5934,10 @@ void Qt_Chess::onExitRoomClicked() {
         if (m_whiteTimeLimitSlider) m_whiteTimeLimitSlider->setEnabled(true);
         if (m_blackTimeLimitSlider) m_blackTimeLimitSlider->setEnabled(true);
         if (m_incrementSlider) m_incrementSlider->setEnabled(true);
+        
+        // 恢復模式選擇按鈕
+        if (m_humanModeButton) m_humanModeButton->setEnabled(true);
+        if (m_computerModeButton) m_computerModeButton->setEnabled(true);
         
         // 恢復新遊戲功能
         if (m_newGameAction) {
@@ -6136,6 +6202,39 @@ void Qt_Chess::onTimeSettingsReceived(int whiteTimeMs, int blackTimeMs, int incr
         m_timeControlEnabled = (whiteTimeMs > 0 || blackTimeMs > 0);
         
         // 更新滑桿顯示（僅用於顯示，房客的滑桿已被停用）
+        // 更新白方時間滑桿
+        if (m_whiteTimeLimitSlider) {
+            m_whiteTimeLimitSlider->blockSignals(true);
+            int sliderValue;
+            if (whiteTimeMs == 0) {
+                sliderValue = 0;  // 無限制
+            } else if (whiteTimeMs == 30000) {
+                sliderValue = 1;  // 30秒
+            } else {
+                // 分鐘數：value = (minutes + 1)，反推 minutes = value - 1
+                sliderValue = (whiteTimeMs / 60000) + 1;
+            }
+            m_whiteTimeLimitSlider->setValue(sliderValue);
+            m_whiteTimeLimitSlider->blockSignals(false);
+        }
+        
+        // 更新黑方時間滑桿
+        if (m_blackTimeLimitSlider) {
+            m_blackTimeLimitSlider->blockSignals(true);
+            int sliderValue;
+            if (blackTimeMs == 0) {
+                sliderValue = 0;  // 無限制
+            } else if (blackTimeMs == 30000) {
+                sliderValue = 1;  // 30秒
+            } else {
+                // 分鐘數：value = (minutes + 1)，反推 minutes = value - 1
+                sliderValue = (blackTimeMs / 60000) + 1;
+            }
+            m_blackTimeLimitSlider->setValue(sliderValue);
+            m_blackTimeLimitSlider->blockSignals(false);
+        }
+        
+        // 更新增量滑桿
         if (m_incrementSlider && m_incrementLabel) {
             m_incrementSlider->blockSignals(true);
             m_incrementSlider->setValue(incrementMs / 1000);
@@ -6259,11 +6358,10 @@ void Qt_Chess::showRoomInfoDialog(const QString& roomNumber) {
     
     layout->addSpacing(10);
     
-    // 詳細資訊
+    // 詳細資訊 - 顯示房號和連線說明
     QLabel* detailLabel = new QLabel(
         tr("<p><b>房間資訊：</b><br>"
-           "房間號碼：<span style='color: #2196F3; font-weight: bold;'>%1</span><br>"
-           "伺服器：<span style='color: #2196F3; font-weight: bold;'>chess-server-mjg6.onrender.com</span></p>"
+           "房間號碼：<span style='color: #2196F3; font-weight: bold;'>%1</span></p>"
            "<p style='color: #666; font-size: 9pt;'>"
            "💡 朋友收到房號後，選擇「加入房間」並貼上即可<br>"
            "🌐 使用中央伺服器，無需設定網路或防火牆</p>").arg(roomNumber), &dialog);
@@ -6279,8 +6377,8 @@ void Qt_Chess::showRoomInfoDialog(const QString& roomNumber) {
     connect(closeButton, &QPushButton::clicked, &dialog, &QDialog::accept);
     layout->addWidget(closeButton);
     
-    // 更新房間資訊標籤
-    m_roomInfoLabel->setText(QString("🎮 房號: %1 | 伺服器: chess-server-mjg6.onrender.com").arg(roomNumber));
+    // 更新房間資訊標籤顯示房號
+    m_roomInfoLabel->setText(QString("🎮 房號: %1").arg(roomNumber));
     
     dialog.exec();
 }
