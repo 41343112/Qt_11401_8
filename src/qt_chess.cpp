@@ -2990,7 +2990,7 @@ void Qt_Chess::onGameTimerTick() {
         // 更新當前玩家的剩餘時間
         PieceColor currentPlayer = m_isReplayMode ? m_savedCurrentPlayer : m_chessBoard.getCurrentPlayer();
         if (currentPlayer == PieceColor::White) {
-            if (m_whiteTimeMs > 0) {
+            if (m_whiteTimeMs > 0 && m_whiteInitialTimeMs > 0) {  // 檢查初始時間也 > 0（非無限制）
                 // 基於實際經過時間更新，而不是固定減少100ms
                 int newWhiteTime = m_whiteInitialTimeMs - static_cast<int>(turnElapsedMs);
                 
@@ -3010,7 +3010,7 @@ void Qt_Chess::onGameTimerTick() {
                 }
             }
         } else {
-            if (m_blackTimeMs > 0) {
+            if (m_blackTimeMs > 0 && m_blackInitialTimeMs > 0) {  // 檢查初始時間也 > 0（非無限制）
                 int newBlackTime = m_blackInitialTimeMs - static_cast<int>(turnElapsedMs);
                 
                 if (newBlackTime < m_blackTimeMs) {
@@ -5696,14 +5696,18 @@ void Qt_Chess::onOpponentDisconnected() {
     // 獲取房號用於顯示
     QString roomNumber = m_networkManager ? m_networkManager->getRoomNumber() : QString();
     
-    // 檢查遊戲是否已開始，如果是則自動結束遊戲
-    if (m_gameStarted) {
+    // 檢查遊戲是否已開始或正在進行中，如果是則自動結束遊戲並退出棋盤
+    // 即使遊戲剛開始還沒有走任何一步，也要結束遊戲
+    if (m_gameStarted || m_timerStarted) {
         // 更新連線狀態標籤顯示對手退出和遊戲結束
         m_connectionStatusLabel->setText(QString("❌ 對手已退出遊戲 | 遊戲自動結束"));
         
         // 結束遊戲並更新狀態
         handleGameEnd();
         updateStatus();
+        
+        // 確保遊戲完全重置到初始狀態
+        resetBoardState();
     } else {
         // 更新連線狀態標籤顯示對手斷線
         m_connectionStatusLabel->setText(QString("❌ 對手已斷開連接"));
