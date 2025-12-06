@@ -1,15 +1,15 @@
 # Settings Button Feature
 
 ## Overview
-This document describes the settings button feature that was added to the Qt Chess application to provide quick access to all game settings.
+This document describes the settings button feature that was added to the Qt Chess application to provide quick access to all game settings. The settings menu has been removed from the menu bar and is now only accessible through the settings button.
 
 ## Problem Statement
 將設定使用按鈕來顯示 (Display settings using a button)
 
-Previously, all settings were only accessible through the menu bar at the top of the application. Users requested a more convenient way to access settings through a button.
+Previously, all settings were accessible through the menu bar at the top of the application. Users requested a more convenient way to access settings through a button. Based on user feedback, the settings menu has been removed from the menu bar to simplify the interface, with all settings now consolidated in the settings button.
 
 ## Solution
-A settings button (⚙ 設定) has been added to the time control panel on the right side of the application window. When clicked, it displays a popup menu with all available settings options.
+A settings button (⚙ 設定) has been added to the time control panel on the right side of the application window. When clicked, it displays a popup menu with all available settings options. The settings menu has been removed from the menu bar.
 
 ## Implementation Details
 
@@ -21,6 +21,7 @@ A settings button (⚙ 設定) has been added to the time control panel on the r
 2. **src/qt_chess.cpp**
    - Created the settings button in `setupTimeControlUI()` function
    - Implemented `onSettingsButtonClicked()` to display a popup menu
+   - Removed settings menu from `setupMenuBar()` function
 
 ### Button Location
 The settings button is located in the time control panel on the right side of the window, positioned below the "退出房間" (Exit Room) button.
@@ -55,6 +56,7 @@ The `onSettingsButtonClicked()` function:
 2. **Convenience**: No need to navigate through the menu bar
 3. **Visibility**: The button is always visible in the time control panel
 4. **Consistency**: Uses the same modern tech styling as other UI elements
+5. **Simplified Menu Bar**: Menu bar is cleaner with settings consolidated in one location
 
 ## Code Quality
 - Minimal changes to existing codebase

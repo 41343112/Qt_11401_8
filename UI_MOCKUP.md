@@ -29,7 +29,7 @@
 ## After the Change
 ```
 ┌─────────────────────────────────────────────────┐
-│ Menu Bar: [遊戲] [⚙ 設定] [❓ 說明]             │
+│ Menu Bar: [遊戲] [❓ 說明]                      │
 ├─────────────────────────────────────────────────┤
 │                                                 │
 │  [Move List]  [Chess Board]  [Time Control]    │
@@ -51,6 +51,8 @@
 │                                 [⚙ 設定]  ◀── NEW!
 │                                                 │
 └─────────────────────────────────────────────────┘
+
+Note: Settings menu removed from menu bar, now only in button
 ```
 
 ## When Settings Button is Clicked
@@ -104,5 +106,6 @@ Each menu item follows Qt's standard QAction appearance:
 ✅ **Always Visible**: Button is always available in the game panel
 ✅ **Modern Design**: Matches the tech/neon aesthetic of the app
 ✅ **Intuitive**: Familiar gear icon for settings
-✅ **Consistent**: Same options as menu bar, just more accessible
+✅ **Simplified Menu Bar**: Settings removed from menu bar, cleaner interface
 ✅ **Non-intrusive**: Takes minimal space (45px height)
+✅ **Consolidated**: All settings in one place, no duplication
