@@ -119,7 +119,7 @@ private:
     
     // 背景音樂
     QMediaPlayer* m_bgmPlayer;
-    QAudioOutput* m_audioOutput;  // Qt6 音量控制
+    QAudioOutput* m_audioOutput;  // Qt5: unused (nullptr), Qt6: 音量控制
     bool m_bgmEnabled;
     int m_bgmVolume;  // 0-100
     QStringList m_bgmList;  // 背景音樂列表

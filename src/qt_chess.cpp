@@ -5262,7 +5262,7 @@ void Qt_Chess::onCheckForUpdatesClicked() {
     // 開始檢查更新
     m_updateChecker->checkForUpdates();
     
-    // 當檢查完成時關閉訊息框（使用 UniqueConnection 避免重複連接）
+    // 當檢查完成時關閉訊息框（使用 UniqueConnection for Qt5 compatibility, Qt6 would use SingleShotConnection）
     // 使用 QPointer 檢查對話框是否仍然有效
     connect(m_updateChecker, &UpdateChecker::updateCheckFinished, this, [checkingBox]() {
         if (checkingBox) {
