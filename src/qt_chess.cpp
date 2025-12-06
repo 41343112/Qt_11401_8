@@ -41,7 +41,9 @@
 #include <algorithm>
 
 namespace {
-const QString CHECK_HIGHLIGHT_STYLE = "QPushButton { background-color: rgba(255, 80, 80, 0.85); border: 2px solid #FF3333; }";
+// Note: CHECK_HIGHLIGHT_STYLE is no longer used - check highlighting now dynamically 
+// includes text color via getPieceTextColor() to maintain proper piece coloring
+// const QString CHECK_HIGHLIGHT_STYLE = "QPushButton { background-color: rgba(255, 80, 80, 0.85); border: 2px solid #FF3333; }";
 const int DEFAULT_ICON_SIZE = 40; // 預設圖示大小（像素）
 const int MAX_TIME_LIMIT_SECONDS = 1800; // 最大時間限制：30 分鐘
 const int MAX_SLIDER_POSITION = 31; // 滑桿範圍：0（無限制）、1（30秒）、2-31（1-30 分鐘）
@@ -752,7 +754,7 @@ QString Qt_Chess::getPieceTextColor(int logicalRow, int logicalCol) const {
     if (piece.getType() != PieceType::None) {
         return (piece.getColor() == PieceColor::White) ? WHITE_PIECE_COLOR : BLACK_PIECE_COLOR;
     }
-    return WHITE_PIECE_COLOR; // 預設白色
+    return WHITE_PIECE_COLOR; // 空格子預設為白色（實際上不會顯示文字）
 }
 
 void Qt_Chess::updateBoard() {
