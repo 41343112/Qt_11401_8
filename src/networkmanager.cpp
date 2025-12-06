@@ -470,6 +470,12 @@ void NetworkManager::processMessage(const QJsonObject& message)
         qDebug() << "[NetworkManager] Opponent left the room before game started";
         emit playerLeft();
     }
+    else if (actionStr == "promotedToHost") {
+        // 房主離開，自己被提升為新房主
+        qDebug() << "[NetworkManager] Promoted to host, changing role from Guest to Host";
+        m_role = NetworkRole::Host;
+        emit promotedToHost();
+    }
     else {
         // 處理舊格式訊息（type 欄位）
         QString typeStr = message["type"].toString();

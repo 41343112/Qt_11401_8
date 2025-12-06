@@ -336,6 +336,7 @@ private:
     void onRoomCreated(const QString& roomNumber);  // 房間創建
     void onOpponentJoined();             // 對手加入
     void onPlayerLeft();                 // 對手離開（遊戲開始前）
+    void onPromotedToHost();             // 被提升為房主
     void onOpponentMove(const QPoint& from, const QPoint& to, PieceType promotionType);  // 對手移動
     void onGameStartReceived(PieceColor playerColor);  // 遊戲開始
     void onStartGameReceived(int whiteTimeMs, int blackTimeMs, int incrementMs, PieceColor hostColor, qint64 serverTimeOffset);  // 收到開始遊戲通知（包含時間設定、房主顏色和伺服器時間偏移）
