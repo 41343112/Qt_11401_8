@@ -3054,11 +3054,13 @@ void Qt_Chess::onGameTimerTick() {
 void Qt_Chess::updateTimeDisplaysFromServer() {
     if (!m_networkManager) return;
     
-    // 獲取當前 UNIX 秒數
-    qint64 currentUnixTime = QDateTime::currentSecsSinceEpoch();
+    // 獲取當前 UNIX 毫秒數
+    qint64 currentUnixTimeMs = QDateTime::currentMSecsSinceEpoch();
     
-    // 計算距離最後切換經過的時間（秒）
-    qint64 elapsed = currentUnixTime - m_serverLastSwitchTime;
+    // 計算距離最後切換經過的時間（毫秒）
+    // m_serverLastSwitchTime 是秒數，需要轉換為毫秒
+    qint64 lastSwitchTimeMs = m_serverLastSwitchTime * 1000;
+    qint64 elapsedMs = currentUnixTimeMs - lastSwitchTimeMs;
     
     // 確定我是玩家 A (房主) 還是玩家 B (房客)
     bool isPlayerA = (m_networkManager->getRole() == NetworkRole::Host);
@@ -3072,22 +3074,22 @@ void Qt_Chess::updateTimeDisplaysFromServer() {
             // 我是房主，房主是白方還是黑方？檢查我的顏色
             if (m_networkManager->getPlayerColor() == PieceColor::White) {
                 // 房主是白方 (whiteIsA = true)
-                whiteTime = m_serverTimeA - (elapsed * 1000);
+                whiteTime = m_serverTimeA - elapsedMs;
                 blackTime = m_serverTimeB;
             } else {
                 // 房主是黑方 (whiteIsA = false)
-                whiteTime = m_serverTimeB - (elapsed * 1000);
+                whiteTime = m_serverTimeB - elapsedMs;
                 blackTime = m_serverTimeA;
             }
         } else {
             // 我是房客
             if (m_networkManager->getPlayerColor() == PieceColor::White) {
                 // 房客是白方 (whiteIsA = false)
-                whiteTime = m_serverTimeB - (elapsed * 1000);
+                whiteTime = m_serverTimeB - elapsedMs;
                 blackTime = m_serverTimeA;
             } else {
                 // 房客是黑方 (whiteIsA = true)
-                whiteTime = m_serverTimeA - (elapsed * 1000);
+                whiteTime = m_serverTimeA - elapsedMs;
                 blackTime = m_serverTimeB;
             }
         }
@@ -3097,21 +3099,21 @@ void Qt_Chess::updateTimeDisplaysFromServer() {
             if (m_networkManager->getPlayerColor() == PieceColor::White) {
                 // 房主是白方 (whiteIsA = true)
                 whiteTime = m_serverTimeA;
-                blackTime = m_serverTimeB - (elapsed * 1000);
+                blackTime = m_serverTimeB - elapsedMs;
             } else {
                 // 房主是黑方 (whiteIsA = false)
                 whiteTime = m_serverTimeB;
-                blackTime = m_serverTimeA - (elapsed * 1000);
+                blackTime = m_serverTimeA - elapsedMs;
             }
         } else {
             if (m_networkManager->getPlayerColor() == PieceColor::White) {
                 // 房客是白方 (whiteIsA = false)
                 whiteTime = m_serverTimeB;
-                blackTime = m_serverTimeA - (elapsed * 1000);
+                blackTime = m_serverTimeA - elapsedMs;
             } else {
                 // 房客是黑方 (whiteIsA = true)
                 whiteTime = m_serverTimeA;
-                blackTime = m_serverTimeB - (elapsed * 1000);
+                blackTime = m_serverTimeB - elapsedMs;
             }
         }
     }
