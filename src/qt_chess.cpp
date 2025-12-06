@@ -6543,8 +6543,7 @@ void Qt_Chess::onDrawResponseReceived(bool accepted) {
         // 顯示訊息
         QMessageBox::information(this, "遊戲結束", "對手同意和棋！雙方和局。");
     } else {
-        // 對手拒絕和棋
-        QMessageBox::information(this, "和棋請求", "對手拒絕了和棋請求，遊戲繼續。");
+        // 對手拒絕和棋，不顯示對話框，遊戲繼續
     }
 }
 
