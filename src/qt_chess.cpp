@@ -5218,6 +5218,7 @@ void Qt_Chess::initializeNetwork() {
     connect(m_networkManager, &NetworkManager::roomCreated, this, &Qt_Chess::onRoomCreated);
     connect(m_networkManager, &NetworkManager::opponentJoined, this, &Qt_Chess::onOpponentJoined);
     connect(m_networkManager, &NetworkManager::playerLeft, this, &Qt_Chess::onPlayerLeft);
+    connect(m_networkManager, &NetworkManager::promotedToHost, this, &Qt_Chess::onPromotedToHost);
     connect(m_networkManager, &NetworkManager::opponentMove, this, &Qt_Chess::onOpponentMove);
     connect(m_networkManager, &NetworkManager::gameStartReceived, this, &Qt_Chess::onGameStartReceived);
     connect(m_networkManager, &NetworkManager::startGameReceived, this, &Qt_Chess::onStartGameReceived);
@@ -5538,6 +5539,30 @@ void Qt_Chess::onPlayerLeft() {
         if (m_exitRoomButton) {
             m_exitRoomButton->show();
         }
+    }
+}
+
+void Qt_Chess::onPromotedToHost() {
+    // 房主離開，自己被提升為新房主
+    qDebug() << "[Qt_Chess::onPromotedToHost] Promoted from Guest to Host";
+    
+    // 通知玩家角色變更
+    QMessageBox::information(this, tr("角色變更"), tr("原房主已離開，您已成為新房主。\n等待新對手加入房間..."));
+    
+    // 更新狀態為等待對手
+    m_waitingForOpponent = true;
+    
+    // 更新狀態標籤
+    m_connectionStatusLabel->setText(tr("⏳ 您已成為房主，等待對手加入..."));
+    
+    // 隱藏開始按鈕（因為還沒有對手）
+    if (m_startButton) {
+        m_startButton->hide();
+    }
+    
+    // 顯示退出房間按鈕
+    if (m_exitRoomButton) {
+        m_exitRoomButton->show();
     }
 }
 
