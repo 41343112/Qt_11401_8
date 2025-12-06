@@ -954,6 +954,7 @@ void Qt_Chess::onSquareClicked(int displayRow, int displayCol) {
                 m_currentTurnStartTime = m_gameStartLocalTime;  // 記錄當前回合開始時間
                 startTimer();
                 qDebug() << "[Qt_Chess] Timer started after first move";
+                qDebug() << "[Qt_Chess] Current player after first move:" << (m_chessBoard.getCurrentPlayer() == PieceColor::White ? "White" : "Black");
             }
             
             // 為剛完成移動的玩家應用時間增量
@@ -3031,6 +3032,8 @@ void Qt_Chess::onGameTimerTick() {
     } else {
         // 非線上模式：使用原本的遞減邏輯
         PieceColor currentPlayer = m_isReplayMode ? m_savedCurrentPlayer : m_chessBoard.getCurrentPlayer();
+        qDebug() << "[Qt_Chess::onGameTimerTick] Offline mode - Current player:" << (currentPlayer == PieceColor::White ? "White" : "Black")
+                 << "| White time:" << m_whiteTimeMs << "| Black time:" << m_blackTimeMs;
         if (currentPlayer == PieceColor::White) {
             if (m_whiteTimeMs > 0) {
                 m_whiteTimeMs -= 100;
