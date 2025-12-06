@@ -45,6 +45,7 @@
   - 超時自動判負
   - 時間控制設定會在程式關閉後持續保存
   - 參閱 [TIME_CONTROL_FEATURE.md](docs/TIME_CONTROL_FEATURE.md) 以獲得技術細節
+  - 參閱 [TIMER_COUNTDOWN_LOGIC.md](docs/TIMER_COUNTDOWN_LOGIC.md) 以了解雙人模式和電腦模式的時間倒數邏輯
 - **音效**：移動、吃子、王車易位、將軍和將死都有不同的音效
 - **可自訂的音效設定**：
   - 為每種事件類型設定自訂的音效檔案
