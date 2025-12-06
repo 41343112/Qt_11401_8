@@ -5561,6 +5561,11 @@ void Qt_Chess::onPromotedToHost() {
         m_roomInfoLabel->show();
     }
     
+    // 顯示顏色選擇widget讓新房主選擇要執的顏色（與初始房主一致）
+    if (m_colorSelectionWidget) {
+        m_colorSelectionWidget->show();
+    }
+    
     // 隱藏開始按鈕（因為還沒有對手）
     if (m_startButton) {
         m_startButton->hide();
