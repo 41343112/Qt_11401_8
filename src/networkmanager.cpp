@@ -215,6 +215,33 @@ void NetworkManager::sendSurrender()
     sendMessage(message);
 }
 
+void NetworkManager::sendDrawOffer()
+{
+    if (m_roomNumber.isEmpty()) {
+        qDebug() << "[NetworkManager::sendDrawOffer] ERROR: Room number is empty";
+        return;
+    }
+    
+    QJsonObject message;
+    message["action"] = "drawOffer";
+    message["room"] = m_roomNumber;
+    sendMessage(message);
+}
+
+void NetworkManager::sendDrawResponse(bool accepted)
+{
+    if (m_roomNumber.isEmpty()) {
+        qDebug() << "[NetworkManager::sendDrawResponse] ERROR: Room number is empty";
+        return;
+    }
+    
+    QJsonObject message;
+    message["action"] = "drawResponse";
+    message["room"] = m_roomNumber;
+    message["accepted"] = accepted;
+    sendMessage(message);
+}
+
 void NetworkManager::setPlayerColors(PieceColor playerColor)
 {
     // 設定玩家顏色和對手顏色
@@ -464,6 +491,17 @@ void NetworkManager::processMessage(const QJsonObject& message)
         // 收到對手投降訊息（新格式）
         qDebug() << "[NetworkManager] Opponent surrendered";
         emit surrenderReceived();
+    }
+    else if (actionStr == "drawOffer") {
+        // 收到對手和棋請求
+        qDebug() << "[NetworkManager] Opponent offered a draw";
+        emit drawOfferReceived();
+    }
+    else if (actionStr == "drawResponse") {
+        // 收到對手的和棋回應
+        bool accepted = message["accepted"].toBool();
+        qDebug() << "[NetworkManager] Opponent draw response:" << (accepted ? "accepted" : "declined");
+        emit drawResponseReceived(accepted);
     }
     else if (actionStr == "playerLeft") {
         // 對手離開房間（遊戲開始前）

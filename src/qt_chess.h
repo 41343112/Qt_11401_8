@@ -348,6 +348,8 @@ private:
     void onTimeSettingsReceived(int whiteTimeMs, int blackTimeMs, int incrementMs);  // 收到時間設定更新
     void onTimerStateReceived(qint64 timeA, qint64 timeB, const QString& currentPlayer, qint64 lastSwitchTime);  // 收到伺服器計時器狀態
     void onSurrenderReceived();          // 收到投降訊息
+    void onDrawOfferReceived();          // 收到和棋請求
+    void onDrawResponseReceived(bool accepted);  // 收到和棋回應
     void onOpponentDisconnected();       // 對手斷線
     void onCancelRoomClicked();          // 取消房間
     void onExitRoomClicked();            // 退出房間
