@@ -956,8 +956,10 @@ void Qt_Chess::onSquareClicked(int displayRow, int displayCol) {
                 qDebug() << "[Qt_Chess] Timer started after first move";
             }
             
-            // 為剛完成移動的玩家應用時間增量
-            applyIncrement();
+            // 為剛完成移動的玩家應用時間增量（第一步棋不應用增量）
+            if (!isFirstMove) {
+                applyIncrement();
+            }
 
             updateBoard();
 
@@ -1729,8 +1731,20 @@ void Qt_Chess::mouseReleaseEvent(QMouseEvent *event) {
                 // 記錄 UCI 格式的移動
                 PieceType promType = PieceType::None;
 
-                // 應用 time increment for the player who just moved
-                applyIncrement();
+                // 檢查是否為第一步棋，如果是且計時器未啟動，則啟動計時器
+                bool isFirstMove = m_uciMoveHistory.isEmpty();
+                if (isFirstMove && m_timeControlEnabled && !m_timerStarted) {
+                    m_timerStarted = true;
+                    m_gameStartLocalTime = QDateTime::currentMSecsSinceEpoch();  // 記錄遊戲開始時間
+                    m_currentTurnStartTime = m_gameStartLocalTime;  // 記錄當前回合開始時間
+                    startTimer();
+                    qDebug() << "[Qt_Chess] Timer started after first move (drag)";
+                }
+
+                // 應用時間增量給剛完成移動的玩家（第一步棋不應用增量）
+                if (!isFirstMove) {
+                    applyIncrement();
+                }
 
                 updateBoard();
 
@@ -4445,11 +4459,25 @@ void Qt_Chess::onEngineBestMove(const QString& move) {
         m_lastMoveFrom = from;
         m_lastMoveTo = to;
         
+        // 檢查是否為第一步棋（在記錄移動之前檢查）
+        bool isFirstMove = m_uciMoveHistory.isEmpty();
+        
         // 記錄 UCI 格式的移動
         m_uciMoveHistory.append(move);
         
-        // 為剛完成移動的玩家應用時間增量
-        applyIncrement();
+        // 如果是第一步棋且計時器未啟動，則啟動計時器
+        if (isFirstMove && m_timeControlEnabled && !m_timerStarted) {
+            m_timerStarted = true;
+            m_gameStartLocalTime = QDateTime::currentMSecsSinceEpoch();  // 記錄遊戲開始時間
+            m_currentTurnStartTime = m_gameStartLocalTime;  // 記錄當前回合開始時間
+            startTimer();
+            qDebug() << "[Qt_Chess] Timer started after first move (engine)";
+        }
+        
+        // 為剛完成移動的玩家應用時間增量（第一步棋不應用增量）
+        if (!isFirstMove) {
+            applyIncrement();
+        }
         
         updateBoard();
         
