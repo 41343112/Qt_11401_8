@@ -946,6 +946,12 @@ void Qt_Chess::onSquareClicked(int displayRow, int displayCol) {
             // 記錄 UCI 格式的移動
             PieceType promType = PieceType::None;
             
+            // 如果這是第一步棋且時間控制已啟用，啟動計時器
+            if (m_timeControlEnabled && !m_timerStarted) {
+                m_timerStarted = true;
+                startTimer();
+            }
+            
             // 為剛完成移動的玩家應用時間增量
             applyIncrement();
 
@@ -1221,12 +1227,12 @@ void Qt_Chess::onStartButtonClicked() {
             m_blackInitialTimeMs = m_blackTimeMs;  // 記錄初始時間用於進度條
         }
 
-        // 記錄遊戲開始時間並啟動計時器（離線模式）
+        // 記錄遊戲開始時間，但不啟動計時器（等待第一步棋後再啟動）
         m_gameStarted = true;  // 非線上模式立即啟動（線上模式不會執行到這裡）
-        m_timerStarted = true;
+        m_timerStarted = false;  // 不啟動計時器，等待第一步棋
         m_gameStartLocalTime = QDateTime::currentMSecsSinceEpoch();  // 記錄遊戲開始時間
         m_currentTurnStartTime = m_gameStartLocalTime;  // 記錄當前回合開始時間
-        startTimer();
+        // startTimer();  // 註解掉：不在遊戲開始時啟動計時器
 
         // 隱藏時間控制面板
         if (m_timeControlPanel) {
@@ -4473,6 +4479,12 @@ void Qt_Chess::onEngineBestMove(const QString& move) {
         // 記錄 UCI 格式的移動
         m_uciMoveHistory.append(move);
         
+        // 如果這是第一步棋且時間控制已啟用，啟動計時器
+        if (m_timeControlEnabled && !m_timerStarted) {
+            m_timerStarted = true;
+            startTimer();
+        }
+        
         // 為剛完成移動的玩家應用時間增量
         applyIncrement();
         
@@ -5642,6 +5654,12 @@ void Qt_Chess::onOpponentMove(const QPoint& from, const QPoint& to, PieceType pr
         updateMoveList();
         updateCapturedPiecesDisplay();
         
+        // 如果這是第一步棋且時間控制已啟用，啟動計時器
+        if (m_timeControlEnabled && !m_timerStarted) {
+            m_timerStarted = true;
+            startTimer();
+        }
+        
         // 強制更新和重繪UI，確保棋盤變化立即顯示
         if (m_boardWidget) {
             m_boardWidget->update();
@@ -6089,7 +6107,7 @@ void Qt_Chess::onStartGameReceived(int whiteTimeMs, int blackTimeMs, int increme
     
     // ===== 啟動遊戲 =====
     m_gameStarted = true;  // 設定為 true，允許走棋
-    m_timerStarted = true;
+    m_timerStarted = false;  // 不啟動計時器，等待第一步棋
     
     qDebug() << "[Qt_Chess::onStartGameReceived] Game starting synchronously for both players"
              << "| My role:" << (m_networkManager->getRole() == NetworkRole::Host ? "Host" : "Guest")
@@ -6127,9 +6145,9 @@ void Qt_Chess::onStartGameReceived(int whiteTimeMs, int blackTimeMs, int increme
     updateStatus();
     updateTimeDisplays();
     
-    // 如果啟用了時間控制，啟動計時器並顯示時間
+    // 如果啟用了時間控制，顯示時間（但不啟動計時器，等待第一步棋）
     if (m_timeControlEnabled) {
-        startTimer();
+        // startTimer();  // 註解掉：不在遊戲開始時啟動計時器
         
         // 在棋盤左右兩側顯示時間和進度條（必須在 updateTimeDisplays 之後）
         if (m_whiteTimeLabel) {
