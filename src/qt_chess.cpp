@@ -5546,8 +5546,12 @@ void Qt_Chess::onPromotedToHost() {
     // 房主離開，自己被提升為新房主
     qDebug() << "[Qt_Chess::onPromotedToHost] Promoted from Guest to Host";
     
+    // 獲取房號用於顯示
+    QString roomNumber = m_networkManager ? m_networkManager->getRoomNumber() : QString();
+    QString roomInfo = roomNumber.isEmpty() ? "" : QString("\n房號: %1").arg(roomNumber);
+    
     // 通知玩家角色變更
-    QMessageBox::information(this, tr("角色變更"), tr("原房主已離開，您已成為新房主。\n等待新對手加入房間..."));
+    QMessageBox::information(this, tr("角色變更"), tr("原房主已離開，您已成為新房主。%1\n\n等待新對手加入房間...").arg(roomInfo));
     
     // 更新狀態為等待對手
     m_waitingForOpponent = true;
@@ -5682,7 +5686,29 @@ void Qt_Chess::onGameStartReceived(PieceColor playerColor) {
 }
 
 void Qt_Chess::onOpponentDisconnected() {
-    QMessageBox::information(this, "對手斷線", "對手已斷開連接");
+    // 獲取房號用於顯示
+    QString roomNumber = m_networkManager ? m_networkManager->getRoomNumber() : QString();
+    QString roomInfo = roomNumber.isEmpty() ? "" : QString("\n房號: %1").arg(roomNumber);
+    
+    // 檢查遊戲是否已開始，如果是則自動結束遊戲
+    if (m_gameStarted) {
+        QMessageBox::information(this, "對手退出", QString("對手已退出遊戲%1\n\n遊戲自動結束").arg(roomInfo));
+        
+        // 停止計時器
+        if (m_gameTimer && m_gameTimer->isActive()) {
+            m_gameTimer->stop();
+        }
+        
+        // 標記遊戲已結束
+        m_gameStarted = false;
+        
+        // 更新狀態顯示
+        updateStatus();
+        handleGameEnd();
+    } else {
+        QMessageBox::information(this, "對手斷線", QString("對手已斷開連接%1").arg(roomInfo));
+    }
+    
     m_isOnlineGame = false;
     m_waitingForOpponent = false;
     
@@ -6259,11 +6285,10 @@ void Qt_Chess::showRoomInfoDialog(const QString& roomNumber) {
     
     layout->addSpacing(10);
     
-    // 詳細資訊
+    // 詳細資訊 - 移除伺服器網址顯示
     QLabel* detailLabel = new QLabel(
         tr("<p><b>房間資訊：</b><br>"
-           "房間號碼：<span style='color: #2196F3; font-weight: bold;'>%1</span><br>"
-           "伺服器：<span style='color: #2196F3; font-weight: bold;'>chess-server-mjg6.onrender.com</span></p>"
+           "房間號碼：<span style='color: #2196F3; font-weight: bold;'>%1</span></p>"
            "<p style='color: #666; font-size: 9pt;'>"
            "💡 朋友收到房號後，選擇「加入房間」並貼上即可<br>"
            "🌐 使用中央伺服器，無需設定網路或防火牆</p>").arg(roomNumber), &dialog);
@@ -6279,8 +6304,8 @@ void Qt_Chess::showRoomInfoDialog(const QString& roomNumber) {
     connect(closeButton, &QPushButton::clicked, &dialog, &QDialog::accept);
     layout->addWidget(closeButton);
     
-    // 更新房間資訊標籤
-    m_roomInfoLabel->setText(QString("🎮 房號: %1 | 伺服器: chess-server-mjg6.onrender.com").arg(roomNumber));
+    // 更新房間資訊標籤 - 移除伺服器網址顯示
+    m_roomInfoLabel->setText(QString("🎮 房號: %1").arg(roomNumber));
     
     dialog.exec();
 }
