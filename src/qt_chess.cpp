@@ -26,6 +26,11 @@
 #include <QGroupBox>
 #include <QFileDialog>
 #include <QColorDialog>
+#include <QCheckBox>
+#include <QLineEdit>
+#include <QScrollArea>
+#include <QFrame>
+#include <QGridLayout>
 #include <QDate>
 #include <QTextStream>
 #include <QClipboard>
@@ -1854,8 +1859,15 @@ void Qt_Chess::resizeEvent(QResizeEvent *event) {
 }
 
 void Qt_Chess::keyPressEvent(QKeyEvent *event) {
-    // ESC 鍵：退出全螢幕
+    // ESC 鍵：退出設定面板或全螢幕
     if (event->key() == Qt::Key_Escape) {
+        // 如果在設定視圖，返回主遊戲視圖
+        if (m_stackedWidget->currentWidget() == m_settingsView) {
+            hideSettingsPanel();
+            event->accept();
+            return;
+        }
+        // 如果是全螢幕模式，退出全螢幕
         if (isFullScreen()) {
             showNormal();
             event->accept();
