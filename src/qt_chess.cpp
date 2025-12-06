@@ -1159,6 +1159,45 @@ void Qt_Chess::onGiveUpClicked() {
     }
 }
 
+void Qt_Chess::onSettingsButtonClicked() {
+    // 創建設定選單
+    QMenu settingsMenu(this);
+    
+    // 音效設定動作
+    QAction* soundSettingsAction = settingsMenu.addAction("🔊 音效設定");
+    connect(soundSettingsAction, &QAction::triggered, this, &Qt_Chess::onSoundSettingsClicked);
+    
+    // 棋子圖標設定動作
+    QAction* pieceIconSettingsAction = settingsMenu.addAction("♟ 棋子圖標設定");
+    connect(pieceIconSettingsAction, &QAction::triggered, this, &Qt_Chess::onPieceIconSettingsClicked);
+    
+    // 棋盤顏色設定動作
+    QAction* boardColorSettingsAction = settingsMenu.addAction("🎨 棋盤顏色設定");
+    connect(boardColorSettingsAction, &QAction::triggered, this, &Qt_Chess::onBoardColorSettingsClicked);
+    
+    settingsMenu.addSeparator();
+    
+    // 反轉棋盤動作
+    QAction* flipBoardAction = settingsMenu.addAction("🔃 反轉棋盤");
+    connect(flipBoardAction, &QAction::triggered, this, &Qt_Chess::onFlipBoardClicked);
+    
+    // 切換全螢幕動作
+    QAction* toggleFullScreenAction = settingsMenu.addAction("📺 切換全螢幕");
+    connect(toggleFullScreenAction, &QAction::triggered, this, &Qt_Chess::onToggleFullScreenClicked);
+    
+    settingsMenu.addSeparator();
+    
+    // 背景音樂開關動作
+    QAction* toggleBgmAction = settingsMenu.addAction("🎵 背景音樂");
+    toggleBgmAction->setCheckable(true);
+    toggleBgmAction->setChecked(m_bgmEnabled);
+    connect(toggleBgmAction, &QAction::triggered, this, &Qt_Chess::onToggleBackgroundMusicClicked);
+    
+    // 在設定按鈕下方顯示選單
+    QPoint pos = m_settingsButton->mapToGlobal(QPoint(0, m_settingsButton->height()));
+    settingsMenu.exec(pos);
+}
+
 void Qt_Chess::onStartButtonClicked() {
     // 檢查是否在線上模式且尚未連接
     if (m_isOnlineGame && m_waitingForOpponent) {
@@ -2830,6 +2869,34 @@ void Qt_Chess::setupTimeControlUI(QVBoxLayout* timeControlPanelLayout) {
     m_exitRoomButton->hide();  // 初始隱藏
     connect(m_exitRoomButton, &QPushButton::clicked, this, &Qt_Chess::onExitRoomClicked);
     timeControlPanelLayout->addWidget(m_exitRoomButton, 0);  // 伸展因子 0 以保持按鈕高度
+
+    // 設定按鈕 - 現代科技風格
+    m_settingsButton = new QPushButton("⚙ 設定", this);
+    m_settingsButton->setMinimumHeight(45);
+    QFont settingsButtonFont;
+    settingsButtonFont.setPointSize(12);
+    settingsButtonFont.setBold(true);
+    m_settingsButton->setFont(settingsButtonFont);
+    m_settingsButton->setStyleSheet(QString(
+        "QPushButton { "
+        "  background: qlineargradient(x1:0, y1:0, x2:1, y2:0, "
+        "    stop:0 %1, stop:0.5 rgba(0, 217, 255, 0.7), stop:1 %1); "
+        "  color: %2; "
+        "  border: 3px solid %3; "
+        "  border-radius: 10px; "
+        "  padding: 8px; "
+        "}"
+        "QPushButton:hover { "
+        "  background: qlineargradient(x1:0, y1:0, x2:1, y2:0, "
+        "    stop:0 %3, stop:0.5 rgba(0, 217, 255, 0.9), stop:1 %3); "
+        "  border-color: #00E5FF; "
+        "}"
+        "QPushButton:pressed { "
+        "  background: %3; "
+        "}"
+    ).arg(THEME_BG_DARK, THEME_TEXT_PRIMARY, THEME_ACCENT_PRIMARY));
+    connect(m_settingsButton, &QPushButton::clicked, this, &Qt_Chess::onSettingsButtonClicked);
+    timeControlPanelLayout->addWidget(m_settingsButton, 0);  // 伸展因子 0 以保持按鈕高度
 
     // 初始化 game timer
     m_gameTimer = new QTimer(this);

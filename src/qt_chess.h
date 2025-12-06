@@ -63,6 +63,7 @@ private slots:
     void onSquareClicked(int row, int col);
     void onNewGameClicked();
     void onGiveUpClicked();
+    void onSettingsButtonClicked();  // 設定按鈕點擊
     void onSoundSettingsClicked();
     void onPieceIconSettingsClicked();
     void onBoardColorSettingsClicked();
@@ -92,6 +93,7 @@ private:
     
     QPushButton* m_newGameButton;
     QPushButton* m_giveUpButton;
+    QPushButton* m_settingsButton;  // 設定按鈕
     QWidget* m_boardWidget;
     QMenuBar* m_menuBar;
     bool m_gameStarted;  // 追蹤遊戲是否已開始
