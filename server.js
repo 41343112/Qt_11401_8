@@ -14,6 +14,43 @@ function generateRoomId() {
     return Math.floor(1000 + Math.random() * 9000).toString();
 }
 
+// 處理玩家離開房間的共用邏輯
+function handlePlayerLeaveRoom(ws, roomId) {
+    if(!rooms[roomId] || !rooms[roomId].includes(ws)) {
+        return; // 玩家不在此房間
+    }
+    
+    // 檢查離開的玩家是否為房主 (index 0)
+    const wasHost = rooms[roomId][0] === ws;
+    
+    // 通知房間內其他玩家
+    rooms[roomId].forEach(client => {
+        if(client !== ws && client.readyState === WebSocket.OPEN){
+            client.send(JSON.stringify({ action: "playerLeft", room: roomId }));
+        }
+    });
+    
+    // 從房間移除離開的玩家
+    rooms[roomId] = rooms[roomId].filter(c => c !== ws);
+    
+    // 如果房主離開且房間內還有其他玩家，通知新房主
+    if(wasHost && rooms[roomId].length > 0){
+        const newHost = rooms[roomId][0];
+        if(newHost.readyState === WebSocket.OPEN){
+            newHost.send(JSON.stringify({ 
+                action: "promotedToHost", 
+                room: roomId 
+            }));
+        }
+    }
+    
+    // 如果房間空了，刪除房間
+    if(rooms[roomId].length === 0){
+        delete rooms[roomId];
+        delete gameTimers[roomId];  // 清理計時器狀態
+    }
+}
+
 wss.on('connection', ws => {
     ws.on('message', message => {
         const msg = JSON.parse(message);
@@ -182,37 +219,7 @@ wss.on('connection', ws => {
         // 離開房間（遊戲開始前）
         else if(msg.action === "leaveRoom"){
             const roomId = msg.room;
-            if(rooms[roomId]){
-                // 檢查離開的玩家是否為房主 (index 0)
-                const wasHost = rooms[roomId][0] === ws;
-                
-                // 通知房間內其他玩家
-                rooms[roomId].forEach(client => {
-                    if(client !== ws && client.readyState === WebSocket.OPEN){
-                        client.send(JSON.stringify({ action: "playerLeft", room: roomId }));
-                    }
-                });
-                
-                // 從房間移除離開的玩家
-                rooms[roomId] = rooms[roomId].filter(c => c !== ws);
-                
-                // 如果房主離開且房間內還有其他玩家，通知新房主
-                if(wasHost && rooms[roomId].length > 0){
-                    const newHost = rooms[roomId][0];
-                    if(newHost.readyState === WebSocket.OPEN){
-                        newHost.send(JSON.stringify({ 
-                            action: "promotedToHost", 
-                            room: roomId 
-                        }));
-                    }
-                }
-                
-                // 如果房間空了，刪除房間
-                if(rooms[roomId].length === 0){
-                    delete rooms[roomId];
-                    delete gameTimers[roomId];  // 清理計時器狀態
-                }
-            }
+            handlePlayerLeaveRoom(ws, roomId);
         }
 
         // 廣播投降訊息
@@ -231,37 +238,7 @@ wss.on('connection', ws => {
     // 玩家斷線
     ws.on('close', () => {
         for(const roomId in rooms){
-            // 通知房間內其他玩家有人斷線
-            if(rooms[roomId] && rooms[roomId].includes(ws)){
-                // 檢查離開的玩家是否為房主 (index 0)
-                const wasHost = rooms[roomId][0] === ws;
-                
-                rooms[roomId].forEach(client => {
-                    if(client !== ws && client.readyState === WebSocket.OPEN){
-                        client.send(JSON.stringify({ action: "playerLeft", room: roomId }));
-                    }
-                });
-                
-                // 從房間移除離開的玩家
-                rooms[roomId] = rooms[roomId].filter(c => c !== ws);
-                
-                // 如果房主離開且房間內還有其他玩家，通知新房主
-                if(wasHost && rooms[roomId].length > 0){
-                    const newHost = rooms[roomId][0];
-                    if(newHost.readyState === WebSocket.OPEN){
-                        newHost.send(JSON.stringify({ 
-                            action: "promotedToHost", 
-                            room: roomId 
-                        }));
-                    }
-                }
-                
-                // 如果房間空了，刪除房間
-                if(rooms[roomId].length === 0){
-                    delete rooms[roomId];
-                    delete gameTimers[roomId];  // 清理計時器狀態
-                }
-            }
+            handlePlayerLeaveRoom(ws, roomId);
         }
     });
 });

@@ -5547,13 +5547,13 @@ void Qt_Chess::onPromotedToHost() {
     qDebug() << "[Qt_Chess::onPromotedToHost] Promoted from Guest to Host";
     
     // 通知玩家角色變更
-    QMessageBox::information(this, "角色變更", "原房主已離開，您已成為新房主。\n等待新對手加入房間...");
+    QMessageBox::information(this, tr("角色變更"), tr("原房主已離開，您已成為新房主。\n等待新對手加入房間..."));
     
     // 更新狀態為等待對手
     m_waitingForOpponent = true;
     
     // 更新狀態標籤
-    m_connectionStatusLabel->setText("⏳ 您已成為房主，等待對手加入...");
+    m_connectionStatusLabel->setText(tr("⏳ 您已成為房主，等待對手加入..."));
     
     // 隱藏開始按鈕（因為還沒有對手）
     if (m_startButton) {
