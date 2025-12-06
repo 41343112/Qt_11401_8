@@ -1741,7 +1741,7 @@ void Qt_Chess::mouseReleaseEvent(QMouseEvent *event) {
                     qDebug() << "[Qt_Chess] Timer started after first move (drag)";
                 }
 
-                // 應用 time increment for the player who just moved（第一步棋不應用增量）
+                // 應用時間增量給剛完成移動的玩家（第一步棋不應用增量）
                 if (!isFirstMove) {
                     applyIncrement();
                 }
