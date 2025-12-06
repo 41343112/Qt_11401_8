@@ -946,16 +946,6 @@ void Qt_Chess::onSquareClicked(int displayRow, int displayCol) {
             // 記錄 UCI 格式的移動
             PieceType promType = PieceType::None;
             
-            // 檢查是否為第一步棋，如果是且計時器未啟動，則啟動計時器
-            bool isFirstMove = m_uciMoveHistory.isEmpty();
-            if (isFirstMove && m_timeControlEnabled && !m_timerStarted) {
-                m_timerStarted = true;
-                m_gameStartLocalTime = QDateTime::currentMSecsSinceEpoch();  // 記錄遊戲開始時間
-                m_currentTurnStartTime = m_gameStartLocalTime;  // 記錄當前回合開始時間
-                startTimer();
-                qDebug() << "[Qt_Chess] Timer started after first move";
-            }
-            
             // 為剛完成移動的玩家應用時間增量
             applyIncrement();
 
@@ -1231,11 +1221,12 @@ void Qt_Chess::onStartButtonClicked() {
             m_blackInitialTimeMs = m_blackTimeMs;  // 記錄初始時間用於進度條
         }
 
-        // 不在這裡啟動計時器，等待第一步棋走出後再開始計時
-        // m_timerStarted 保持為 false，直到第一步棋走出
+        // 記錄遊戲開始時間並啟動計時器（離線模式）
         m_gameStarted = true;  // 非線上模式立即啟動（線上模式不會執行到這裡）
-        
-        // 不調用 startTimer()，等待第一步棋
+        m_timerStarted = true;
+        m_gameStartLocalTime = QDateTime::currentMSecsSinceEpoch();  // 記錄遊戲開始時間
+        m_currentTurnStartTime = m_gameStartLocalTime;  // 記錄當前回合開始時間
+        startTimer();
 
         // 隱藏時間控制面板
         if (m_timeControlPanel) {
@@ -2501,9 +2492,6 @@ void Qt_Chess::setupTimeControlUI(QVBoxLayout* timeControlPanelLayout) {
     gameModeLabel->setStyleSheet(QString("QLabel { color: %1; font-weight: bold; }").arg(THEME_ACCENT_PRIMARY));
     timeControlLayout->addWidget(gameModeLabel);
     
-    // 使用方塊按鈕選擇雙人或電腦對弈 - 現代科技風格
-    QHBoxLayout* gameModeButtonsLayout = new QHBoxLayout();
-    
     // 現代科技風格按鈕樣式 - 雙人模式（霓虹綠色）
     QString humanModeStyle = QString(
         "QPushButton { "
@@ -2538,6 +2526,32 @@ void Qt_Chess::setupTimeControlUI(QVBoxLayout* timeControlPanelLayout) {
         "}"
     ).arg(THEME_BORDER, THEME_BG_PANEL, THEME_BG_DARK, THEME_TEXT_PRIMARY, THEME_ACCENT_PRIMARY);
     
+    // 現代科技風格按鈕樣式 - 線上模式（霓虹粉色）
+    QString onlineModeStyle = QString(
+        "QPushButton { "
+        "  border: 2px solid %1; border-radius: 8px; padding: 8px; "
+        "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 %2, stop:1 %3); "
+        "  color: %4; font-weight: bold; "
+        "}"
+        "QPushButton:checked { "
+        "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 %5, stop:1 rgba(233, 69, 96, 0.6)); "
+        "  color: %3; border-color: %5; "
+        "}"
+        "QPushButton:hover { "
+        "  border-color: %5; "
+        "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 %2, stop:0.5 rgba(233, 69, 96, 0.2), stop:1 %3); "
+        "}"
+    ).arg(THEME_BORDER, THEME_BG_PANEL, THEME_BG_DARK, THEME_TEXT_PRIMARY, THEME_ACCENT_SECONDARY);
+    
+    // 本機對弈區塊（離線模式）
+    QLabel* localModeLabel = new QLabel("💻 本機對弈", this);
+    localModeLabel->setFont(labelFont);
+    localModeLabel->setStyleSheet(QString("QLabel { color: %1; font-size: 11px; padding-top: 5px; }").arg(THEME_ACCENT_SUCCESS));
+    timeControlLayout->addWidget(localModeLabel);
+    
+    // 本機對弈按鈕（雙人和電腦）- 現代科技風格
+    QHBoxLayout* localModeButtonsLayout = new QHBoxLayout();
+    
     // 雙人對弈按鈕
     m_humanModeButton = new QPushButton("👥 雙人", this);
     m_humanModeButton->setFont(labelFont);
@@ -2546,7 +2560,7 @@ void Qt_Chess::setupTimeControlUI(QVBoxLayout* timeControlPanelLayout) {
     m_humanModeButton->setMinimumSize(70, 45);
     m_humanModeButton->setStyleSheet(humanModeStyle);
     connect(m_humanModeButton, &QPushButton::clicked, this, &Qt_Chess::onHumanModeClicked);
-    gameModeButtonsLayout->addWidget(m_humanModeButton);
+    localModeButtonsLayout->addWidget(m_humanModeButton);
     
     // 電腦對弈按鈕
     m_computerModeButton = new QPushButton("🤖 電腦", this);
@@ -2555,18 +2569,29 @@ void Qt_Chess::setupTimeControlUI(QVBoxLayout* timeControlPanelLayout) {
     m_computerModeButton->setMinimumSize(70, 45);
     m_computerModeButton->setStyleSheet(computerModeStyle);
     connect(m_computerModeButton, &QPushButton::clicked, this, &Qt_Chess::onComputerModeClicked);
-    gameModeButtonsLayout->addWidget(m_computerModeButton);
+    localModeButtonsLayout->addWidget(m_computerModeButton);
     
-    // 線上對戰按鈕
+    timeControlLayout->addLayout(localModeButtonsLayout);
+    
+    // 線上對弈區塊（需要連線）
+    QLabel* onlineModeLabel = new QLabel("🌐 連線對弈", this);
+    onlineModeLabel->setFont(labelFont);
+    onlineModeLabel->setStyleSheet(QString("QLabel { color: %1; font-size: 11px; padding-top: 8px; }").arg(THEME_ACCENT_SECONDARY));
+    timeControlLayout->addWidget(onlineModeLabel);
+    
+    // 線上對弈按鈕
+    QHBoxLayout* onlineModeButtonLayout = new QHBoxLayout();
     m_onlineModeButton = new QPushButton("🌐 線上", this);
     m_onlineModeButton->setFont(labelFont);
     m_onlineModeButton->setCheckable(true);
     m_onlineModeButton->setMinimumSize(70, 45);
-    m_onlineModeButton->setStyleSheet(computerModeStyle);
+    m_onlineModeButton->setStyleSheet(onlineModeStyle);
     connect(m_onlineModeButton, &QPushButton::clicked, this, &Qt_Chess::onOnlineModeClicked);
-    gameModeButtonsLayout->addWidget(m_onlineModeButton);
+    onlineModeButtonLayout->addWidget(m_onlineModeButton);
+    // 添加彈性空間使按鈕靠左對齊
+    onlineModeButtonLayout->addStretch();
     
-    timeControlLayout->addLayout(gameModeButtonsLayout);
+    timeControlLayout->addLayout(onlineModeButtonLayout);
     
     // 選邊按鈕容器（電腦模式時顯示）
     m_colorSelectionWidget = new QWidget(this);
