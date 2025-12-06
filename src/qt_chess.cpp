@@ -184,6 +184,11 @@ Qt_Chess::Qt_Chess(QWidget *parent)
     , m_serverTimeOffset(0)
     , m_gameStartLocalTime(0)
     , m_currentTurnStartTime(0)
+    , m_serverTimeA(0)
+    , m_serverTimeB(0)
+    , m_serverCurrentPlayer("White")
+    , m_serverLastSwitchTime(0)
+    , m_useServerTimer(false)
     , m_boardContainer(nullptr)
     , m_timeControlPanel(nullptr)
     , m_contentLayout(nullptr)
@@ -2949,6 +2954,12 @@ void Qt_Chess::onIncrementChanged(int value) {
 void Qt_Chess::onGameTimerTick() {
     if (!m_timeControlEnabled) return;
 
+    // 如果使用伺服器控制的計時器，從伺服器狀態更新顯示
+    if (m_useServerTimer && m_isOnlineGame) {
+        updateTimeDisplaysFromServer();
+        return;
+    }
+
     // 在線上模式中，使用伺服器同步的時間計算
     // 這確保兩位玩家看到相同的經過時間，即使他們的本地時鐘不同步
     if (m_isOnlineGame && m_gameStartLocalTime > 0) {
@@ -3038,6 +3049,96 @@ void Qt_Chess::onGameTimerTick() {
     }
 
     updateTimeDisplays();
+}
+
+void Qt_Chess::updateTimeDisplaysFromServer() {
+    if (!m_networkManager) return;
+    
+    // 獲取當前 UNIX 秒數
+    qint64 currentUnixTime = QDateTime::currentSecsSinceEpoch();
+    
+    // 計算距離最後切換經過的時間（秒）
+    qint64 elapsed = currentUnixTime - m_serverLastSwitchTime;
+    
+    // 確定我是玩家 A (房主) 還是玩家 B (房客)
+    bool isPlayerA = (m_networkManager->getRole() == NetworkRole::Host);
+    
+    // 計算白方和黑方的實際顯示時間
+    qint64 whiteTime, blackTime;
+    
+    if (m_serverCurrentPlayer == "White") {
+        // 白方正在走棋，從白方時間扣除 elapsed
+        if (isPlayerA) {
+            // 我是房主，房主是白方還是黑方？檢查我的顏色
+            if (m_networkManager->getPlayerColor() == PieceColor::White) {
+                // 房主是白方 (whiteIsA = true)
+                whiteTime = m_serverTimeA - (elapsed * 1000);
+                blackTime = m_serverTimeB;
+            } else {
+                // 房主是黑方 (whiteIsA = false)
+                whiteTime = m_serverTimeB - (elapsed * 1000);
+                blackTime = m_serverTimeA;
+            }
+        } else {
+            // 我是房客
+            if (m_networkManager->getPlayerColor() == PieceColor::White) {
+                // 房客是白方 (whiteIsA = false)
+                whiteTime = m_serverTimeB - (elapsed * 1000);
+                blackTime = m_serverTimeA;
+            } else {
+                // 房客是黑方 (whiteIsA = true)
+                whiteTime = m_serverTimeA - (elapsed * 1000);
+                blackTime = m_serverTimeB;
+            }
+        }
+    } else {
+        // 黑方正在走棋，從黑方時間扣除 elapsed
+        if (isPlayerA) {
+            if (m_networkManager->getPlayerColor() == PieceColor::White) {
+                // 房主是白方 (whiteIsA = true)
+                whiteTime = m_serverTimeA;
+                blackTime = m_serverTimeB - (elapsed * 1000);
+            } else {
+                // 房主是黑方 (whiteIsA = false)
+                whiteTime = m_serverTimeB;
+                blackTime = m_serverTimeA - (elapsed * 1000);
+            }
+        } else {
+            if (m_networkManager->getPlayerColor() == PieceColor::White) {
+                // 房客是白方 (whiteIsA = false)
+                whiteTime = m_serverTimeB;
+                blackTime = m_serverTimeA - (elapsed * 1000);
+            } else {
+                // 房客是黑方 (whiteIsA = true)
+                whiteTime = m_serverTimeA;
+                blackTime = m_serverTimeB - (elapsed * 1000);
+            }
+        }
+    }
+    
+    // 確保時間不為負數
+    whiteTime = qMax(static_cast<qint64>(0), whiteTime);
+    blackTime = qMax(static_cast<qint64>(0), blackTime);
+    
+    // 更新成員變數（用於顯示）
+    m_whiteTimeMs = static_cast<int>(whiteTime);
+    m_blackTimeMs = static_cast<int>(blackTime);
+    
+    // 更新顯示
+    updateTimeDisplays();
+    
+    // 檢查超時
+    if (m_whiteTimeMs <= 0 && m_timeControlEnabled) {
+        stopTimer();
+        m_timerStarted = false;
+        showTimeControlAfterTimeout();
+        QMessageBox::information(this, "時間到", "白方超時！黑方獲勝！");
+    } else if (m_blackTimeMs <= 0 && m_timeControlEnabled) {
+        stopTimer();
+        m_timerStarted = false;
+        showTimeControlAfterTimeout();
+        QMessageBox::information(this, "時間到", "黑方超時！白方獲勝！");
+    }
 }
 
 void Qt_Chess::startTimer() {
@@ -5093,6 +5194,7 @@ void Qt_Chess::initializeNetwork() {
     connect(m_networkManager, &NetworkManager::gameStartReceived, this, &Qt_Chess::onGameStartReceived);
     connect(m_networkManager, &NetworkManager::startGameReceived, this, &Qt_Chess::onStartGameReceived);
     connect(m_networkManager, &NetworkManager::timeSettingsReceived, this, &Qt_Chess::onTimeSettingsReceived);
+    connect(m_networkManager, &NetworkManager::timerStateReceived, this, &Qt_Chess::onTimerStateReceived);
     connect(m_networkManager, &NetworkManager::surrenderReceived, this, &Qt_Chess::onSurrenderReceived);
     connect(m_networkManager, &NetworkManager::opponentDisconnected, this, &Qt_Chess::onOpponentDisconnected);
 }
@@ -5943,6 +6045,24 @@ void Qt_Chess::onStartGameReceived(int whiteTimeMs, int blackTimeMs, int increme
     
     // 移除對話框以減少延遲
     // QMessageBox::information(this, "遊戲開始", "對手已開始遊戲！");
+}
+
+void Qt_Chess::onTimerStateReceived(qint64 timeA, qint64 timeB, const QString& currentPlayer, qint64 lastSwitchTime) {
+    qDebug() << "[Qt_Chess::onTimerStateReceived] Received timer state"
+             << "| timeA:" << timeA
+             << "| timeB:" << timeB
+             << "| currentPlayer:" << currentPlayer
+             << "| lastSwitchTime:" << lastSwitchTime;
+    
+    // 儲存伺服器計時器狀態
+    m_serverTimeA = timeA;
+    m_serverTimeB = timeB;
+    m_serverCurrentPlayer = currentPlayer;
+    m_serverLastSwitchTime = lastSwitchTime;
+    m_useServerTimer = true;  // 啟用伺服器計時器模式
+    
+    // 立即更新顯示
+    updateTimeDisplaysFromServer();
 }
 
 void Qt_Chess::onTimeSettingsReceived(int whiteTimeMs, int blackTimeMs, int incrementMs) {

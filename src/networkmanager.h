@@ -84,6 +84,7 @@ signals:
     void gameStartReceived(PieceColor playerColor);
     void startGameReceived(int whiteTimeMs, int blackTimeMs, int incrementMs, PieceColor hostColor, qint64 serverTimeOffset);  // 收到開始遊戲通知（包含時間設定、房主顏色和伺服器時間偏移）
     void timeSettingsReceived(int whiteTimeMs, int blackTimeMs, int incrementMs);  // 收到時間設定更新
+    void timerStateReceived(qint64 timeA, qint64 timeB, const QString& currentPlayer, qint64 lastSwitchTime);  // 收到伺服器計時器狀態更新
     void surrenderReceived();  // 收到投降訊息
     void gameOverReceived(const QString& result);
     void chatReceived(const QString& message);
