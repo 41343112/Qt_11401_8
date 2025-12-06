@@ -6197,6 +6197,39 @@ void Qt_Chess::onTimeSettingsReceived(int whiteTimeMs, int blackTimeMs, int incr
         m_timeControlEnabled = (whiteTimeMs > 0 || blackTimeMs > 0);
         
         // 更新滑桿顯示（僅用於顯示，房客的滑桿已被停用）
+        // 更新白方時間滑桿
+        if (m_whiteTimeLimitSlider) {
+            m_whiteTimeLimitSlider->blockSignals(true);
+            int sliderValue;
+            if (whiteTimeMs == 0) {
+                sliderValue = 0;  // 無限制
+            } else if (whiteTimeMs == 30000) {
+                sliderValue = 1;  // 30秒
+            } else {
+                // 分鐘數：value = (minutes + 1)，反推 minutes = value - 1
+                sliderValue = (whiteTimeMs / 60000) + 1;
+            }
+            m_whiteTimeLimitSlider->setValue(sliderValue);
+            m_whiteTimeLimitSlider->blockSignals(false);
+        }
+        
+        // 更新黑方時間滑桿
+        if (m_blackTimeLimitSlider) {
+            m_blackTimeLimitSlider->blockSignals(true);
+            int sliderValue;
+            if (blackTimeMs == 0) {
+                sliderValue = 0;  // 無限制
+            } else if (blackTimeMs == 30000) {
+                sliderValue = 1;  // 30秒
+            } else {
+                // 分鐘數：value = (minutes + 1)，反推 minutes = value - 1
+                sliderValue = (blackTimeMs / 60000) + 1;
+            }
+            m_blackTimeLimitSlider->setValue(sliderValue);
+            m_blackTimeLimitSlider->blockSignals(false);
+        }
+        
+        // 更新增量滑桿
         if (m_incrementSlider && m_incrementLabel) {
             m_incrementSlider->blockSignals(true);
             m_incrementSlider->setValue(incrementMs / 1000);
