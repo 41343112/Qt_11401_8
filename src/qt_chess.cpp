@@ -6551,22 +6551,6 @@ QWidget* Qt_Chess::createSoundSettingsWidget() {
         "QCheckBox { color: %1; padding: 5px; }"
         "QCheckBox::indicator { width: 20px; height: 20px; }"
     ).arg(THEME_ACCENT_SUCCESS));
-    connect(allSoundsCheckBox, &QCheckBox::toggled, this, [this, allSoundsCheckBox](bool enabled) {
-        m_soundSettings.allSoundsEnabled = enabled;
-        m_soundSettings.moveSoundEnabled = enabled;
-        m_soundSettings.captureSoundEnabled = enabled;
-        m_soundSettings.castlingSoundEnabled = enabled;
-        m_soundSettings.checkSoundEnabled = enabled;
-        m_soundSettings.checkmateSoundEnabled = enabled;
-        applySoundSettings();
-        // 更新所有子複選框
-        QList<QCheckBox*> checkboxes = m_soundSettingsWidget->findChildren<QCheckBox*>();
-        for (QCheckBox* cb : checkboxes) {
-            if (cb != allSoundsCheckBox) {
-                cb->setChecked(enabled);
-            }
-        }
-    });
     layout->addWidget(allSoundsCheckBox);
     
     // 添加分隔線
@@ -6575,6 +6559,9 @@ QWidget* Qt_Chess::createSoundSettingsWidget() {
     line1->setFrameShadow(QFrame::Sunken);
     line1->setStyleSheet(QString("background-color: %1;").arg(THEME_BORDER));
     layout->addWidget(line1);
+    
+    // 存儲個別音效的複選框引用
+    QList<QCheckBox*> individualCheckBoxes;
     
     // 創建一個輔助函數來添加音效控制行
     auto addSoundControl = [&](const QString& label, QString& soundPath, bool& enabled, double& volume) {
@@ -6599,7 +6586,8 @@ QWidget* Qt_Chess::createSoundSettingsWidget() {
         // 啟用複選框
         QCheckBox* enableCheckBox = new QCheckBox("啟用此音效", groupBox);
         enableCheckBox->setChecked(enabled);
-        connect(enableCheckBox, &QCheckBox::toggled, [&enabled, this, allSoundsCheckBox](bool checked) {
+        individualCheckBoxes.append(enableCheckBox);  // 存儲引用
+        connect(enableCheckBox, &QCheckBox::toggled, [&enabled, this](bool checked) {
             enabled = checked;
             applySoundSettings();
         });
@@ -6651,17 +6639,13 @@ QWidget* Qt_Chess::createSoundSettingsWidget() {
             // 預覽音效
             m_previewSound.stop();
             
-            if (!soundPath.isEmpty() && QFile::exists(soundPath)) {
-                m_previewSound.setSource(QUrl::fromLocalFile(soundPath));
-            } else {
+            QString pathToUse = soundPath;
+            if (pathToUse.isEmpty() || !QFile::exists(pathToUse)) {
                 // 使用預設音效
-                QString defaultPath = SoundSettingsDialog::getDefaultSettings().moveSound;
-                if (defaultPath.startsWith("qrc:")) {
-                    m_previewSound.setSource(QUrl(defaultPath));
-                } else {
-                    m_previewSound.setSource(QUrl::fromLocalFile(defaultPath));
-                }
+                pathToUse = SoundSettingsDialog::getDefaultSettings().moveSound;
             }
+            
+            setSoundSource(m_previewSound, pathToUse);
             m_previewSound.setVolume(volume);
             m_previewSound.play();
         });
@@ -6683,6 +6667,21 @@ QWidget* Qt_Chess::createSoundSettingsWidget() {
     addSoundControl("🏰 王車易位音效", m_soundSettings.castlingSound, m_soundSettings.castlingSoundEnabled, m_soundSettings.castlingVolume);
     addSoundControl("⚠️ 將軍音效", m_soundSettings.checkSound, m_soundSettings.checkSoundEnabled, m_soundSettings.checkVolume);
     addSoundControl("🏆 將死音效", m_soundSettings.checkmateSound, m_soundSettings.checkmateSoundEnabled, m_soundSettings.checkmateVolume);
+    
+    // 連接全部音效開關（現在所有個別複選框都已創建）
+    connect(allSoundsCheckBox, &QCheckBox::toggled, this, [this, individualCheckBoxes](bool enabled) {
+        m_soundSettings.allSoundsEnabled = enabled;
+        m_soundSettings.moveSoundEnabled = enabled;
+        m_soundSettings.captureSoundEnabled = enabled;
+        m_soundSettings.castlingSoundEnabled = enabled;
+        m_soundSettings.checkSoundEnabled = enabled;
+        m_soundSettings.checkmateSoundEnabled = enabled;
+        applySoundSettings();
+        // 更新所有個別音效複選框
+        for (QCheckBox* cb : individualCheckBoxes) {
+            cb->setChecked(enabled);
+        }
+    });
     
     // 添加伸展以將所有內容推到頂部
     layout->addStretch();
