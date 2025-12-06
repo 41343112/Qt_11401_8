@@ -946,16 +946,6 @@ void Qt_Chess::onSquareClicked(int displayRow, int displayCol) {
             // 記錄 UCI 格式的移動
             PieceType promType = PieceType::None;
             
-            // 檢查是否為第一步棋，如果是且計時器未啟動，則啟動計時器
-            bool isFirstMove = m_uciMoveHistory.isEmpty();
-            if (isFirstMove && m_timeControlEnabled && !m_timerStarted) {
-                m_timerStarted = true;
-                m_gameStartLocalTime = QDateTime::currentMSecsSinceEpoch();  // 記錄遊戲開始時間
-                m_currentTurnStartTime = m_gameStartLocalTime;  // 記錄當前回合開始時間
-                startTimer();
-                qDebug() << "[Qt_Chess] Timer started after first move";
-            }
-            
             // 為剛完成移動的玩家應用時間增量
             applyIncrement();
 
@@ -1231,11 +1221,12 @@ void Qt_Chess::onStartButtonClicked() {
             m_blackInitialTimeMs = m_blackTimeMs;  // 記錄初始時間用於進度條
         }
 
-        // 不在這裡啟動計時器，等待第一步棋走出後再開始計時
-        // m_timerStarted 保持為 false，直到第一步棋走出
+        // 記錄遊戲開始時間並啟動計時器（離線模式）
         m_gameStarted = true;  // 非線上模式立即啟動（線上模式不會執行到這裡）
-        
-        // 不調用 startTimer()，等待第一步棋
+        m_timerStarted = true;
+        m_gameStartLocalTime = QDateTime::currentMSecsSinceEpoch();  // 記錄遊戲開始時間
+        m_currentTurnStartTime = m_gameStartLocalTime;  // 記錄當前回合開始時間
+        startTimer();
 
         // 隱藏時間控制面板
         if (m_timeControlPanel) {
