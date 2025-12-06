@@ -48,6 +48,7 @@ wss.on('connection', ws => {
             const roomId = msg.room;
             if(rooms[roomId] && rooms[roomId].length === 2){
                 // 加上伺服器時間戳記以確保同步
+                // 使用未來時間（當前時間 + 500ms）以補償網路延遲
                 const startMessage = {
                     action: "gameStart",
                     room: roomId,
@@ -55,7 +56,7 @@ wss.on('connection', ws => {
                     blackTimeMs: msg.blackTimeMs,
                     incrementMs: msg.incrementMs,
                     hostColor: msg.hostColor,
-                    serverTimestamp: Date.now()
+                    serverTimestamp: Date.now() + 500  // 添加 500ms 緩衝以補償網路延遲
                 };
                 
                 // 廣播給房間內所有玩家
