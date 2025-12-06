@@ -397,6 +397,22 @@ void NetworkManager::processMessage(const QJsonObject& message)
                  << "| My color:" << (m_playerColor == PieceColor::White ? "White" : "Black");
         
         emit startGameReceived(whiteTimeMs, blackTimeMs, incrementMs, hostColor, serverTimeOffset);
+        
+        // 如果訊息包含計時器狀態，發送計時器更新
+        if (message.contains("timerState")) {
+            QJsonObject timerState = message["timerState"].toObject();
+            qint64 timeA = timerState["timeA"].toVariant().toLongLong();
+            qint64 timeB = timerState["timeB"].toVariant().toLongLong();
+            QString currentPlayer = timerState["currentPlayer"].toString();
+            qint64 lastSwitchTime = timerState["lastSwitchTime"].toVariant().toLongLong();
+            
+            qDebug() << "[NetworkManager] Initial timer state - timeA:" << timeA 
+                     << "| timeB:" << timeB 
+                     << "| currentPlayer:" << currentPlayer 
+                     << "| lastSwitchTime:" << lastSwitchTime;
+            
+            emit timerStateReceived(timeA, timeB, currentPlayer, lastSwitchTime);
+        }
     }
     else if (actionStr == "error") {
         // 伺服器錯誤
@@ -427,6 +443,22 @@ void NetworkManager::processMessage(const QJsonObject& message)
         
         qDebug() << "[NetworkManager::processMessage] Emitting opponentMove signal";
         emit opponentMove(from, to, promotionType);
+        
+        // 如果訊息包含計時器狀態，發送計時器更新
+        if (message.contains("timerState")) {
+            QJsonObject timerState = message["timerState"].toObject();
+            qint64 timeA = timerState["timeA"].toVariant().toLongLong();
+            qint64 timeB = timerState["timeB"].toVariant().toLongLong();
+            QString currentPlayer = timerState["currentPlayer"].toString();
+            qint64 lastSwitchTime = timerState["lastSwitchTime"].toVariant().toLongLong();
+            
+            qDebug() << "[NetworkManager] Timer state update - timeA:" << timeA 
+                     << "| timeB:" << timeB 
+                     << "| currentPlayer:" << currentPlayer 
+                     << "| lastSwitchTime:" << lastSwitchTime;
+            
+            emit timerStateReceived(timeA, timeB, currentPlayer, lastSwitchTime);
+        }
     }
     else if (actionStr == "surrender") {
         // 收到對手投降訊息（新格式）
@@ -501,6 +533,14 @@ void NetworkManager::processMessage(const QJsonObject& message)
             QString hostColorStr = message["hostColor"].toString();
             PieceColor hostColor = (hostColorStr == "White") ? PieceColor::White : PieceColor::Black;
             
+            // 計算伺服器時間偏移（如果訊息中包含伺服器時間戳）
+            qint64 serverTimeOffset = 0;
+            if (message.contains("serverTimestamp")) {
+                qint64 serverTimestamp = message["serverTimestamp"].toVariant().toLongLong();
+                qint64 localTimestamp = QDateTime::currentMSecsSinceEpoch();
+                serverTimeOffset = serverTimestamp - localTimestamp;
+            }
+            
             // 根據房主的顏色選擇更新玩家顏色
             if (m_role == NetworkRole::Host) {
                 m_playerColor = hostColor;
@@ -510,7 +550,7 @@ void NetworkManager::processMessage(const QJsonObject& message)
                 m_opponentColor = hostColor;
             }
             
-            emit startGameReceived(whiteTimeMs, blackTimeMs, incrementMs, hostColor);
+            emit startGameReceived(whiteTimeMs, blackTimeMs, incrementMs, hostColor, serverTimeOffset);
         }
         break;
     

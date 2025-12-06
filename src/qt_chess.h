@@ -163,6 +163,15 @@ private:
     qint64 m_serverTimeOffset;  // 伺服器時間偏移（ms）：serverTime - localTime，用於線上模式同步計時器顯示
     qint64 m_gameStartLocalTime;  // 遊戲開始時的本地時間戳（ms），用於計算經過時間
     qint64 m_currentTurnStartTime;  // 當前回合開始的時間戳（ms），用於線上模式計算當前玩家已用時間
+    
+    // 伺服器控制的計時器狀態
+    qint64 m_serverTimeA;  // 玩家 A (房主) 剩餘時間（毫秒）
+    qint64 m_serverTimeB;  // 玩家 B (房客) 剩餘時間（毫秒）
+    QString m_serverCurrentPlayer;  // 伺服器端當前玩家 ("White" or "Black")
+    qint64 m_serverLastSwitchTime;  // 伺服器最後切換時間（UNIX 秒數）
+    bool m_useServerTimer;  // 是否使用伺服器控制的計時器
+    qint64 m_lastServerUpdateTime;  // 最後一次收到伺服器更新的本地時間（毫秒）
+    
     QWidget* m_boardContainer;  // 帶有疊加時間顯示的棋盤容器
     QWidget* m_timeControlPanel;  // 時間控制設定面板
     QHBoxLayout* m_contentLayout;  // 主內容佈局，用於調整伸展因子
@@ -273,6 +282,7 @@ private:
     int calculateTimeFromSliderValue(int value) const;  // 根據滑桿值計算時間（毫秒）的輔助函數
     QString getTimeTextFromSliderValue(int value) const;  // 根據滑桿值取得顯示文字的輔助函數
     void setRightPanelStretch(int stretch);  // 設置右側面板伸展因子的輔助函數
+    void updateTimeDisplaysFromServer();  // 根據伺服器計時器狀態更新時間顯示
     
     // 棋譜功能
     void updateMoveList();
@@ -330,6 +340,7 @@ private:
     void onGameStartReceived(PieceColor playerColor);  // 遊戲開始
     void onStartGameReceived(int whiteTimeMs, int blackTimeMs, int incrementMs, PieceColor hostColor, qint64 serverTimeOffset);  // 收到開始遊戲通知（包含時間設定、房主顏色和伺服器時間偏移）
     void onTimeSettingsReceived(int whiteTimeMs, int blackTimeMs, int incrementMs);  // 收到時間設定更新
+    void onTimerStateReceived(qint64 timeA, qint64 timeB, const QString& currentPlayer, qint64 lastSwitchTime);  // 收到伺服器計時器狀態
     void onSurrenderReceived();          // 收到投降訊息
     void onOpponentDisconnected();       // 對手斷線
     void onCancelRoomClicked();          // 取消房間
