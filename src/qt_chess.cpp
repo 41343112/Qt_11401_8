@@ -746,11 +746,6 @@ void Qt_Chess::setupMenuBar() {
     // 遊戲選單
     QMenu* gameMenu = m_menuBar->addMenu("🎮 遊戲");
 
-    // 放棄動作
-    QAction* giveUpAction = new QAction("🏳 放棄", this);
-    connect(giveUpAction, &QAction::triggered, this, &Qt_Chess::onResignClicked);
-    gameMenu->addAction(giveUpAction);
-
     // 設定選單
     QMenu* settingsMenu = m_menuBar->addMenu("⚙ 設定");
 
@@ -1370,12 +1365,14 @@ void Qt_Chess::onStartButtonClicked() {
             m_blackTimeProgressBar->show();
         }
 
-        // 顯示認輸和請求和棋按鈕
-        if (m_resignButton) {
-            m_resignButton->show();
-        }
-        if (m_requestDrawButton) {
-            m_requestDrawButton->show();
+        // 只有線上模式才顯示認輸和請求和棋按鈕
+        if (m_isOnlineGame) {
+            if (m_resignButton) {
+                m_resignButton->show();
+            }
+            if (m_requestDrawButton) {
+                m_requestDrawButton->show();
+            }
         }
         
         // 在線上模式下顯示退出房間按鈕
@@ -1419,12 +1416,14 @@ void Qt_Chess::onStartButtonClicked() {
             m_timeControlPanel->hide();
         }
 
-        // 顯示認輸和請求和棋按鈕
-        if (m_resignButton) {
-            m_resignButton->show();
-        }
-        if (m_requestDrawButton) {
-            m_requestDrawButton->show();
+        // 只有線上模式才顯示認輸和請求和棋按鈕
+        if (m_isOnlineGame) {
+            if (m_resignButton) {
+                m_resignButton->show();
+            }
+            if (m_requestDrawButton) {
+                m_requestDrawButton->show();
+            }
         }
         
         // 在線上模式下顯示退出房間按鈕
@@ -1492,12 +1491,14 @@ void Qt_Chess::onStartButtonClicked() {
             m_timeControlPanel->hide();
         }
         
-        // 顯示認輸和請求和棋按鈕
-        if (m_resignButton) {
-            m_resignButton->show();
-        }
-        if (m_requestDrawButton) {
-            m_requestDrawButton->show();
+        // 只有線上模式才顯示認輸和請求和棋按鈕
+        if (m_isOnlineGame) {
+            if (m_resignButton) {
+                m_resignButton->show();
+            }
+            if (m_requestDrawButton) {
+                m_requestDrawButton->show();
+            }
         }
         
         // 顯示退出房間按鈕
@@ -6207,7 +6208,7 @@ void Qt_Chess::onStartGameReceived(int whiteTimeMs, int blackTimeMs, int increme
              << "| My role:" << (m_networkManager->getRole() == NetworkRole::Host ? "Host" : "Guest")
              << "| Player color:" << (m_networkManager ? (int)m_networkManager->getPlayerColor() : -1);
     
-    // 顯示認輸和請求和棋按鈕，以及退出房間按鈕（無論是否有時間控制）
+    // 線上模式：顯示認輸和請求和棋按鈕，以及退出房間按鈕（無論是否有時間控制）
     if (m_resignButton) {
         m_resignButton->show();
     }
