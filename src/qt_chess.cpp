@@ -3122,9 +3122,22 @@ void Qt_Chess::updateTimeDisplaysFromServer() {
     whiteTime = qMax(static_cast<qint64>(0), whiteTime);
     blackTime = qMax(static_cast<qint64>(0), blackTime);
     
-    // 更新成員變數（用於顯示）
-    m_whiteTimeMs = static_cast<int>(whiteTime);
-    m_blackTimeMs = static_cast<int>(blackTime);
+    // 防止時間跳躍：只允許時間遞減，不允許時間回跳
+    // 如果計算出的新時間比當前顯示的時間大（回跳），則忽略此次更新
+    // 這避免了由於網路延遲或時鐘不精確造成的時間跳躍
+    int newWhiteTime = static_cast<int>(whiteTime);
+    int newBlackTime = static_cast<int>(blackTime);
+    
+    // 只在時間減少時更新，或者時間差距超過閾值時強制更新（處理伺服器更新的情況）
+    const int UPDATE_THRESHOLD = 200;  // 200ms 閾值
+    
+    if (newWhiteTime <= m_whiteTimeMs || qAbs(newWhiteTime - m_whiteTimeMs) > UPDATE_THRESHOLD) {
+        m_whiteTimeMs = newWhiteTime;
+    }
+    
+    if (newBlackTime <= m_blackTimeMs || qAbs(newBlackTime - m_blackTimeMs) > UPDATE_THRESHOLD) {
+        m_blackTimeMs = newBlackTime;
+    }
     
     // 更新顯示
     updateTimeDisplays();
