@@ -189,6 +189,7 @@ Qt_Chess::Qt_Chess(QWidget *parent)
     , m_serverCurrentPlayer("White")
     , m_serverLastSwitchTime(0)
     , m_useServerTimer(false)
+    , m_lastServerUpdateTime(0)
     , m_boardContainer(nullptr)
     , m_timeControlPanel(nullptr)
     , m_contentLayout(nullptr)
@@ -3122,21 +3123,55 @@ void Qt_Chess::updateTimeDisplaysFromServer() {
     whiteTime = qMax(static_cast<qint64>(0), whiteTime);
     blackTime = qMax(static_cast<qint64>(0), blackTime);
     
-    // 防止時間跳躍：只允許時間遞減，不允許時間回跳
-    // 如果計算出的新時間比當前顯示的時間大（回跳），則忽略此次更新
-    // 這避免了由於網路延遲或時鐘不精確造成的時間跳躍
+    // 防止時間跳躍的智能更新機制
     int newWhiteTime = static_cast<int>(whiteTime);
     int newBlackTime = static_cast<int>(blackTime);
     
-    // 只在時間減少時更新，或者時間差距超過閾值時強制更新（處理伺服器更新的情況）
-    const int UPDATE_THRESHOLD = 200;  // 200ms 閾值
+    // 檢查是否剛收到伺服器更新（在最近500ms內）
+    qint64 currentTime = QDateTime::currentMSecsSinceEpoch();
+    bool justReceivedUpdate = (currentTime - m_lastServerUpdateTime) < 500;
     
-    if (newWhiteTime <= m_whiteTimeMs || qAbs(newWhiteTime - m_whiteTimeMs) > UPDATE_THRESHOLD) {
-        m_whiteTimeMs = newWhiteTime;
+    // 對於白方時間
+    if (justReceivedUpdate) {
+        // 剛收到伺服器更新：允許較大的變化，但仍要平滑處理
+        int diff = newWhiteTime - m_whiteTimeMs;
+        if (qAbs(diff) > 100) {
+            // 差距較大時，逐步調整而不是直接跳躍
+            if (diff > 0) {
+                // 時間增加（可能是切換玩家），最多增加50ms每次
+                m_whiteTimeMs = qMin(newWhiteTime, m_whiteTimeMs + 50);
+            } else {
+                // 時間減少（正常倒數），允許更新
+                m_whiteTimeMs = newWhiteTime;
+            }
+        } else {
+            // 差距小，直接更新
+            m_whiteTimeMs = newWhiteTime;
+        }
+    } else {
+        // 正常倒數狀態：只允許時間遞減
+        if (newWhiteTime <= m_whiteTimeMs) {
+            m_whiteTimeMs = newWhiteTime;
+        }
+        // 如果新時間大於當前時間（回跳），忽略此次更新
     }
     
-    if (newBlackTime <= m_blackTimeMs || qAbs(newBlackTime - m_blackTimeMs) > UPDATE_THRESHOLD) {
-        m_blackTimeMs = newBlackTime;
+    // 對於黑方時間（相同邏輯）
+    if (justReceivedUpdate) {
+        int diff = newBlackTime - m_blackTimeMs;
+        if (qAbs(diff) > 100) {
+            if (diff > 0) {
+                m_blackTimeMs = qMin(newBlackTime, m_blackTimeMs + 50);
+            } else {
+                m_blackTimeMs = newBlackTime;
+            }
+        } else {
+            m_blackTimeMs = newBlackTime;
+        }
+    } else {
+        if (newBlackTime <= m_blackTimeMs) {
+            m_blackTimeMs = newBlackTime;
+        }
     }
     
     // 更新顯示
@@ -6075,6 +6110,7 @@ void Qt_Chess::onTimerStateReceived(qint64 timeA, qint64 timeB, const QString& c
     m_serverCurrentPlayer = currentPlayer;
     m_serverLastSwitchTime = lastSwitchTime;
     m_useServerTimer = true;  // 啟用伺服器計時器模式
+    m_lastServerUpdateTime = QDateTime::currentMSecsSinceEpoch();  // 記錄更新時間
     
     // 立即更新顯示
     updateTimeDisplaysFromServer();

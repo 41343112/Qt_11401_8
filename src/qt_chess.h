@@ -170,6 +170,7 @@ private:
     QString m_serverCurrentPlayer;  // 伺服器端當前玩家 ("White" or "Black")
     qint64 m_serverLastSwitchTime;  // 伺服器最後切換時間（UNIX 秒數）
     bool m_useServerTimer;  // 是否使用伺服器控制的計時器
+    qint64 m_lastServerUpdateTime;  // 最後一次收到伺服器更新的本地時間（毫秒）
     
     QWidget* m_boardContainer;  // 帶有疊加時間顯示的棋盤容器
     QWidget* m_timeControlPanel;  // 時間控制設定面板
