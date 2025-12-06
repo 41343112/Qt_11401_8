@@ -5692,9 +5692,8 @@ void Qt_Chess::onOpponentDisconnected() {
     if (m_gameStarted) {
         QMessageBox::information(this, "對手退出", QString("對手已退出遊戲%1\n\n遊戲自動結束").arg(roomInfo));
         
-        // 處理遊戲結束（handleGameEnd 會停止計時器並設定 m_gameStarted = false）
+        // 結束遊戲並更新狀態
         handleGameEnd();
-        // 在遊戲結束後更新狀態顯示
         updateStatus();
     } else {
         QMessageBox::information(this, "對手斷線", QString("對手已斷開連接%1").arg(roomInfo));
@@ -6276,7 +6275,7 @@ void Qt_Chess::showRoomInfoDialog(const QString& roomNumber) {
     
     layout->addSpacing(10);
     
-    // 詳細資訊 - 移除伺服器網址顯示
+    // 詳細資訊 - 顯示房號和連線說明
     QLabel* detailLabel = new QLabel(
         tr("<p><b>房間資訊：</b><br>"
            "房間號碼：<span style='color: #2196F3; font-weight: bold;'>%1</span></p>"
@@ -6295,7 +6294,7 @@ void Qt_Chess::showRoomInfoDialog(const QString& roomNumber) {
     connect(closeButton, &QPushButton::clicked, &dialog, &QDialog::accept);
     layout->addWidget(closeButton);
     
-    // 更新房間資訊標籤 - 移除伺服器網址顯示
+    // 更新房間資訊標籤顯示房號
     m_roomInfoLabel->setText(QString("🎮 房號: %1").arg(roomNumber));
     
     dialog.exec();
