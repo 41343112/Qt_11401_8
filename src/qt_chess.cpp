@@ -4248,7 +4248,7 @@ QString Qt_Chess::getEnginePath() const {
 
 void Qt_Chess::onHumanModeClicked() {
     m_currentGameMode = GameMode::HumanVsHuman;
-    m_isOnlineGame = false;  // 確保切換到離線模式
+    m_isOnlineGame = false;  // 確保計時器使用離線模式邏輯
     updateGameModeUI();
     
     // 更新引擎的遊戲模式
@@ -4267,7 +4267,7 @@ void Qt_Chess::onComputerModeClicked() {
         m_currentGameMode = GameMode::HumanVsComputer;
     }
     
-    m_isOnlineGame = false;  // 確保切換到離線模式
+    m_isOnlineGame = false;  // 確保計時器使用離線模式邏輯
     updateGameModeUI();
     
     // 更新引擎的遊戲模式
@@ -4500,7 +4500,7 @@ void Qt_Chess::onEngineError(const QString& error) {
     if (m_currentGameMode != GameMode::HumanVsHuman) {
         // 切換回雙人對弈模式
         m_currentGameMode = GameMode::HumanVsHuman;
-        m_isOnlineGame = false;  // 確保切換到離線模式
+        m_isOnlineGame = false;  // 確保計時器使用離線模式邏輯
         updateGameModeUI();
         QMessageBox::warning(this, "引擎錯誤", 
             QString("無法啟動棋譜引擎：%1\n\n已切換為雙人對弈模式。").arg(error));
