@@ -229,6 +229,7 @@ private:
     void setupMenuBar();
     void updateBoard();
     void updateSquareColor(int row, int col);
+    QString getPieceTextColor(int logicalRow, int logicalCol) const;
     void updateStatus();
     void highlightValidMoves();
     void clearHighlights();

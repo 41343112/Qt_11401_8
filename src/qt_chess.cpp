@@ -733,10 +733,26 @@ void Qt_Chess::updateSquareColor(int displayRow, int displayCol) {
     int logicalCol = getLogicalCol(displayCol);
     bool isLight = (logicalRow + logicalCol) % 2 == 0;
     QColor color = isLight ? m_boardColorSettings.lightSquareColor : m_boardColorSettings.darkSquareColor;
-    // 現代科技風格 - 帶有微妙的內發光邊框效果
+    
+    // 獲取該格子上的棋子以確定文字顏色
+    const ChessPiece& piece = m_chessBoard.getPiece(logicalRow, logicalCol);
+    QString textColor = "#FFFFFF"; // 預設白色
+    if (piece.getType() != PieceType::None) {
+        textColor = (piece.getColor() == PieceColor::White) ? "#FFFFFF" : "#000000";
+    }
+    
+    // 現代科技風格 - 帶有微妙的內發光邊框效果和適當的文字顏色
     m_squares[displayRow][displayCol]->setStyleSheet(
-        QString("QPushButton { background-color: %1; border: 1px solid rgba(0, 217, 255, 0.3); }").arg(color.name())
+        QString("QPushButton { background-color: %1; border: 1px solid rgba(0, 217, 255, 0.3); color: %2; }").arg(color.name(), textColor)
         );
+}
+
+QString Qt_Chess::getPieceTextColor(int logicalRow, int logicalCol) const {
+    const ChessPiece& piece = m_chessBoard.getPiece(logicalRow, logicalCol);
+    if (piece.getType() != PieceType::None) {
+        return (piece.getColor() == PieceColor::White) ? "#FFFFFF" : "#000000";
+    }
+    return "#FFFFFF"; // 預設白色
 }
 
 void Qt_Chess::updateBoard() {
@@ -797,7 +813,10 @@ void Qt_Chess::applyCheckHighlight(const QPoint& excludeSquare) {
             int logicalCol = kingPos.x();
             int displayRow = getDisplayRow(logicalRow);
             int displayCol = getDisplayCol(logicalCol);
-            m_squares[displayRow][displayCol]->setStyleSheet(CHECK_HIGHLIGHT_STYLE);
+            QString textColor = getPieceTextColor(logicalRow, logicalCol);
+            m_squares[displayRow][displayCol]->setStyleSheet(
+                QString("QPushButton { background-color: rgba(255, 80, 80, 0.85); border: 2px solid #FF3333; color: %1; }").arg(textColor)
+            );
         }
     }
 }
@@ -813,8 +832,9 @@ void Qt_Chess::applyLastMoveHighlight() {
     int fromDisplayCol = getDisplayCol(m_lastMoveFrom.x());
     bool fromIsLight = (m_lastMoveFrom.y() + m_lastMoveFrom.x()) % 2 == 0;
     QString fromColor = fromIsLight ? LAST_MOVE_LIGHT_COLOR : LAST_MOVE_DARK_COLOR;
+    QString fromTextColor = getPieceTextColor(m_lastMoveFrom.y(), m_lastMoveFrom.x());
     m_squares[fromDisplayRow][fromDisplayCol]->setStyleSheet(
-        QString("QPushButton { background-color: %1; border: 1px solid #333; }").arg(fromColor)
+        QString("QPushButton { background-color: %1; border: 1px solid #333; color: %2; }").arg(fromColor, fromTextColor)
     );
     
     // 高亮「到」格子（黃色）
@@ -822,8 +842,9 @@ void Qt_Chess::applyLastMoveHighlight() {
     int toDisplayCol = getDisplayCol(m_lastMoveTo.x());
     bool toIsLight = (m_lastMoveTo.y() + m_lastMoveTo.x()) % 2 == 0;
     QString toColor = toIsLight ? LAST_MOVE_LIGHT_COLOR : LAST_MOVE_DARK_COLOR;
+    QString toTextColor = getPieceTextColor(m_lastMoveTo.y(), m_lastMoveTo.x());
     m_squares[toDisplayRow][toDisplayCol]->setStyleSheet(
-        QString("QPushButton { background-color: %1; border: 1px solid #333; }").arg(toColor)
+        QString("QPushButton { background-color: %1; border: 1px solid #333; color: %2; }").arg(toColor, toTextColor)
     );
 }
 
@@ -848,8 +869,9 @@ void Qt_Chess::highlightValidMoves() {
     // 高亮選中的格子（m_selectedSquare 是邏輯坐標）- 現代科技風格霓虹綠
     int displayRow = getDisplayRow(m_selectedSquare.y());
     int displayCol = getDisplayCol(m_selectedSquare.x());
+    QString selectedTextColor = getPieceTextColor(m_selectedSquare.y(), m_selectedSquare.x());
     m_squares[displayRow][displayCol]->setStyleSheet(
-        QString("QPushButton { background-color: rgba(0, 255, 136, 0.6); border: 3px solid %1; }").arg(THEME_ACCENT_SUCCESS)
+        QString("QPushButton { background-color: rgba(0, 255, 136, 0.6); border: 3px solid %1; color: %2; }").arg(THEME_ACCENT_SUCCESS, selectedTextColor)
         );
 
     // 高亮有效的移動
@@ -862,18 +884,19 @@ void Qt_Chess::highlightValidMoves() {
                 int displayCol = getDisplayCol(logicalCol);
                 // 使用邏輯坐標確定淺色/深色格子
                 bool isLight = (logicalRow + logicalCol) % 2 == 0;
+                QString textColor = getPieceTextColor(logicalRow, logicalCol);
 
                 if (isCapture) {
                     // 將吃子移動高亮為霓虹紅/粉色
                     QString color = isLight ? "rgba(255, 100, 120, 0.7)" : "rgba(233, 69, 96, 0.8)";
                     m_squares[displayRow][displayCol]->setStyleSheet(
-                        QString("QPushButton { background-color: %1; border: 3px solid %2; }").arg(color, THEME_ACCENT_SECONDARY)
+                        QString("QPushButton { background-color: %1; border: 3px solid %2; color: %3; }").arg(color, THEME_ACCENT_SECONDARY, textColor)
                         );
                 } else {
                     // 將非吃子移動高亮為霓虹黃色
                     QString color = isLight ? "rgba(255, 217, 61, 0.5)" : "rgba(255, 217, 61, 0.7)";
                     m_squares[displayRow][displayCol]->setStyleSheet(
-                        QString("QPushButton { background-color: %1; border: 3px solid %2; }").arg(color, THEME_ACCENT_WARNING)
+                        QString("QPushButton { background-color: %1; border: 3px solid %2; color: %3; }").arg(color, THEME_ACCENT_WARNING, textColor)
                         );
                 }
             }
