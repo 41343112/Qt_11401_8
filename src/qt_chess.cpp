@@ -6543,7 +6543,18 @@ void Qt_Chess::onDrawResponseReceived(bool accepted) {
         // 顯示訊息
         QMessageBox::information(this, "遊戲結束", "對手同意和棋！雙方和局。");
     } else {
-        // 對手拒絕和棋，不顯示對話框，遊戲繼續
+        // 對手拒絕和棋，在狀態列顯示提示，不使用對話框
+        if (m_connectionStatusLabel) {
+            m_connectionStatusLabel->setText("❌ 對手拒絕了和棋請求");
+            m_connectionStatusLabel->show();
+            
+            // 3秒後恢復正常狀態
+            QTimer::singleShot(3000, this, [this]() {
+                if (m_connectionStatusLabel && m_isOnlineGame) {
+                    m_connectionStatusLabel->setText("✅ 已連接");
+                }
+            });
+        }
     }
 }
 
