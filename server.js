@@ -237,6 +237,30 @@ wss.on('connection', ws => {
                 });
             }
         }
+
+        // 廣播和棋請求
+        else if(msg.action === "drawOffer"){
+            const roomId = msg.room;
+            if(rooms[roomId]){
+                rooms[roomId].forEach(client => {
+                    if(client !== ws && client.readyState === WebSocket.OPEN){
+                        client.send(JSON.stringify(msg));
+                    }
+                });
+            }
+        }
+
+        // 廣播和棋回應
+        else if(msg.action === "drawResponse"){
+            const roomId = msg.room;
+            if(rooms[roomId]){
+                rooms[roomId].forEach(client => {
+                    if(client !== ws && client.readyState === WebSocket.OPEN){
+                        client.send(JSON.stringify(msg));
+                    }
+                });
+            }
+        }
     });
 
     // 玩家斷線
