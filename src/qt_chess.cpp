@@ -6741,7 +6741,37 @@ void Qt_Chess::onDrawResponseReceived(bool accepted) {
             m_connectionStatusLabel->setText("✅ 對手同意和棋！雙方和局");
         }
     } else {
-        // 對手拒絕和棋，在狀態列顯示提示，不使用對話框
+        // 對手拒絕和棋，顯示臨時通知標籤（不使用對話框，不會阻礙下棋）
+        // 創建一個臨時的浮動標籤顯示拒絕訊息
+        QLabel* notificationLabel = new QLabel("❌ 對手拒絕了和棋請求", this);
+        notificationLabel->setStyleSheet(QString(
+            "QLabel {"
+            "  background-color: rgba(30, 30, 30, 0.95);"
+            "  color: #FF5252;"
+            "  border: 3px solid #FF5252;"
+            "  border-radius: 15px;"
+            "  padding: 20px 40px;"
+            "  font-size: 18pt;"
+            "  font-weight: bold;"
+            "}"
+        ));
+        notificationLabel->setAlignment(Qt::AlignCenter);
+        notificationLabel->adjustSize();
+        
+        // 將標籤放置在窗口中央
+        int x = (width() - notificationLabel->width()) / 2;
+        int y = (height() - notificationLabel->height()) / 2;
+        notificationLabel->move(x, y);
+        notificationLabel->show();
+        notificationLabel->raise();  // 確保在最上層
+        
+        // 3秒後自動隱藏並刪除標籤
+        QTimer::singleShot(3000, this, [notificationLabel]() {
+            notificationLabel->hide();
+            notificationLabel->deleteLater();
+        });
+        
+        // 同時更新連線狀態標籤（如果可見的話）
         if (m_connectionStatusLabel) {
             m_connectionStatusLabel->setText("❌ 對手拒絕了和棋請求");
             m_connectionStatusLabel->show();
