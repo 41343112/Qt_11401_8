@@ -6510,6 +6510,36 @@ void Qt_Chess::onDrawOfferReceived() {
         // 修改「請求和棋」按鈕文字和功能，讓它變成「接受和棋」
         if (m_requestDrawButton) {
             m_requestDrawButton->setText("✅ 接受和棋");
+            
+            // 改變按鈕樣式為綠色
+            QString greenStyle = QString(
+                "QPushButton {"
+                "   background: qlineargradient(x1:0, y1:0, x2:0, y2:1, "
+                "       stop:0 %1, stop:1 %2);"
+                "   color: white;"
+                "   border: 2px solid %3;"
+                "   border-radius: 10px;"
+                "   padding: 8px;"
+                "   font-weight: bold;"
+                "   font-size: 12pt;"
+                "   min-width: 120px;"
+                "   min-height: 45px;"
+                "}"
+                "QPushButton:hover {"
+                "   background: qlineargradient(x1:0, y1:0, x2:0, y2:1, "
+                "       stop:0 %4, stop:1 %5);"
+                "}"
+                "QPushButton:pressed {"
+                "   background: %6;"
+                "}"
+            ).arg("#00C853")  // 綠色漸層起點
+             .arg("#00E676")  // 綠色漸層終點
+             .arg("#00C853")  // 邊框顏色
+             .arg("#1DE9B6")  // hover 漸層起點
+             .arg("#00E676")  // hover 漸層終點
+             .arg("#00C853"); // pressed 背景色
+            
+            m_requestDrawButton->setStyleSheet(greenStyle);
             m_requestDrawButton->disconnect(); // 斷開原有連接
             
             // 連接新的接受和棋功能
@@ -6529,7 +6559,7 @@ void Qt_Chess::onDrawOfferReceived() {
                 if (m_connectionStatusLabel) {
                     m_connectionStatusLabel->setText("✅ 雙方同意和棋！");
                 }
-            }, Qt::UniqueConnection);
+            });
         }
         
         // 10秒後自動拒絕（如果用戶沒有接受）
@@ -6541,9 +6571,30 @@ void Qt_Chess::onDrawOfferReceived() {
                     m_networkManager->sendDrawResponse(false);
                 }
                 
-                // 恢復按鈕原本的功能
+                // 恢復按鈕原本的功能和樣式
                 if (m_requestDrawButton) {
                     m_requestDrawButton->setText("🤝 請求和棋");
+                    
+                    // 恢復原本的藍色樣式
+                    m_requestDrawButton->setStyleSheet(QString(
+                        "QPushButton { "
+                        "  background: qlineargradient(x1:0, y1:0, x2:1, y2:0, "
+                        "    stop:0 %1, stop:0.5 rgba(0, 217, 255, 0.7), stop:1 %1); "
+                        "  color: %2; "
+                        "  border: 3px solid %3; "
+                        "  border-radius: 10px; "
+                        "  padding: 8px; "
+                        "}"
+                        "QPushButton:hover { "
+                        "  background: qlineargradient(x1:0, y1:0, x2:1, y2:0, "
+                        "    stop:0 %3, stop:0.5 rgba(100, 230, 255, 0.9), stop:1 %3); "
+                        "  border-color: #6BDBFF; "
+                        "}"
+                        "QPushButton:pressed { "
+                        "  background: %3; "
+                        "}"
+                    ).arg(THEME_BG_DARK, THEME_TEXT_PRIMARY, THEME_ACCENT_PRIMARY));
+                    
                     m_requestDrawButton->disconnect();
                     connect(m_requestDrawButton, &QPushButton::clicked, this, &Qt_Chess::onRequestDrawClicked);
                 }
