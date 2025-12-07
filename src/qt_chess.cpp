@@ -4891,17 +4891,18 @@ void Qt_Chess::saveEngineSettings() {
 }
 
 void Qt_Chess::applyModernStylesheet() {
-    // chess.jpg 實際顏色配色方案 + 半透明背景圖
+    // chess.jpg 視覺風格 - 半透明背景圖配合實際顏色
     QString styleSheet = QString(
-        // 主視窗背景 - chess.jpg 圖片 + 半透明遮罩
+        // 主視窗背景 - chess.jpg 圖片自適應縮放
         "QMainWindow { "
         "  background-image: url(:/resources/images/chess.jpg); "
         "  background-position: center; "
         "  background-repeat: no-repeat; "
         "  background-attachment: fixed; "
+        "  background-size: cover; "
         "}"
         
-        // 中央部件 - 半透明遮罩層以保持可讀性
+        // 中央部件 - 半透明遮罩層保持可讀性
         "QWidget#centralwidget { "
         "  background: qlineargradient(x1:0, y1:0, x2:1, y2:1, "
         "    stop:0 rgba(6, 12, 16, 0.85), "
