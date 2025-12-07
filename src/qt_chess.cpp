@@ -56,20 +56,20 @@ const int RELEASE_NOTES_PREVIEW_LENGTH = 200; // 更新說明預覽的字元數
 const QString WHITE_PIECE_COLOR = "#FFFFFF"; // 白色棋子顏色
 const QString BLACK_PIECE_COLOR = "#000000"; // 黑色棋子顏色
 
-// 上一步移動高亮顏色 - 從 chess.jpg 提取的配色
-const QString LAST_MOVE_LIGHT_COLOR = "#B5D8DE";  // 淺色格子的高亮（淺藍灰）
-const QString LAST_MOVE_DARK_COLOR = "#32B9D8";   // 深色格子的高亮（天藍色）
+// 上一步移動高亮顏色 - 現代科技風格結合 chess.jpg 靈感
+const QString LAST_MOVE_LIGHT_COLOR = "#7BE0FF";  // 淺色格子的高亮（明亮青藍色）
+const QString LAST_MOVE_DARK_COLOR = "#00B4D8";   // 深色格子的高亮（富有青色）
 
-// ===== 從 chess.jpg 提取的主題顏色 =====
-const QString THEME_BG_DARK = "#0D222B";           // 深色背景（深藍灰）
-const QString THEME_BG_MEDIUM = "#18647F";         // 中等深度背景（青藍色）
-const QString THEME_BG_PANEL = "#3F6D77";          // 面板背景（青灰色）
-const QString THEME_ACCENT_PRIMARY = "#32B9D8";    // 主要強調色（天藍色）
-const QString THEME_ACCENT_SECONDARY = "#867F66";  // 次要強調色（棕灰色）
-const QString THEME_ACCENT_SUCCESS = "#A0D0D8";    // 成功色（較深的淺藍灰）
-const QString THEME_ACCENT_WARNING = "#9A8E70";    // 警告色（較亮的棕灰色）
-const QString THEME_TEXT_PRIMARY = "#B5D8DE";      // 主要文字顏色（淺藍灰）
-const QString THEME_BORDER = "#18647F";            // 邊框顏色（青藍色）
+// ===== 現代科技風格主題顏色（結合 chess.jpg 靈感）=====
+const QString THEME_BG_DARK = "#0F1923";           // 深色背景（深邃藍黑色）
+const QString THEME_BG_MEDIUM = "#1A3A52";         // 中等深度背景（豐富青藍色）
+const QString THEME_BG_PANEL = "#2B5278";          // 面板背景（中等藍灰色）
+const QString THEME_ACCENT_PRIMARY = "#00D4E0";    // 主要強調色（明亮青綠色）
+const QString THEME_ACCENT_SECONDARY = "#FF6B9D";  // 次要強調色（現代粉色）
+const QString THEME_ACCENT_SUCCESS = "#4ECCA3";    // 成功色（薄荷綠）
+const QString THEME_ACCENT_WARNING = "#FFBE0B";    // 警告色（金黃色）
+const QString THEME_TEXT_PRIMARY = "#E8F4F8";      // 主要文字顏色（淡藍白色）
+const QString THEME_BORDER = "#3D7EAA";            // 邊框顏色（明亮藍色）
 
 // 視窗大小的佈局常數
 const int PANEL_SPACING = 10;          // 面板之間的間距
@@ -357,7 +357,7 @@ void Qt_Chess::setupUI() {
         "  color: %1; "
         "  padding: 8px; "
         "  background: qlineargradient(x1:0, y1:0, x2:1, y2:0, "
-        "    stop:0 transparent, stop:0.5 rgba(50, 185, 216, 0.2), stop:1 transparent); "
+        "    stop:0 transparent, stop:0.5 rgba(0, 212, 224, 0.2), stop:1 transparent); "
         "  border-bottom: 2px solid %1; "
         "}"
     ).arg(THEME_ACCENT_PRIMARY));
@@ -425,7 +425,7 @@ void Qt_Chess::setupUI() {
         "  font-weight: bold; "
         "}"
         "QPushButton:hover { "
-        "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 %1, stop:0.5 rgba(154, 142, 112, 0.3), stop:1 %2); "
+        "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 %1, stop:0.5 rgba(255, 107, 157, 0.3), stop:1 %2); "
         "  border-color: %5; "
         "  color: %5; "
         "}"
@@ -434,7 +434,7 @@ void Qt_Chess::setupUI() {
         "  color: %2; "
         "}"
         "QPushButton:disabled { "
-        "  background: rgba(13, 34, 43, 0.5); "
+        "  background: rgba(15, 25, 35, 0.5); "
         "  color: #555; "
         "  border-color: #333; "
         "}"
@@ -560,7 +560,7 @@ void Qt_Chess::setupUI() {
     m_resignButton->setStyleSheet(QString(
         "QPushButton { "
         "  background: qlineargradient(x1:0, y1:0, x2:1, y2:0, "
-        "    stop:0 %1, stop:0.5 rgba(154, 142, 112, 0.7), stop:1 %1); "
+        "    stop:0 %1, stop:0.5 rgba(255, 107, 157, 0.7), stop:1 %1); "
         "  color: %2; "
         "  border: 3px solid %3; "
         "  border-radius: 10px; "
@@ -590,7 +590,7 @@ void Qt_Chess::setupUI() {
     m_requestDrawButton->setStyleSheet(QString(
         "QPushButton { "
         "  background: qlineargradient(x1:0, y1:0, x2:1, y2:0, "
-        "    stop:0 %1, stop:0.5 rgba(50, 185, 216, 0.7), stop:1 %1); "
+        "    stop:0 %1, stop:0.5 rgba(0, 212, 224, 0.7), stop:1 %1); "
         "  color: %2; "
         "  border: 3px solid %3; "
         "  border-radius: 10px; "
@@ -698,7 +698,7 @@ void Qt_Chess::setupUI() {
     m_blackTimeLabel->setAlignment(Qt::AlignCenter);
     m_blackTimeLabel->setStyleSheet(QString(
         "QLabel { "
-        "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 rgba(63, 109, 119, 0.95), stop:1 rgba(13, 34, 43, 0.95)); "
+        "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 rgba(43, 82, 120, 0.95), stop:1 rgba(15, 25, 35, 0.95)); "
         "  color: %1; "
         "  padding: 10px; "
         "  border: 2px solid %2; "
@@ -716,7 +716,7 @@ void Qt_Chess::setupUI() {
     m_whiteTimeLabel->setAlignment(Qt::AlignCenter);
     m_whiteTimeLabel->setStyleSheet(QString(
         "QLabel { "
-        "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 rgba(63, 109, 119, 0.95), stop:1 rgba(13, 34, 43, 0.95)); "
+        "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 rgba(43, 82, 120, 0.95), stop:1 rgba(15, 25, 35, 0.95)); "
         "  color: %1; "
         "  padding: 10px; "
         "  border: 2px solid %2; "
@@ -837,7 +837,7 @@ void Qt_Chess::updateSquareColor(int displayRow, int displayCol) {
     
     // 現代科技風格 - 帶有微妙的內發光邊框效果和適當的文字顏色
     m_squares[displayRow][displayCol]->setStyleSheet(
-        QString("QPushButton { background-color: %1; border: 1px solid rgba(50, 185, 216, 0.3); color: %2; }").arg(color.name(), textColor)
+        QString("QPushButton { background-color: %1; border: 1px solid rgba(0, 212, 224, 0.3); color: %2; }").arg(color.name(), textColor)
         );
 }
 
@@ -965,7 +965,7 @@ void Qt_Chess::highlightValidMoves() {
     int displayCol = getDisplayCol(m_selectedSquare.x());
     QString selectedTextColor = getPieceTextColor(m_selectedSquare.y(), m_selectedSquare.x());
     m_squares[displayRow][displayCol]->setStyleSheet(
-        QString("QPushButton { background-color: rgba(160, 208, 216, 0.6); border: 3px solid %1; color: %2; }").arg(THEME_ACCENT_SUCCESS, selectedTextColor)
+        QString("QPushButton { background-color: rgba(78, 204, 163, 0.6); border: 3px solid %1; color: %2; }").arg(THEME_ACCENT_SUCCESS, selectedTextColor)
         );
 
     // 高亮有效的移動
@@ -982,13 +982,13 @@ void Qt_Chess::highlightValidMoves() {
 
                 if (isCapture) {
                     // 將吃子移動高亮為次要強調色
-                    QString color = isLight ? "rgba(160, 208, 216, 0.7)" : "rgba(154, 142, 112, 0.8)";
+                    QString color = isLight ? "rgba(78, 204, 163, 0.7)" : "rgba(255, 107, 157, 0.8)";
                     m_squares[displayRow][displayCol]->setStyleSheet(
                         QString("QPushButton { background-color: %1; border: 3px solid %2; color: %3; }").arg(color, THEME_ACCENT_SECONDARY, textColor)
                         );
                 } else {
                     // 將非吃子移動高亮為警告色
-                    QString color = isLight ? "rgba(154, 142, 112, 0.5)" : "rgba(154, 142, 112, 0.7)";
+                    QString color = isLight ? "rgba(255, 190, 11, 0.5)" : "rgba(255, 190, 11, 0.7)";
                     m_squares[displayRow][displayCol]->setStyleSheet(
                         QString("QPushButton { background-color: %1; border: 3px solid %2; color: %3; }").arg(color, THEME_ACCENT_WARNING, textColor)
                         );
@@ -1404,7 +1404,7 @@ void Qt_Chess::onStartButtonClicked() {
             m_requestDrawButton->setStyleSheet(QString(
                 "QPushButton { "
                 "  background: qlineargradient(x1:0, y1:0, x2:1, y2:0, "
-                "    stop:0 %1, stop:0.5 rgba(50, 185, 216, 0.7), stop:1 %1); "
+                "    stop:0 %1, stop:0.5 rgba(0, 212, 224, 0.7), stop:1 %1); "
                 "  color: %2; "
                 "  border: 3px solid %3; "
                 "  border-radius: 10px; "
@@ -1519,7 +1519,7 @@ void Qt_Chess::onStartButtonClicked() {
             m_requestDrawButton->setStyleSheet(QString(
                 "QPushButton { "
                 "  background: qlineargradient(x1:0, y1:0, x2:1, y2:0, "
-                "    stop:0 %1, stop:0.5 rgba(50, 185, 216, 0.7), stop:1 %1); "
+                "    stop:0 %1, stop:0.5 rgba(0, 212, 224, 0.7), stop:1 %1); "
                 "  color: %2; "
                 "  border: 3px solid %3; "
                 "  border-radius: 10px; "
@@ -2735,7 +2735,7 @@ void Qt_Chess::setupTimeControlUI(QVBoxLayout* timeControlPanelLayout) {
     m_whiteTimeLimitLabel->setFont(labelFont);
     m_whiteTimeLimitLabel->setAlignment(Qt::AlignCenter);
     m_whiteTimeLimitLabel->setStyleSheet(QString(
-        "QLabel { color: %1; padding: 4px; background: rgba(160, 208, 216, 0.1); border-radius: 4px; }"
+        "QLabel { color: %1; padding: 4px; background: rgba(78, 204, 163, 0.1); border-radius: 4px; }"
     ).arg(THEME_ACCENT_SUCCESS));
     timeControlLayout->addWidget(m_whiteTimeLimitLabel);
 
@@ -2760,7 +2760,7 @@ void Qt_Chess::setupTimeControlUI(QVBoxLayout* timeControlPanelLayout) {
     m_blackTimeLimitLabel->setFont(labelFont);
     m_blackTimeLimitLabel->setAlignment(Qt::AlignCenter);
     m_blackTimeLimitLabel->setStyleSheet(QString(
-        "QLabel { color: %1; padding: 4px; background: rgba(50, 185, 216, 0.1); border-radius: 4px; }"
+        "QLabel { color: %1; padding: 4px; background: rgba(0, 212, 224, 0.1); border-radius: 4px; }"
     ).arg(THEME_ACCENT_PRIMARY));
     timeControlLayout->addWidget(m_blackTimeLimitLabel);
 
@@ -2784,7 +2784,7 @@ void Qt_Chess::setupTimeControlUI(QVBoxLayout* timeControlPanelLayout) {
     m_incrementLabel->setFont(labelFont);
     m_incrementLabel->setAlignment(Qt::AlignCenter);
     m_incrementLabel->setStyleSheet(QString(
-        "QLabel { color: %1; padding: 4px; background: rgba(154, 142, 112, 0.1); border-radius: 4px; }"
+        "QLabel { color: %1; padding: 4px; background: rgba(255, 107, 157, 0.1); border-radius: 4px; }"
     ).arg(THEME_ACCENT_SECONDARY));
     timeControlLayout->addWidget(m_incrementLabel);
 
@@ -2815,12 +2815,12 @@ void Qt_Chess::setupTimeControlUI(QVBoxLayout* timeControlPanelLayout) {
         "  color: %4; font-weight: bold; "
         "}"
         "QPushButton:checked { "
-        "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 %5, stop:1 rgba(160, 208, 216, 0.6)); "
+        "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 %5, stop:1 rgba(78, 204, 163, 0.6)); "
         "  color: %3; border-color: %5; "
         "}"
         "QPushButton:hover { "
         "  border-color: %5; "
-        "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 %2, stop:0.5 rgba(160, 208, 216, 0.2), stop:1 %3); "
+        "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 %2, stop:0.5 rgba(78, 204, 163, 0.2), stop:1 %3); "
         "}"
     ).arg(THEME_BORDER, THEME_BG_PANEL, THEME_BG_DARK, THEME_TEXT_PRIMARY, THEME_ACCENT_SUCCESS);
     
@@ -2832,12 +2832,12 @@ void Qt_Chess::setupTimeControlUI(QVBoxLayout* timeControlPanelLayout) {
         "  color: %4; font-weight: bold; "
         "}"
         "QPushButton:checked { "
-        "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 %5, stop:1 rgba(50, 185, 216, 0.6)); "
+        "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 %5, stop:1 rgba(0, 212, 224, 0.6)); "
         "  color: %3; border-color: %5; "
         "}"
         "QPushButton:hover { "
         "  border-color: %5; "
-        "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 %2, stop:0.5 rgba(50, 185, 216, 0.2), stop:1 %3); "
+        "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 %2, stop:0.5 rgba(0, 212, 224, 0.2), stop:1 %3); "
         "}"
     ).arg(THEME_BORDER, THEME_BG_PANEL, THEME_BG_DARK, THEME_TEXT_PRIMARY, THEME_ACCENT_PRIMARY);
     
@@ -2884,12 +2884,12 @@ void Qt_Chess::setupTimeControlUI(QVBoxLayout* timeControlPanelLayout) {
         "  color: %4; font-weight: bold; "
         "}"
         "QPushButton:checked { "
-        "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 %5, stop:1 rgba(154, 142, 112, 0.6)); "
+        "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 %5, stop:1 rgba(255, 107, 157, 0.6)); "
         "  color: white; border-color: %5; "
         "}"
         "QPushButton:hover { "
         "  border-color: %5; "
-        "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 %2, stop:0.5 rgba(154, 142, 112, 0.2), stop:1 %3); "
+        "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 %2, stop:0.5 rgba(255, 107, 157, 0.2), stop:1 %3); "
         "}"
     ).arg(THEME_BORDER, THEME_BG_PANEL, THEME_BG_DARK, THEME_TEXT_PRIMARY, THEME_ACCENT_SECONDARY);
     
@@ -2961,7 +2961,7 @@ void Qt_Chess::setupTimeControlUI(QVBoxLayout* timeControlPanelLayout) {
     m_difficultyValueLabel->setFont(labelFont);
     m_difficultyValueLabel->setAlignment(Qt::AlignCenter);
     m_difficultyValueLabel->setStyleSheet(QString("QLabel { color: %1; font-weight: bold; padding: 4px; "
-        "background: rgba(154, 142, 112, 0.15); border-radius: 4px; }").arg(THEME_ACCENT_WARNING));
+        "background: rgba(255, 190, 11, 0.15); border-radius: 4px; }").arg(THEME_ACCENT_WARNING));
     timeControlLayout->addWidget(m_difficultyValueLabel);
     
     m_difficultySlider = new QSlider(Qt::Horizontal, this);
@@ -2983,7 +2983,7 @@ void Qt_Chess::setupTimeControlUI(QVBoxLayout* timeControlPanelLayout) {
         "  font-weight: bold; "
         "  padding: 8px; "
         "  background: qlineargradient(x1:0, y1:0, x2:1, y2:0, "
-        "    stop:0 rgba(154, 142, 112, 0.3), stop:0.5 rgba(50, 185, 216, 0.3), stop:1 rgba(154, 142, 112, 0.3)); "
+        "    stop:0 rgba(255, 107, 157, 0.3), stop:0.5 rgba(0, 212, 224, 0.3), stop:1 rgba(255, 107, 157, 0.3)); "
         "  border: 2px solid %1; "
         "  border-radius: 8px; "
         "}"
@@ -3014,7 +3014,7 @@ void Qt_Chess::setupTimeControlUI(QVBoxLayout* timeControlPanelLayout) {
     m_startButton->setStyleSheet(QString(
         "QPushButton { "
         "  background: qlineargradient(x1:0, y1:0, x2:1, y2:0, "
-        "    stop:0 %1, stop:0.5 rgba(160, 208, 216, 0.8), stop:1 %1); "
+        "    stop:0 %1, stop:0.5 rgba(78, 204, 163, 0.8), stop:1 %1); "
         "  color: %2; "
         "  border: 3px solid %1; "
         "  border-radius: 12px; "
@@ -3022,7 +3022,7 @@ void Qt_Chess::setupTimeControlUI(QVBoxLayout* timeControlPanelLayout) {
         "}"
         "QPushButton:hover { "
         "  background: qlineargradient(x1:0, y1:0, x2:1, y2:0, "
-        "    stop:0 %1, stop:0.3 rgba(160, 208, 216, 0.9), stop:0.7 rgba(50, 185, 216, 0.9), stop:1 %1); "
+        "    stop:0 %1, stop:0.3 rgba(78, 204, 163, 0.9), stop:0.7 rgba(0, 212, 224, 0.9), stop:1 %1); "
         "  border-color: white; "
         "}"
         "QPushButton:pressed { "
@@ -4891,9 +4891,9 @@ void Qt_Chess::saveEngineSettings() {
 }
 
 void Qt_Chess::applyModernStylesheet() {
-    // 使用從 chess.jpg 提取的配色作為遊戲風格
+    // 現代科技風格結合 chess.jpg 靈感的配色
     QString styleSheet = QString(
-        // 主視窗背景 - 使用提取的深色調漸變
+        // 主視窗背景 - 深邃藍色漸變
         "QMainWindow { "
         "  background: qlineargradient(x1:0, y1:0, x2:1, y2:1, "
         "    stop:0 %1, stop:0.5 %2, stop:1 %1); "
@@ -4919,11 +4919,11 @@ void Qt_Chess::applyModernStylesheet() {
         "  border-radius: 4px; "
         "}"
         "QMenuBar::item:selected { "
-        "  background: rgba(50, 185, 216, 0.3); "
+        "  background: rgba(0, 212, 224, 0.3); "
         "  color: %5; "
         "}"
         "QMenuBar::item:pressed { "
-        "  background: rgba(50, 185, 216, 0.5); "
+        "  background: rgba(0, 212, 224, 0.5); "
         "}"
         
         // 下拉選單
@@ -4940,7 +4940,7 @@ void Qt_Chess::applyModernStylesheet() {
         "}"
         "QMenu::item:selected { "
         "  background: qlineargradient(x1:0, y1:0, x2:1, y2:0, "
-        "    stop:0 rgba(50, 185, 216, 0.4), stop:1 rgba(154, 142, 112, 0.4)); "
+        "    stop:0 rgba(0, 212, 224, 0.4), stop:1 rgba(255, 107, 157, 0.4)); "
         "  color: white; "
         "}"
         "QMenu::separator { "
@@ -4958,7 +4958,7 @@ void Qt_Chess::applyModernStylesheet() {
         "  margin-top: 12px; "
         "  padding-top: 10px; "
         "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1, "
-        "    stop:0 rgba(63, 109, 119, 0.9), stop:1 rgba(13, 34, 43, 0.9)); "
+        "    stop:0 rgba(43, 82, 120, 0.9), stop:1 rgba(15, 25, 35, 0.9)); "
         "}"
         "QGroupBox::title { "
         "  subcontrol-origin: margin; "
@@ -4983,7 +4983,7 @@ void Qt_Chess::applyModernStylesheet() {
         "}"
         "QPushButton:hover { "
         "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1, "
-        "    stop:0 %3, stop:0.5 rgba(50, 185, 216, 0.3), stop:1 %1); "
+        "    stop:0 %3, stop:0.5 rgba(0, 212, 224, 0.3), stop:1 %1); "
         "  border: 2px solid %5; "
         "  color: %5; "
         "}"
@@ -4993,13 +4993,13 @@ void Qt_Chess::applyModernStylesheet() {
         "  border: 2px solid %7; "
         "}"
         "QPushButton:disabled { "
-        "  background: rgba(13, 34, 43, 0.6); "
+        "  background: rgba(15, 25, 35, 0.6); "
         "  color: #666; "
         "  border: 2px solid #444; "
         "}"
         "QPushButton:checked { "
         "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1, "
-        "    stop:0 %5, stop:1 rgba(50, 185, 216, 0.6)); "
+        "    stop:0 %5, stop:1 rgba(0, 212, 224, 0.6)); "
         "  color: %1; "
         "  border: 2px solid %5; "
         "}"
@@ -5020,7 +5020,7 @@ void Qt_Chess::applyModernStylesheet() {
         "}"
         "QSlider::handle:horizontal { "
         "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1, "
-        "    stop:0 %5, stop:1 rgba(50, 185, 216, 0.7)); "
+        "    stop:0 %5, stop:1 rgba(0, 212, 224, 0.7)); "
         "  border: 2px solid %5; "
         "  width: 18px; "
         "  margin: -6px 0; "
@@ -5038,11 +5038,11 @@ void Qt_Chess::applyModernStylesheet() {
         
         // 列表視窗
         "QListWidget { "
-        "  background-color: rgba(13, 34, 43, 0.95); "
+        "  background-color: rgba(15, 25, 35, 0.95); "
         "  border: 2px solid %6; "
         "  border-radius: 8px; "
         "  color: %4; "
-        "  alternate-background-color: rgba(63, 109, 119, 0.5); "
+        "  alternate-background-color: rgba(43, 82, 120, 0.5); "
         "}"
         "QListWidget::item { "
         "  padding: 6px; "
@@ -5050,18 +5050,18 @@ void Qt_Chess::applyModernStylesheet() {
         "}"
         "QListWidget::item:selected { "
         "  background: qlineargradient(x1:0, y1:0, x2:1, y2:0, "
-        "    stop:0 rgba(50, 185, 216, 0.5), stop:1 rgba(154, 142, 112, 0.3)); "
+        "    stop:0 rgba(0, 212, 224, 0.5), stop:1 rgba(255, 107, 157, 0.3)); "
         "  color: white; "
         "}"
         "QListWidget::item:hover { "
-        "  background: rgba(50, 185, 216, 0.2); "
+        "  background: rgba(0, 212, 224, 0.2); "
         "}"
         
         // 進度條
         "QProgressBar { "
         "  border: 2px solid %6; "
         "  border-radius: 6px; "
-        "  background-color: rgba(13, 34, 43, 0.9); "
+        "  background-color: rgba(15, 25, 35, 0.9); "
         "  text-align: center; "
         "  color: %4; "
         "}"
@@ -5127,9 +5127,9 @@ void Qt_Chess::playGameStartAnimation() {
         m_animationOverlay->setStyleSheet(
             "QWidget#animationOverlay { "
             "  background: qlineargradient(spread:pad, x1:0, y1:0, x2:1, y2:1, "
-            "    stop:0 rgba(13, 34, 43, 0.95), "
-            "    stop:0.5 rgba(63, 109, 119, 0.95), "
-            "    stop:1 rgba(13, 34, 43, 0.95)); "
+            "    stop:0 rgba(15, 25, 35, 0.95), "
+            "    stop:0.5 rgba(43, 82, 120, 0.95), "
+            "    stop:1 rgba(15, 25, 35, 0.95)); "
             "}"
         );
     }
@@ -5227,9 +5227,9 @@ void Qt_Chess::playStartupAnimation() {
         m_animationOverlay->setStyleSheet(
             "QWidget#animationOverlay { "
             "  background: qlineargradient(spread:pad, x1:0, y1:0, x2:1, y2:1, "
-            "    stop:0 rgba(13, 34, 43, 0.98), "
-            "    stop:0.5 rgba(63, 109, 119, 0.98), "
-            "    stop:1 rgba(13, 34, 43, 0.98)); "
+            "    stop:0 rgba(15, 25, 35, 0.98), "
+            "    stop:0.5 rgba(43, 82, 120, 0.98), "
+            "    stop:1 rgba(15, 25, 35, 0.98)); "
             "}"
         );
     }
@@ -5753,7 +5753,7 @@ void Qt_Chess::onNetworkError(const QString& error) {
         m_startButton->setStyleSheet(QString(
             "QPushButton { "
             "  background: qlineargradient(x1:0, y1:0, x2:1, y2:0, "
-            "    stop:0 %1, stop:0.5 rgba(160, 208, 216, 0.8), stop:1 %1); "
+            "    stop:0 %1, stop:0.5 rgba(78, 204, 163, 0.8), stop:1 %1); "
             "  color: %2; "
             "  border: 3px solid %1; "
             "  border-radius: 12px; "
@@ -5761,7 +5761,7 @@ void Qt_Chess::onNetworkError(const QString& error) {
             "}"
             "QPushButton:hover { "
             "  background: qlineargradient(x1:0, y1:0, x2:1, y2:0, "
-            "    stop:0 %1, stop:0.3 rgba(160, 208, 216, 0.9), stop:0.7 rgba(50, 185, 216, 0.9), stop:1 %1); "
+            "    stop:0 %1, stop:0.3 rgba(78, 204, 163, 0.9), stop:0.7 rgba(0, 212, 224, 0.9), stop:1 %1); "
             "  border-color: white; "
             "}"
             "QPushButton:pressed { "
@@ -5975,7 +5975,7 @@ void Qt_Chess::onGameStartReceived(PieceColor playerColor) {
         m_startButton->setStyleSheet(QString(
             "QPushButton { "
             "  background: qlineargradient(x1:0, y1:0, x2:1, y2:0, "
-            "    stop:0 %1, stop:0.5 rgba(160, 208, 216, 0.8), stop:1 %1); "
+            "    stop:0 %1, stop:0.5 rgba(78, 204, 163, 0.8), stop:1 %1); "
             "  color: %2; "
             "  border: 3px solid %1; "
             "  border-radius: 12px; "
@@ -5983,7 +5983,7 @@ void Qt_Chess::onGameStartReceived(PieceColor playerColor) {
             "}"
             "QPushButton:hover { "
             "  background: qlineargradient(x1:0, y1:0, x2:1, y2:0, "
-            "    stop:0 %1, stop:0.3 rgba(160, 208, 216, 0.9), stop:0.7 rgba(50, 185, 216, 0.9), stop:1 %1); "
+            "    stop:0 %1, stop:0.3 rgba(78, 204, 163, 0.9), stop:0.7 rgba(0, 212, 224, 0.9), stop:1 %1); "
             "  border-color: white; "
             "}"
             "QPushButton:pressed { "
@@ -6073,7 +6073,7 @@ void Qt_Chess::onOpponentDisconnected() {
         m_startButton->setStyleSheet(QString(
             "QPushButton { "
             "  background: qlineargradient(x1:0, y1:0, x2:1, y2:0, "
-            "    stop:0 %1, stop:0.5 rgba(160, 208, 216, 0.8), stop:1 %1); "
+            "    stop:0 %1, stop:0.5 rgba(78, 204, 163, 0.8), stop:1 %1); "
             "  color: %2; "
             "  border: 3px solid %1; "
             "  border-radius: 12px; "
@@ -6081,7 +6081,7 @@ void Qt_Chess::onOpponentDisconnected() {
             "}"
             "QPushButton:hover { "
             "  background: qlineargradient(x1:0, y1:0, x2:1, y2:0, "
-            "    stop:0 %1, stop:0.3 rgba(160, 208, 216, 0.9), stop:0.7 rgba(50, 185, 216, 0.9), stop:1 %1); "
+            "    stop:0 %1, stop:0.3 rgba(78, 204, 163, 0.9), stop:0.7 rgba(0, 212, 224, 0.9), stop:1 %1); "
             "  border-color: white; "
             "}"
             "QPushButton:pressed { "
@@ -6137,7 +6137,7 @@ void Qt_Chess::onCancelRoomClicked() {
             m_startButton->setStyleSheet(QString(
                 "QPushButton { "
                 "  background: qlineargradient(x1:0, y1:0, x2:1, y2:0, "
-                "    stop:0 %1, stop:0.5 rgba(160, 208, 216, 0.8), stop:1 %1); "
+                "    stop:0 %1, stop:0.5 rgba(78, 204, 163, 0.8), stop:1 %1); "
                 "  color: %2; "
                 "  border: 3px solid %1; "
                 "  border-radius: 12px; "
@@ -6145,7 +6145,7 @@ void Qt_Chess::onCancelRoomClicked() {
                 "}"
                 "QPushButton:hover { "
                 "  background: qlineargradient(x1:0, y1:0, x2:1, y2:0, "
-                "    stop:0 %1, stop:0.3 rgba(160, 208, 216, 0.9), stop:0.7 rgba(50, 185, 216, 0.9), stop:1 %1); "
+                "    stop:0 %1, stop:0.3 rgba(78, 204, 163, 0.9), stop:0.7 rgba(0, 212, 224, 0.9), stop:1 %1); "
                 "  border-color: white; "
                 "}"
                 "QPushButton:pressed { "
@@ -6221,7 +6221,7 @@ void Qt_Chess::onExitRoomClicked() {
             m_startButton->setStyleSheet(QString(
                 "QPushButton { "
                 "  background: qlineargradient(x1:0, y1:0, x2:1, y2:0, "
-                "    stop:0 %1, stop:0.5 rgba(160, 208, 216, 0.8), stop:1 %1); "
+                "    stop:0 %1, stop:0.5 rgba(78, 204, 163, 0.8), stop:1 %1); "
                 "  color: %2; "
                 "  border: 3px solid %1; "
                 "  border-radius: 12px; "
@@ -6229,7 +6229,7 @@ void Qt_Chess::onExitRoomClicked() {
                 "}"
                 "QPushButton:hover { "
                 "  background: qlineargradient(x1:0, y1:0, x2:1, y2:0, "
-                "    stop:0 %1, stop:0.3 rgba(160, 208, 216, 0.9), stop:0.7 rgba(50, 185, 216, 0.9), stop:1 %1); "
+                "    stop:0 %1, stop:0.3 rgba(78, 204, 163, 0.9), stop:0.7 rgba(0, 212, 224, 0.9), stop:1 %1); "
                 "  border-color: white; "
                 "}"
                 "QPushButton:pressed { "
@@ -6380,7 +6380,7 @@ void Qt_Chess::onStartGameReceived(int whiteTimeMs, int blackTimeMs, int increme
         m_requestDrawButton->setStyleSheet(QString(
             "QPushButton { "
             "  background: qlineargradient(x1:0, y1:0, x2:1, y2:0, "
-            "    stop:0 %1, stop:0.5 rgba(50, 185, 216, 0.7), stop:1 %1); "
+            "    stop:0 %1, stop:0.5 rgba(0, 212, 224, 0.7), stop:1 %1); "
             "  color: %2; "
             "  border: 3px solid %3; "
             "  border-radius: 10px; "
@@ -6762,7 +6762,7 @@ void Qt_Chess::onDrawOfferReceived() {
                     m_requestDrawButton->setStyleSheet(QString(
                         "QPushButton { "
                         "  background: qlineargradient(x1:0, y1:0, x2:1, y2:0, "
-                        "    stop:0 %1, stop:0.5 rgba(50, 185, 216, 0.7), stop:1 %1); "
+                        "    stop:0 %1, stop:0.5 rgba(0, 212, 224, 0.7), stop:1 %1); "
                         "  color: %2; "
                         "  border: 3px solid %3; "
                         "  border-radius: 10px; "
@@ -6822,7 +6822,7 @@ void Qt_Chess::onDrawOfferReceived() {
                     m_requestDrawButton->setStyleSheet(QString(
                         "QPushButton { "
                         "  background: qlineargradient(x1:0, y1:0, x2:1, y2:0, "
-                        "    stop:0 %1, stop:0.5 rgba(50, 185, 216, 0.7), stop:1 %1); "
+                        "    stop:0 %1, stop:0.5 rgba(0, 212, 224, 0.7), stop:1 %1); "
                         "  color: %2; "
                         "  border: 3px solid %3; "
                         "  border-radius: 10px; "
