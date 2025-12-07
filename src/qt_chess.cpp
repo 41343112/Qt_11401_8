@@ -1254,24 +1254,27 @@ void Qt_Chess::onResignClicked() {
 }
 
 void Qt_Chess::onRequestDrawClicked() {
-    // 顯示確認對話框
-    QMessageBox::StandardButton reply = QMessageBox::question(
-        this,
-        "請求和棋",
-        "你確定要提出和棋請求嗎？",
-        QMessageBox::Yes | QMessageBox::No
-        );
-
-    if (reply == QMessageBox::Yes) {
-        if (m_isOnlineGame && m_networkManager) {
-            // 在線上模式下，發送和棋請求給對手
-            m_networkManager->sendDrawOffer();
-        } else {
-            // 本地模式（理論上不應該出現，因為按鈕只在線上模式顯示）
-            m_chessBoard.setGameResult(GameResult::Draw);
-            handleGameEnd();
-            QMessageBox::information(this, "遊戲結束", "雙方同意和棋！");
+    // 直接發送和棋請求，不使用確認對話框（避免阻礙下棋）
+    if (m_isOnlineGame && m_networkManager) {
+        // 在線上模式下，發送和棋請求給對手
+        m_networkManager->sendDrawOffer();
+        
+        // 在狀態列顯示已發送提示
+        if (m_connectionStatusLabel) {
+            m_connectionStatusLabel->setText("📤 已發送和棋請求");
+            m_connectionStatusLabel->show();
+            
+            // 3秒後恢復正常狀態
+            QTimer::singleShot(3000, this, [this]() {
+                if (m_connectionStatusLabel && m_isOnlineGame) {
+                    m_connectionStatusLabel->setText("✅ 已連接");
+                }
+            });
         }
+    } else {
+        // 本地模式（理論上不應該出現，因為按鈕只在線上模式顯示）
+        m_chessBoard.setGameResult(GameResult::Draw);
+        handleGameEnd();
     }
 }
 
@@ -6499,35 +6502,58 @@ void Qt_Chess::onSurrenderReceived() {
 }
 
 void Qt_Chess::onDrawOfferReceived() {
-    // 收到對手的和棋請求，詢問是否同意
-    QMessageBox::StandardButton reply = QMessageBox::question(
-        this,
-        "和棋請求",
-        "對手提出和棋請求，你是否同意？",
-        QMessageBox::Yes | QMessageBox::No
-        );
-    
-    if (reply == QMessageBox::Yes) {
-        // 同意和棋
-        if (m_networkManager) {
-            m_networkManager->sendDrawResponse(true);
+    // 收到對手的和棋請求，在狀態列顯示提示（不使用對話框，避免阻礙下棋）
+    if (m_connectionStatusLabel) {
+        m_connectionStatusLabel->setText("📥 對手提出和棋請求 - 點擊「請求和棋」接受");
+        m_connectionStatusLabel->show();
+        
+        // 修改「請求和棋」按鈕文字和功能，讓它變成「接受和棋」
+        if (m_requestDrawButton) {
+            m_requestDrawButton->setText("✅ 接受和棋");
+            m_requestDrawButton->disconnect(); // 斷開原有連接
+            
+            // 連接新的接受和棋功能
+            connect(m_requestDrawButton, &QPushButton::clicked, this, [this]() {
+                // 同意和棋
+                if (m_networkManager) {
+                    m_networkManager->sendDrawResponse(true);
+                }
+                
+                // 設置遊戲結果為和棋
+                m_chessBoard.setGameResult(GameResult::Draw);
+                
+                // 處理遊戲結束
+                handleGameEnd();
+                
+                // 在狀態列顯示訊息
+                if (m_connectionStatusLabel) {
+                    m_connectionStatusLabel->setText("✅ 雙方同意和棋！");
+                }
+            }, Qt::UniqueConnection);
         }
         
-        // 設置遊戲結果為和棋
-        m_chessBoard.setGameResult(GameResult::Draw);
-        
-        // 處理遊戲結束
-        handleGameEnd();
-        
-        // 顯示訊息
-        QMessageBox::information(this, "遊戲結束", "雙方同意和棋！");
-    } else {
-        // 拒絕和棋
-        if (m_networkManager) {
-            m_networkManager->sendDrawResponse(false);
-        }
-        
-        // 拒絕時不顯示任何訊息，遊戲直接繼續
+        // 10秒後自動拒絕（如果用戶沒有接受）
+        QTimer::singleShot(10000, this, [this]() {
+            // 檢查遊戲是否還在進行（如果已結束說明用戶接受了）
+            if (m_gameStarted && !m_chessBoard.isGameOver()) {
+                // 自動拒絕
+                if (m_networkManager) {
+                    m_networkManager->sendDrawResponse(false);
+                }
+                
+                // 恢復按鈕原本的功能
+                if (m_requestDrawButton) {
+                    m_requestDrawButton->setText("🤝 請求和棋");
+                    m_requestDrawButton->disconnect();
+                    connect(m_requestDrawButton, &QPushButton::clicked, this, &Qt_Chess::onRequestDrawClicked);
+                }
+                
+                // 恢復狀態列
+                if (m_connectionStatusLabel && m_isOnlineGame) {
+                    m_connectionStatusLabel->setText("✅ 已連接");
+                }
+            }
+        });
     }
 }
 
@@ -6540,8 +6566,10 @@ void Qt_Chess::onDrawResponseReceived(bool accepted) {
         // 處理遊戲結束
         handleGameEnd();
         
-        // 顯示訊息
-        QMessageBox::information(this, "遊戲結束", "對手同意和棋！雙方和局。");
+        // 在狀態列顯示訊息（不使用對話框，避免阻礙下棋）
+        if (m_connectionStatusLabel) {
+            m_connectionStatusLabel->setText("✅ 對手同意和棋！雙方和局");
+        }
     } else {
         // 對手拒絕和棋，在狀態列顯示提示，不使用對話框
         if (m_connectionStatusLabel) {
