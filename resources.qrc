@@ -55,5 +55,8 @@
         <file>resources/icons/set3/black_knight.png</file>
         <file>resources/icons/set3/black_pawn.png</file>
         
+        <!-- Background image -->
+        <file>resources/images/chess.jpg</file>
+        
     </qresource>
 </RCC>

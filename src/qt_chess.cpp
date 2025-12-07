@@ -4891,17 +4891,22 @@ void Qt_Chess::saveEngineSettings() {
 }
 
 void Qt_Chess::applyModernStylesheet() {
-    // chess.jpg 實際顏色配色方案
+    // chess.jpg 實際顏色配色方案 + 半透明背景圖
     QString styleSheet = QString(
-        // 主視窗背景 - chess.jpg 深色調
+        // 主視窗背景 - chess.jpg 圖片 + 半透明遮罩
         "QMainWindow { "
-        "  background: qlineargradient(x1:0, y1:0, x2:1, y2:1, "
-        "    stop:0 %1, stop:0.5 %2, stop:1 %1); "
+        "  background-image: url(:/resources/images/chess.jpg); "
+        "  background-position: center; "
+        "  background-repeat: no-repeat; "
+        "  background-attachment: fixed; "
         "}"
         
-        // 中央部件
+        // 中央部件 - 半透明遮罩層以保持可讀性
         "QWidget#centralwidget { "
-        "  background: transparent; "
+        "  background: qlineargradient(x1:0, y1:0, x2:1, y2:1, "
+        "    stop:0 rgba(6, 12, 16, 0.85), "
+        "    stop:0.5 rgba(12, 46, 62, 0.75), "
+        "    stop:1 rgba(6, 12, 16, 0.85)); "
         "}"
         
         // 選單欄
@@ -4971,35 +4976,35 @@ void Qt_Chess::applyModernStylesheet() {
         "  left: 10px; "
         "}"
         
-        // 按鈕
+        // 按鈕 - 半透明效果
         "QPushButton { "
         "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1, "
-        "    stop:0 %3, stop:1 %1); "
+        "    stop:0 rgba(15, 89, 117, 0.85), stop:1 rgba(6, 12, 16, 0.85)); "
         "  color: %4; "
-        "  border: 2px solid %6; "
+        "  border: 2px solid rgba(57, 208, 238, 0.5); "
         "  border-radius: 8px; "
         "  padding: 8px 16px; "
         "  font-weight: bold; "
         "}"
         "QPushButton:hover { "
         "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1, "
-        "    stop:0 %3, stop:0.5 rgba(57, 208, 238, 0.3), stop:1 %1); "
-        "  border: 2px solid %5; "
+        "    stop:0 rgba(15, 89, 117, 0.95), stop:0.5 rgba(57, 208, 238, 0.4), stop:1 rgba(6, 12, 16, 0.95)); "
+        "  border: 2px solid rgba(57, 208, 238, 0.9); "
         "  color: %5; "
         "}"
         "QPushButton:pressed { "
         "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1, "
-        "    stop:0 %1, stop:1 %3); "
+        "    stop:0 rgba(6, 12, 16, 0.95), stop:1 rgba(15, 89, 117, 0.95)); "
         "  border: 2px solid %7; "
         "}"
         "QPushButton:disabled { "
-        "  background: rgba(6, 12, 16, 0.6); "
+        "  background: rgba(6, 12, 16, 0.5); "
         "  color: #666; "
-        "  border: 2px solid #444; "
+        "  border: 2px solid rgba(72, 145, 157, 0.3); "
         "}"
         "QPushButton:checked { "
         "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1, "
-        "    stop:0 %5, stop:1 rgba(57, 208, 238, 0.6)); "
+        "    stop:0 rgba(57, 208, 238, 0.7), stop:1 rgba(31, 143, 177, 0.7)); "
         "  color: %1; "
         "  border: 2px solid %5; "
         "}"
@@ -5036,13 +5041,13 @@ void Qt_Chess::applyModernStylesheet() {
         "  border-radius: 4px; "
         "}"
         
-        // 列表視窗
+        // 列表視窗 - 半透明以顯示背景
         "QListWidget { "
-        "  background-color: rgba(6, 12, 16, 0.95); "
-        "  border: 2px solid %6; "
+        "  background-color: rgba(6, 12, 16, 0.75); "
+        "  border: 2px solid rgba(57, 208, 238, 0.5); "
         "  border-radius: 8px; "
         "  color: %4; "
-        "  alternate-background-color: rgba(15, 89, 117, 0.5); "
+        "  alternate-background-color: rgba(15, 89, 117, 0.4); "
         "}"
         "QListWidget::item { "
         "  padding: 6px; "
@@ -5050,11 +5055,12 @@ void Qt_Chess::applyModernStylesheet() {
         "}"
         "QListWidget::item:selected { "
         "  background: qlineargradient(x1:0, y1:0, x2:1, y2:0, "
-        "    stop:0 rgba(57, 208, 238, 0.5), stop:1 rgba(111, 102, 72, 0.3)); "
+        "    stop:0 rgba(57, 208, 238, 0.6), stop:1 rgba(31, 143, 177, 0.5)); "
         "  color: white; "
+        "  border: 1px solid rgba(57, 208, 238, 0.8); "
         "}"
         "QListWidget::item:hover { "
-        "  background: rgba(57, 208, 238, 0.2); "
+        "  background: rgba(57, 208, 238, 0.3); "
         "}"
         
         // 進度條
