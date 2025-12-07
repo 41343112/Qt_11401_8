@@ -6911,10 +6911,10 @@ void Qt_Chess::onDrawResponseReceived(bool accepted) {
                 "  background: %6;"
                 "}"
             ).arg(THEME_ACCENT_PRIMARY)
-             .arg(THEME_ACCENT_PRIMARY_LIGHT)
+             .arg("#33E0FF")  // Lighter cyan for gradient
              .arg(THEME_ACCENT_PRIMARY)
-             .arg(THEME_ACCENT_PRIMARY_LIGHT)
-             .arg(THEME_ACCENT_PRIMARY_LIGHT)
+             .arg("#33E0FF")  // Lighter cyan for hover gradient
+             .arg("#66E7FF")  // Even lighter cyan for hover gradient
              .arg(THEME_ACCENT_PRIMARY);
             
             // 暫時顯示拒絕訊息
