@@ -4891,12 +4891,14 @@ void Qt_Chess::saveEngineSettings() {
 }
 
 void Qt_Chess::applyModernStylesheet() {
-    // 現代科技風格全局樣式表
+    // 使用 chess.jpg 作為遊戲風格背景
     QString styleSheet = QString(
-        // 主視窗背景
+        // 主視窗背景 - 使用 chess.jpg 圖片
         "QMainWindow { "
-        "  background: qlineargradient(x1:0, y1:0, x2:1, y2:1, "
-        "    stop:0 %1, stop:0.5 %2, stop:1 %1); "
+        "  background-image: url(:/resources/images/chess.jpg); "
+        "  background-position: center; "
+        "  background-repeat: no-repeat; "
+        "  background-attachment: fixed; "
         "}"
         
         // 中央部件
