@@ -6504,7 +6504,7 @@ void Qt_Chess::onSurrenderReceived() {
 void Qt_Chess::onDrawOfferReceived() {
     // 收到對手的和棋請求，在狀態列顯示提示（不使用對話框，避免阻礙下棋）
     if (m_connectionStatusLabel) {
-        m_connectionStatusLabel->setText("📥 對手提出和棋請求 - 點擊「請求和棋」接受");
+        m_connectionStatusLabel->setText("📥 對手提出和棋請求 - 接受或拒絕");
         m_connectionStatusLabel->show();
         
         // 修改「請求和棋」按鈕文字和功能，讓它變成「接受和棋」
@@ -6562,20 +6562,56 @@ void Qt_Chess::onDrawOfferReceived() {
             });
         }
         
-        // 10秒後自動拒絕（如果用戶沒有接受）
-        QTimer::singleShot(10000, this, [this]() {
-            // 檢查遊戲是否還在進行（如果已結束說明用戶接受了）
-            if (m_gameStarted) {
-                // 自動拒絕
+        // 修改「認輸」按鈕文字和功能，讓它變成「拒絕和棋」
+        if (m_resignButton) {
+            m_resignButton->setText("❌ 拒絕和棋");
+            
+            // 改變按鈕樣式為橙色（警告色）
+            QString orangeStyle = QString(
+                "QPushButton {"
+                "   background: qlineargradient(x1:0, y1:0, x2:0, y2:1, "
+                "       stop:0 %1, stop:1 %2);"
+                "   color: white;"
+                "   border: 2px solid %3;"
+                "   border-radius: 10px;"
+                "   padding: 8px;"
+                "   font-weight: bold;"
+                "   font-size: 12pt;"
+                "   min-width: 100px;"
+                "   min-height: 45px;"
+                "}"
+                "QPushButton:hover {"
+                "   background: qlineargradient(x1:0, y1:0, x2:0, y2:1, "
+                "       stop:0 %4, stop:1 %5);"
+                "}"
+                "QPushButton:pressed {"
+                "   background: %6;"
+                "}"
+            ).arg("#FF9800")  // 橙色漸層起點
+             .arg("#FFB74D")  // 橙色漸層終點
+             .arg("#FF9800")  // 邊框顏色
+             .arg("#FFB74D")  // hover 漸層起點
+             .arg("#FFCC80")  // hover 漸層終點
+             .arg("#FF9800"); // pressed 背景色
+            
+            m_resignButton->setStyleSheet(orangeStyle);
+            m_resignButton->disconnect(); // 斷開原有連接
+            
+            // 連接拒絕和棋功能
+            connect(m_resignButton, &QPushButton::clicked, this, [this]() {
+                // 拒絕和棋
                 if (m_networkManager) {
                     m_networkManager->sendDrawResponse(false);
                 }
                 
-                // 恢復按鈕原本的功能和樣式
+                // 在狀態列顯示訊息
+                if (m_connectionStatusLabel) {
+                    m_connectionStatusLabel->setText("✅ 已連接");
+                }
+                
+                // 恢復兩個按鈕原本的功能和樣式
                 if (m_requestDrawButton) {
                     m_requestDrawButton->setText("🤝 請求和棋");
-                    
-                    // 恢復原本的藍色樣式
                     m_requestDrawButton->setStyleSheet(QString(
                         "QPushButton { "
                         "  background: qlineargradient(x1:0, y1:0, x2:1, y2:0, "
@@ -6594,9 +6630,92 @@ void Qt_Chess::onDrawOfferReceived() {
                         "  background: %3; "
                         "}"
                     ).arg(THEME_BG_DARK, THEME_TEXT_PRIMARY, THEME_ACCENT_PRIMARY));
-                    
                     m_requestDrawButton->disconnect();
                     connect(m_requestDrawButton, &QPushButton::clicked, this, &Qt_Chess::onRequestDrawClicked);
+                }
+                
+                if (m_resignButton) {
+                    m_resignButton->setText("🏳 認輸");
+                    m_resignButton->setStyleSheet(QString(
+                        "QPushButton { "
+                        "  background: qlineargradient(x1:0, y1:0, x2:1, y2:0, "
+                        "    stop:0 %1, stop:0.5 rgba(255, 82, 82, 0.7), stop:1 %1); "
+                        "  color: %2; "
+                        "  border: 3px solid %3; "
+                        "  border-radius: 10px; "
+                        "  padding: 8px; "
+                        "}"
+                        "QPushButton:hover { "
+                        "  background: qlineargradient(x1:0, y1:0, x2:1, y2:0, "
+                        "    stop:0 %3, stop:0.5 rgba(255, 120, 120, 0.9), stop:1 %3); "
+                        "  border-color: #FF7878; "
+                        "}"
+                        "QPushButton:pressed { "
+                        "  background: %3; "
+                        "}"
+                    ).arg(THEME_BG_DARK, THEME_TEXT_PRIMARY, THEME_ACCENT_SECONDARY));
+                    m_resignButton->disconnect();
+                    connect(m_resignButton, &QPushButton::clicked, this, &Qt_Chess::onResignClicked);
+                }
+            });
+        }
+        
+        // 10秒後自動拒絕（如果用戶沒有接受或拒絕）
+        QTimer::singleShot(10000, this, [this]() {
+            // 檢查遊戲是否還在進行（如果已結束說明用戶接受了）
+            if (m_gameStarted) {
+                // 自動拒絕
+                if (m_networkManager) {
+                    m_networkManager->sendDrawResponse(false);
+                }
+                
+                // 恢復兩個按鈕原本的功能和樣式
+                if (m_requestDrawButton) {
+                    m_requestDrawButton->setText("🤝 請求和棋");
+                    m_requestDrawButton->setStyleSheet(QString(
+                        "QPushButton { "
+                        "  background: qlineargradient(x1:0, y1:0, x2:1, y2:0, "
+                        "    stop:0 %1, stop:0.5 rgba(0, 217, 255, 0.7), stop:1 %1); "
+                        "  color: %2; "
+                        "  border: 3px solid %3; "
+                        "  border-radius: 10px; "
+                        "  padding: 8px; "
+                        "}"
+                        "QPushButton:hover { "
+                        "  background: qlineargradient(x1:0, y1:0, x2:1, y2:0, "
+                        "    stop:0 %3, stop:0.5 rgba(100, 230, 255, 0.9), stop:1 %3); "
+                        "  border-color: #6BDBFF; "
+                        "}"
+                        "QPushButton:pressed { "
+                        "  background: %3; "
+                        "}"
+                    ).arg(THEME_BG_DARK, THEME_TEXT_PRIMARY, THEME_ACCENT_PRIMARY));
+                    m_requestDrawButton->disconnect();
+                    connect(m_requestDrawButton, &QPushButton::clicked, this, &Qt_Chess::onRequestDrawClicked);
+                }
+                
+                if (m_resignButton) {
+                    m_resignButton->setText("🏳 認輸");
+                    m_resignButton->setStyleSheet(QString(
+                        "QPushButton { "
+                        "  background: qlineargradient(x1:0, y1:0, x2:1, y2:0, "
+                        "    stop:0 %1, stop:0.5 rgba(255, 82, 82, 0.7), stop:1 %1); "
+                        "  color: %2; "
+                        "  border: 3px solid %3; "
+                        "  border-radius: 10px; "
+                        "  padding: 8px; "
+                        "}"
+                        "QPushButton:hover { "
+                        "  background: qlineargradient(x1:0, y1:0, x2:1, y2:0, "
+                        "    stop:0 %3, stop:0.5 rgba(255, 120, 120, 0.9), stop:1 %3); "
+                        "  border-color: #FF7878; "
+                        "}"
+                        "QPushButton:pressed { "
+                        "  background: %3; "
+                        "}"
+                    ).arg(THEME_BG_DARK, THEME_TEXT_PRIMARY, THEME_ACCENT_SECONDARY));
+                    m_resignButton->disconnect();
+                    connect(m_resignButton, &QPushButton::clicked, this, &Qt_Chess::onResignClicked);
                 }
                 
                 // 恢復狀態列
