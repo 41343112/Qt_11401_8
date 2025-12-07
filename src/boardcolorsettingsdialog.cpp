@@ -482,9 +482,9 @@ void BoardColorSettingsDialog::setSettings(const BoardColorSettings& settings) {
 
 BoardColorSettingsDialog::BoardColorSettings BoardColorSettingsDialog::getDefaultSettings() {
     BoardColorSettings settings;
-    // 現代科技風格 - 深色系配色
-    settings.lightSquareColor = QColor("#3D5A80");  // 科技藍灰色（淺色格）
-    settings.darkSquareColor = QColor("#1A2D42");   // 深海藍色（深色格）
+    // 現代科技風格 - 霓虹電路板主題（基於 chess.jpg）
+    settings.lightSquareColor = QColor("#2A5A6F");  // 深青藍色（淺色格）
+    settings.darkSquareColor = QColor("#0D2433");   // 深黑藍色（深色格）
     settings.scheme = ColorScheme::OceanBlue;  // 使用海洋藍作為預設
     return settings;
 }
@@ -519,9 +519,9 @@ BoardColorSettingsDialog::BoardColorSettings BoardColorSettingsDialog::getPreset
             break;
             
         case ColorScheme::OceanBlue:
-            // 現代科技風格 - 深色海洋藍
-            settings.lightSquareColor = QColor("#3D5A80");  // 科技藍灰色
-            settings.darkSquareColor = QColor("#1A2D42");   // 深海藍色
+            // 現代科技風格 - 霓虹電路板主題（基於 chess.jpg）
+            settings.lightSquareColor = QColor("#2A5A6F");  // 深青藍色
+            settings.darkSquareColor = QColor("#0D2433");   // 深黑藍色
             break;
             
         case ColorScheme::LightTheme:
@@ -609,7 +609,7 @@ void BoardColorSettingsDialog::applyModernDialogStyle() {
         "  margin-top: 12px; "
         "  padding-top: 10px; "
         "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1, "
-        "    stop:0 rgba(15, 52, 96, 0.9), stop:1 rgba(26, 26, 46, 0.9)); "
+        "    stop:0 rgba(15, 41, 64, 0.9), stop:1 rgba(10, 22, 40, 0.9)); "
         "}"
         "QGroupBox::title { "
         "  subcontrol-origin: margin; "
@@ -630,7 +630,7 @@ void BoardColorSettingsDialog::applyModernDialogStyle() {
         "QPushButton:hover { "
         "  border-color: %3; "
         "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1, "
-        "    stop:0 %5, stop:0.5 rgba(0, 217, 255, 0.3), stop:1 %1); "
+        "    stop:0 %5, stop:0.5 rgba(0, 255, 255, 0.3), stop:1 %1); "
         "}"
         "QPushButton:pressed { background: %3; color: %1; }"
         "QRadioButton { color: %6; }"

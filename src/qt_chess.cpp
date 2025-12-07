@@ -5129,9 +5129,9 @@ void Qt_Chess::playGameStartAnimation() {
         m_animationOverlay->setStyleSheet(
             "QWidget#animationOverlay { "
             "  background: qlineargradient(spread:pad, x1:0, y1:0, x2:1, y2:1, "
-            "    stop:0 rgba(26, 26, 46, 0.95), "
-            "    stop:0.5 rgba(15, 52, 96, 0.95), "
-            "    stop:1 rgba(26, 26, 46, 0.95)); "
+            "    stop:0 rgba(10, 22, 40, 0.95), "
+            "    stop:0.5 rgba(15, 41, 64, 0.95), "
+            "    stop:1 rgba(10, 22, 40, 0.95)); "
             "}"
         );
     }
