@@ -6527,7 +6527,7 @@ void Qt_Chess::onDrawOfferReceived() {
             m_networkManager->sendDrawResponse(false);
         }
         
-        QMessageBox::information(this, "和棋請求", "你拒絕了對手的和棋請求，遊戲繼續。");
+        // 拒絕時不顯示任何訊息，遊戲直接繼續
     }
 }
 
