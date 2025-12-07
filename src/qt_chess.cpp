@@ -60,16 +60,16 @@ const QString BLACK_PIECE_COLOR = "#000000"; // 黑色棋子顏色
 const QString LAST_MOVE_LIGHT_COLOR = "#7FDBDB";  // 淺色格子的高亮（科技青色）
 const QString LAST_MOVE_DARK_COLOR = "#4ECDC4";   // 深色格子的高亮（霓虹青色）
 
-// ===== 現代科技風格主題顏色 =====
-const QString THEME_BG_DARK = "#1A1A2E";           // 深色背景
-const QString THEME_BG_MEDIUM = "#16213E";         // 中等深度背景
-const QString THEME_BG_PANEL = "#0F3460";          // 面板背景
-const QString THEME_ACCENT_PRIMARY = "#00D9FF";    // 主要強調色（霓虹青色）
-const QString THEME_ACCENT_SECONDARY = "#E94560";  // 次要強調色（霓虹粉色）
-const QString THEME_ACCENT_SUCCESS = "#00FF88";    // 成功色（霓虹綠色）
-const QString THEME_ACCENT_WARNING = "#FFD93D";    // 警告色（霓虹黃色）
-const QString THEME_TEXT_PRIMARY = "#EAEAEA";      // 主要文字顏色
-const QString THEME_BORDER = "#2A4066";            // 邊框顏色
+// ===== 現代科技風格主題顏色（基於 chess.jpg 的霓虹電路板主題）=====
+const QString THEME_BG_DARK = "#0A1628";           // 深色背景（深藍黑色）
+const QString THEME_BG_MEDIUM = "#0D1F3C";         // 中等深度背景（深藍色）
+const QString THEME_BG_PANEL = "#0F2940";          // 面板背景（霓虹藍色調）
+const QString THEME_ACCENT_PRIMARY = "#00FFFF";    // 主要強調色（霓虹青色）
+const QString THEME_ACCENT_SECONDARY = "#FF9955";  // 次要強調色（霓虹橙色）
+const QString THEME_ACCENT_SUCCESS = "#00D9FF";    // 成功色（青色）
+const QString THEME_ACCENT_WARNING = "#FFB366";    // 警告色（霓虹橙黃色）
+const QString THEME_TEXT_PRIMARY = "#E8F4F8";      // 主要文字顏色（淺青白色）
+const QString THEME_BORDER = "#1A3F5C";            // 邊框顏色（深青藍色）
 
 // 視窗大小的佈局常數
 const int PANEL_SPACING = 10;          // 面板之間的間距
@@ -357,7 +357,7 @@ void Qt_Chess::setupUI() {
         "  color: %1; "
         "  padding: 8px; "
         "  background: qlineargradient(x1:0, y1:0, x2:1, y2:0, "
-        "    stop:0 transparent, stop:0.5 rgba(0, 217, 255, 0.2), stop:1 transparent); "
+        "    stop:0 transparent, stop:0.5 rgba(0, 255, 255, 0.2), stop:1 transparent); "
         "  border-bottom: 2px solid %1; "
         "}"
     ).arg(THEME_ACCENT_PRIMARY));
@@ -590,7 +590,7 @@ void Qt_Chess::setupUI() {
     m_requestDrawButton->setStyleSheet(QString(
         "QPushButton { "
         "  background: qlineargradient(x1:0, y1:0, x2:1, y2:0, "
-        "    stop:0 %1, stop:0.5 rgba(0, 217, 255, 0.7), stop:1 %1); "
+        "    stop:0 %1, stop:0.5 rgba(0, 255, 255, 0.7), stop:1 %1); "
         "  color: %2; "
         "  border: 3px solid %3; "
         "  border-radius: 10px; "
@@ -835,9 +835,9 @@ void Qt_Chess::updateSquareColor(int displayRow, int displayCol) {
     // 使用輔助函數獲取文字顏色
     QString textColor = getPieceTextColor(logicalRow, logicalCol);
     
-    // 現代科技風格 - 帶有微妙的內發光邊框效果和適當的文字顏色
+    // 現代科技風格 - 帶有微妙的霓虹青色發光邊框效果和適當的文字顏色
     m_squares[displayRow][displayCol]->setStyleSheet(
-        QString("QPushButton { background-color: %1; border: 1px solid rgba(0, 217, 255, 0.3); color: %2; }").arg(color.name(), textColor)
+        QString("QPushButton { background-color: %1; border: 1px solid rgba(0, 255, 255, 0.3); color: %2; }").arg(color.name(), textColor)
         );
 }
 
@@ -4891,17 +4891,19 @@ void Qt_Chess::saveEngineSettings() {
 }
 
 void Qt_Chess::applyModernStylesheet() {
-    // 現代科技風格全局樣式表
+    // 現代科技風格全局樣式表（基於 chess.jpg 的霓虹電路板主題）
     QString styleSheet = QString(
-        // 主視窗背景
+        // 主視窗背景 - 使用 chess.jpg 作為背景
         "QMainWindow { "
-        "  background: qlineargradient(x1:0, y1:0, x2:1, y2:1, "
-        "    stop:0 %1, stop:0.5 %2, stop:1 %1); "
+        "  background-image: url(:/resources/images/chess.jpg); "
+        "  background-position: center; "
+        "  background-repeat: no-repeat; "
+        "  background-attachment: fixed; "
         "}"
         
-        // 中央部件
+        // 中央部件 - 添加半透明深色遮罩以提高可讀性
         "QWidget#centralwidget { "
-        "  background: transparent; "
+        "  background: rgba(10, 22, 40, 0.85); "
         "}"
         
         // 選單欄
@@ -4919,11 +4921,11 @@ void Qt_Chess::applyModernStylesheet() {
         "  border-radius: 4px; "
         "}"
         "QMenuBar::item:selected { "
-        "  background: rgba(0, 217, 255, 0.3); "
+        "  background: rgba(0, 255, 255, 0.3); "
         "  color: %5; "
         "}"
         "QMenuBar::item:pressed { "
-        "  background: rgba(0, 217, 255, 0.5); "
+        "  background: rgba(255, 153, 85, 0.5); "
         "}"
         
         // 下拉選單
@@ -4940,7 +4942,7 @@ void Qt_Chess::applyModernStylesheet() {
         "}"
         "QMenu::item:selected { "
         "  background: qlineargradient(x1:0, y1:0, x2:1, y2:0, "
-        "    stop:0 rgba(0, 217, 255, 0.4), stop:1 rgba(233, 69, 96, 0.4)); "
+        "    stop:0 rgba(0, 255, 255, 0.4), stop:1 rgba(255, 153, 85, 0.4)); "
         "  color: white; "
         "}"
         "QMenu::separator { "
@@ -4958,7 +4960,7 @@ void Qt_Chess::applyModernStylesheet() {
         "  margin-top: 12px; "
         "  padding-top: 10px; "
         "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1, "
-        "    stop:0 rgba(15, 52, 96, 0.9), stop:1 rgba(26, 26, 46, 0.9)); "
+        "    stop:0 rgba(15, 41, 64, 0.9), stop:1 rgba(10, 22, 40, 0.9)); "
         "}"
         "QGroupBox::title { "
         "  subcontrol-origin: margin; "
@@ -4983,7 +4985,7 @@ void Qt_Chess::applyModernStylesheet() {
         "}"
         "QPushButton:hover { "
         "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1, "
-        "    stop:0 %3, stop:0.5 rgba(0, 217, 255, 0.3), stop:1 %1); "
+        "    stop:0 %3, stop:0.5 rgba(0, 255, 255, 0.3), stop:1 %1); "
         "  border: 2px solid %5; "
         "  color: %5; "
         "}"
@@ -4999,7 +5001,7 @@ void Qt_Chess::applyModernStylesheet() {
         "}"
         "QPushButton:checked { "
         "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1, "
-        "    stop:0 %5, stop:1 rgba(0, 217, 255, 0.6)); "
+        "    stop:0 %5, stop:1 rgba(0, 255, 255, 0.6)); "
         "  color: %1; "
         "  border: 2px solid %5; "
         "}"
@@ -5050,18 +5052,18 @@ void Qt_Chess::applyModernStylesheet() {
         "}"
         "QListWidget::item:selected { "
         "  background: qlineargradient(x1:0, y1:0, x2:1, y2:0, "
-        "    stop:0 rgba(0, 217, 255, 0.5), stop:1 rgba(233, 69, 96, 0.3)); "
+        "    stop:0 rgba(0, 255, 255, 0.5), stop:1 rgba(255, 153, 85, 0.3)); "
         "  color: white; "
         "}"
         "QListWidget::item:hover { "
-        "  background: rgba(0, 217, 255, 0.2); "
+        "  background: rgba(0, 255, 255, 0.2); "
         "}"
         
         // 進度條
         "QProgressBar { "
         "  border: 2px solid %6; "
         "  border-radius: 6px; "
-        "  background-color: rgba(26, 26, 46, 0.9); "
+        "  background-color: rgba(10, 22, 40, 0.9); "
         "  text-align: center; "
         "  color: %4; "
         "}"
