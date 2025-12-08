@@ -991,12 +991,12 @@ void Qt_Chess::highlightValidMoves() {
 
     if (!m_pieceSelected) return;
 
-    // 高亮選中的格子（m_selectedSquare 是邏輯坐標）- 現代科技風格霓虹綠
+    // 高亮選中的格子（m_selectedSquare 是邏輯坐標）- 現代科技風格霓虹綠（不透明）
     int displayRow = getDisplayRow(m_selectedSquare.y());
     int displayCol = getDisplayCol(m_selectedSquare.x());
     QString selectedTextColor = getPieceTextColor(m_selectedSquare.y(), m_selectedSquare.x());
     m_squares[displayRow][displayCol]->setStyleSheet(
-        QString("QPushButton { background-color: rgba(0, 255, 136, 0.6); border: 3px solid %1; color: %2; }").arg(THEME_ACCENT_SUCCESS, selectedTextColor)
+        QString("QPushButton { background-color: rgba(0, 255, 136, 1.0); border: 3px solid %1; color: %2; }").arg(THEME_ACCENT_SUCCESS, selectedTextColor)
         );
 
     // 高亮有效的移動
@@ -1012,14 +1012,14 @@ void Qt_Chess::highlightValidMoves() {
                 QString textColor = getPieceTextColor(logicalRow, logicalCol);
 
                 if (isCapture) {
-                    // 將吃子移動高亮為霓虹紅/粉色
-                    QString color = isLight ? "rgba(255, 100, 120, 0.7)" : "rgba(233, 69, 96, 0.8)";
+                    // 將吃子移動高亮為霓虹紅/粉色（不透明）
+                    QString color = isLight ? "rgba(255, 100, 120, 1.0)" : "rgba(233, 69, 96, 1.0)";
                     m_squares[displayRow][displayCol]->setStyleSheet(
                         QString("QPushButton { background-color: %1; border: 3px solid %2; color: %3; }").arg(color, THEME_ACCENT_SECONDARY, textColor)
                         );
                 } else {
-                    // 將非吃子移動高亮為霓虹黃色
-                    QString color = isLight ? "rgba(255, 217, 61, 0.5)" : "rgba(255, 217, 61, 0.7)";
+                    // 將非吃子移動高亮為霓虹黃色（不透明）
+                    QString color = isLight ? "rgba(255, 217, 61, 1.0)" : "rgba(255, 217, 61, 1.0)";
                     m_squares[displayRow][displayCol]->setStyleSheet(
                         QString("QPushButton { background-color: %1; border: 3px solid %2; color: %3; }").arg(color, THEME_ACCENT_WARNING, textColor)
                         );
