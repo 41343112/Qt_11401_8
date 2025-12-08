@@ -151,7 +151,7 @@ static int getPanelWidth(QWidget* panel) {
 }
 
 Qt_Chess::Qt_Chess(QWidget *parent)
-    : QMainWindow(parent)
+    : QMainWindow(parent){}
 
 Qt_Chess::~Qt_Chess()
 {
