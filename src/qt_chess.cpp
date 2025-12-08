@@ -7280,7 +7280,7 @@ void Qt_Chess::resetGameState() {
     m_timerStarted = false;
     
     // 重置棋盤
-    m_chessBoard.resetBoard();
+    m_chessBoard.initializeBoard();
     
     // 清除移動歷史顯示
     if (m_moveListWidget) {
