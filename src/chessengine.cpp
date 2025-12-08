@@ -11,7 +11,7 @@ ChessEngine::ChessEngine(QObject *parent)
     , m_gameMode(GameMode::HumanVsHuman)
     , m_skillLevel(0)  // 預設初學者難度
     , m_thinkingTimeMs(50)  // 預設 50ms 思考時間
-    , m_searchDepth(0)  // 預設搜尋深度 1
+    , m_searchDepth(1)  // 預設搜尋深度 1
     , m_isReady(false)
     , m_isThinking(false)
 {

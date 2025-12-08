@@ -77,6 +77,13 @@ private slots:
     void onCheckForUpdatesClicked();
     void onUpdateCheckFinished(bool updateAvailable);
     void onUpdateCheckFailed(const QString& error);
+    
+    // 主選單按鈕點擊
+    void onMainMenuLocalPlayClicked();
+    void onMainMenuComputerPlayClicked();
+    void onMainMenuOnlinePlayClicked();
+    void onMainMenuSettingsClicked();
+    void onBackToMainMenuClicked();
 
 private:
     Ui::Qt_Chess *ui;
@@ -395,5 +402,19 @@ private:
     // 更新檢查器
     UpdateChecker* m_updateChecker;      // 更新檢查器
     bool m_manualUpdateCheck;            // 是否為手動檢查更新
+    
+    // 主選單
+    QWidget* m_mainMenuWidget;           // 主選單容器
+    QPushButton* m_mainMenuLocalPlayButton;    // 本地遊玩按鈕
+    QPushButton* m_mainMenuComputerPlayButton; // 與電腦對戰按鈕
+    QPushButton* m_mainMenuOnlinePlayButton;   // 線上遊玩按鈕
+    QPushButton* m_mainMenuSettingsButton;     // 設定按鈕
+    QWidget* m_gameContentWidget;        // 遊戲內容容器
+    QPushButton* m_backToMenuButton;     // 返回主選單按鈕
+    
+    void setupMainMenu();                // 設置主選單 UI
+    void showMainMenu();                 // 顯示主選單
+    void showGameContent();              // 顯示遊戲內容
+    void resetGameState();               // 重置遊戲狀態
 };
 #endif // QT_CHESS_H
