@@ -7296,8 +7296,8 @@ void Qt_Chess::resetGameState() {
     }
     
     // 如果有網路連接，斷開連接
-    if (m_networkManager && m_networkManager->isConnected()) {
-        m_networkManager->disconnectFromServer();
+    if (m_networkManager && m_networkManager->getStatus() == ConnectionStatus::Connected) {
+        m_networkManager->closeConnection();
     }
     
     // 更新顯示
@@ -7309,7 +7309,7 @@ void Qt_Chess::resetGameState() {
 void Qt_Chess::onBackToMainMenuClicked() {
     // 返回主選單
     // 如果有進行中的遊戲，詢問是否確定要退出
-    if (m_gameStarted && !m_chessBoard.isGameOver()) {
+    if (m_gameStarted && m_chessBoard.getGameResult() == GameResult::InProgress) {
         QMessageBox::StandardButton reply = QMessageBox::question(
             this, 
             "返回主選單", 
