@@ -3413,10 +3413,15 @@ void Qt_Chess::applyIncrement() {
     PieceColor playerWhoMoved = (m_chessBoard.getCurrentPlayer() == PieceColor::White)
                                     ? PieceColor::Black : PieceColor::White;
 
+    // 只有當玩家有時間限制時才添加增量（無限制時間的玩家不需要增量）
     if (playerWhoMoved == PieceColor::White) {
-        m_whiteTimeMs += m_incrementMs;
+        if (m_whiteInitialTimeMs > 0) {  // 檢查是否為無限制（0 = 無限制）
+            m_whiteTimeMs += m_incrementMs;
+        }
     } else {
-        m_blackTimeMs += m_incrementMs;
+        if (m_blackInitialTimeMs > 0) {  // 檢查是否為無限制（0 = 無限制）
+            m_blackTimeMs += m_incrementMs;
+        }
     }
     
     // 在線上模式中，重置回合計時器，因為現在輪到新玩家了
