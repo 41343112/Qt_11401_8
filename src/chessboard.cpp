@@ -1,8 +1,21 @@
 #include "chessboard.h"
 
 ChessBoard::ChessBoard()
-    : m_board(8, std::vector<ChessPiece>(8)), m_currentPlayer(PieceColor::White), m_enPassantTarget(-1, -1), m_gameResult(GameResult::InProgress)
+    : m_board(8, std::vector<ChessPiece>(8)), 
+      m_currentPlayer(PieceColor::White), 
+      m_enPassantTarget(-1, -1), 
+      m_gameResult(GameResult::InProgress),
+      m_terrain(8, std::vector<TerrainType>(8, TerrainType::None)),
+      m_terrainRevealed(8, std::vector<bool>(8, false)),
+      m_adjacentMines(8, std::vector<int>(8, 0)),
+      m_pieceShields(8, std::vector<bool>(8, false)),
+      m_whiteExtraMove(false),
+      m_blackExtraMove(false)
 {
+    // 初始化遊戲變體為全部停用
+    for (int i = 0; i < 6; ++i) {
+        m_gameVariants[i] = false;
+    }
     initializeBoard();
 }
 
@@ -47,6 +60,9 @@ void ChessBoard::initializeBoard() {
     m_moveHistory.clear();
     m_gameResult = GameResult::InProgress;
     clearCapturedPieces();
+    clearAllTerrain();
+    m_whiteExtraMove = false;
+    m_blackExtraMove = false;
 }
 
 const ChessPiece& ChessBoard::getPiece(int row, int col) const {
