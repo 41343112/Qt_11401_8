@@ -769,6 +769,9 @@ void Qt_Chess::setupUI() {
 
     // 將右側時間面板添加到內容佈局
     m_contentLayout->addWidget(m_rightTimePanel, 0);
+    
+    // 初始隱藏右側時間面板（遊戲開始前不需要顯示）
+    m_rightTimePanel->hide();
 
     // 添加右側伸展以保持棋盤居中並吸收多餘空間
     m_rightStretchIndex = m_contentLayout->count();  // 記錄伸展項的索引
@@ -7202,6 +7205,11 @@ void Qt_Chess::resetGameState() {
     }
     if (m_copyPGNButton) {
         m_copyPGNButton->hide();
+    }
+    
+    // 隱藏右側時間面板
+    if (m_rightTimePanel) {
+        m_rightTimePanel->hide();
     }
     
     // 如果有網路連接，斷開連接
