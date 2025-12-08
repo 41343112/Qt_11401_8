@@ -5512,10 +5512,7 @@ void Qt_Chess::initializeNetwork() {
 }
 
 void Qt_Chess::onOnlineModeClicked() {
-    if (!m_onlineModeButton->isChecked()) {
-        m_onlineModeButton->setChecked(true);
-        return;
-    }
+    // 模式選擇按鈕已移除，不再需要檢查按鈕狀態
     
     // 如果已在線上模式，先關閉連線
     if (m_isOnlineGame) {
@@ -5524,9 +5521,7 @@ void Qt_Chess::onOnlineModeClicked() {
         m_waitingForOpponent = false;
     }
     
-    // 取消其他模式
-    m_humanModeButton->setChecked(false);
-    m_computerModeButton->setChecked(false);
+    // 模式選擇按鈕已移除，不需要取消其他模式
     
     // 隱藏電腦模式相關UI（但保留顏色選擇widget用於線上模式）
     m_difficultyLabel->hide();
@@ -5592,8 +5587,7 @@ void Qt_Chess::onOnlineModeClicked() {
                 // 不要立即開始遊戲，等待對手加入
             } else {
                 QMessageBox::warning(this, "創建房間失敗", "無法創建房間，請稍後再試");
-                m_onlineModeButton->setChecked(false);
-                m_humanModeButton->setChecked(true);
+                // 模式選擇按鈕已移除，不需要設置按鈕狀態
             }
         } else if (mode == OnlineDialog::Mode::JoinRoom) {
             // 加入房間
@@ -5601,8 +5595,7 @@ void Qt_Chess::onOnlineModeClicked() {
             
             if (roomNumber.isEmpty()) {
                 QMessageBox::warning(this, "輸入錯誤", "請輸入有效的房間號碼");
-                m_onlineModeButton->setChecked(false);
-                m_humanModeButton->setChecked(true);
+                // 模式選擇按鈕已移除，不需要設置按鈕狀態
                 return;
             }
             
@@ -5655,14 +5648,11 @@ void Qt_Chess::onOnlineModeClicked() {
                 }
             } else {
                 QMessageBox::warning(this, "加入失敗", "無法加入房間");
-                m_onlineModeButton->setChecked(false);
-                m_humanModeButton->setChecked(true);
+                // 模式選擇按鈕已移除，不需要設置按鈕狀態
             }
         }
     } else {
-        // 用戶取消，返回雙人模式
-        m_onlineModeButton->setChecked(false);
-        m_humanModeButton->setChecked(true);
+        // 用戶取消，不需要設置按鈕狀態（按鈕已移除）
     }
 }
 
@@ -5732,9 +5722,7 @@ void Qt_Chess::onNetworkError(const QString& error) {
     if (m_blackTimeLimitSlider) m_blackTimeLimitSlider->setEnabled(true);
     if (m_incrementSlider) m_incrementSlider->setEnabled(true);
     
-    // 返回雙人模式
-    m_onlineModeButton->setChecked(false);
-    m_humanModeButton->setChecked(true);
+    // 返回雙人模式（模式選擇按鈕已移除）
     m_currentGameMode = GameMode::HumanVsHuman;
     m_connectionStatusLabel->hide();
     m_roomInfoLabel->hide();
@@ -6052,13 +6040,9 @@ void Qt_Chess::onOpponentDisconnected() {
     if (m_blackTimeLimitSlider) m_blackTimeLimitSlider->setEnabled(true);
     if (m_incrementSlider) m_incrementSlider->setEnabled(true);
     
-    // 恢復模式選擇按鈕
-    if (m_humanModeButton) m_humanModeButton->setEnabled(true);
-    if (m_computerModeButton) m_computerModeButton->setEnabled(true);
+    // 模式選擇按鈕已移除，不需要恢復按鈕
     
     // 返回雙人模式
-    m_onlineModeButton->setChecked(false);
-    m_humanModeButton->setChecked(true);
     m_currentGameMode = GameMode::HumanVsHuman;
     m_connectionStatusLabel->hide();
     m_roomInfoLabel->hide();
@@ -6116,9 +6100,7 @@ void Qt_Chess::onCancelRoomClicked() {
         if (m_blackTimeLimitSlider) m_blackTimeLimitSlider->setEnabled(true);
         if (m_incrementSlider) m_incrementSlider->setEnabled(true);
         
-        // 恢復模式選擇按鈕
-        if (m_humanModeButton) m_humanModeButton->setEnabled(true);
-        if (m_computerModeButton) m_computerModeButton->setEnabled(true);
+        // 模式選擇按鈕已移除，不需要恢復按鈕
         
         // 隱藏顏色選擇widget
         if (m_colorSelectionWidget) {
@@ -6126,8 +6108,6 @@ void Qt_Chess::onCancelRoomClicked() {
         }
         
         // 返回雙人模式
-        m_onlineModeButton->setChecked(false);
-        m_humanModeButton->setChecked(true);
         m_currentGameMode = GameMode::HumanVsHuman;
         m_connectionStatusLabel->hide();
         m_roomInfoLabel->hide();
@@ -6209,9 +6189,7 @@ void Qt_Chess::onExitRoomClicked() {
             m_colorSelectionWidget->hide();
         }
         
-        // 返回雙人模式
-        if (m_onlineModeButton) m_onlineModeButton->setChecked(false);
-        if (m_humanModeButton) m_humanModeButton->setChecked(true);
+        // 返回雙人模式（模式選擇按鈕已移除）
         m_currentGameMode = GameMode::HumanVsHuman;
         
         // 關閉網路連線（在重置遊戲狀態之前關閉，確保訊息處理完成）
