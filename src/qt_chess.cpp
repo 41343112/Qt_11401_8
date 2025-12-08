@@ -151,7 +151,176 @@ static int getPanelWidth(QWidget* panel) {
 }
 
 Qt_Chess::Qt_Chess(QWidget *parent)
-    : QMainWindow(parent){}
+    : QMainWindow(parent)
+    , ui(new Ui::Qt_Chess)
+    , m_selectedSquare(-1, -1)
+    , m_pieceSelected(false)
+    , m_isDragging(false)
+    , m_dragStartSquare(-1, -1)
+    , m_dragLabel(nullptr)
+    , m_wasSelectedBeforeDrag(false)
+    , m_resignButton(nullptr)
+    , m_requestDrawButton(nullptr)
+    , m_exitButton(nullptr)
+    , m_boardButtonPanel(nullptr)
+    , m_boardWidget(nullptr)
+    , m_menuBar(nullptr)
+    , m_gameStarted(false)
+    , m_isBoardFlipped(false)
+    , m_lastMoveFrom(-1, -1)
+    , m_lastMoveTo(-1, -1)
+    , m_whiteTimeLimitSlider(nullptr)
+    , m_whiteTimeLimitLabel(nullptr)
+    , m_whiteTimeLimitTitleLabel(nullptr)
+    , m_blackTimeLimitSlider(nullptr)
+    , m_blackTimeLimitLabel(nullptr)
+    , m_blackTimeLimitTitleLabel(nullptr)
+    , m_incrementSlider(nullptr)
+    , m_incrementLabel(nullptr)
+    , m_incrementTitleLabel(nullptr)
+    , m_whiteTimeLabel(nullptr)
+    , m_blackTimeLabel(nullptr)
+    , m_whiteTimeProgressBar(nullptr)
+    , m_blackTimeProgressBar(nullptr)
+    , m_startButton(nullptr)
+    , m_gameTimer(nullptr)
+    , m_whiteTimeMs(0)
+    , m_blackTimeMs(0)
+    , m_whiteInitialTimeMs(0)
+    , m_blackInitialTimeMs(0)
+    , m_incrementMs(0)
+    , m_timeControlEnabled(false)
+    , m_timerStarted(false)
+    , m_serverTimeOffset(0)
+    , m_gameStartLocalTime(0)
+    , m_currentTurnStartTime(0)
+    , m_serverTimeA(0)
+    , m_serverTimeB(0)
+    , m_serverCurrentPlayer("White")
+    , m_serverLastSwitchTime(0)
+    , m_useServerTimer(false)
+    , m_lastServerUpdateTime(0)
+    , m_boardContainer(nullptr)
+    , m_timeControlPanel(nullptr)
+    , m_contentLayout(nullptr)
+    , m_rightStretchIndex(-1)
+    , m_moveListWidget(nullptr)
+    , m_exportPGNButton(nullptr)
+    , m_copyPGNButton(nullptr)
+    , m_moveListPanel(nullptr)
+    , m_capturedWhitePanel(nullptr)
+    , m_capturedBlackPanel(nullptr)
+    , m_whiteScoreDiffLabel(nullptr)
+    , m_blackScoreDiffLabel(nullptr)
+    , m_rightTimePanel(nullptr)
+    , m_topEndGamePanel(nullptr)
+    , m_bottomEndGamePanel(nullptr)
+    , m_replayTitle(nullptr)
+    , m_replayFirstButton(nullptr)
+    , m_replayPrevButton(nullptr)
+    , m_replayNextButton(nullptr)
+    , m_replayLastButton(nullptr)
+    , m_isReplayMode(false)
+    , m_replayMoveIndex(-1)
+    , m_savedCurrentPlayer(PieceColor::White)
+    , m_chessEngine(nullptr)
+    , m_humanModeButton(nullptr)
+    , m_computerModeButton(nullptr)
+    , m_gameModeStatusLabel(nullptr)
+    , m_currentGameMode(GameMode::HumanVsHuman)
+    , m_colorSelectionWidget(nullptr)
+    , m_whiteButton(nullptr)
+    , m_randomButton(nullptr)
+    , m_blackButton(nullptr)
+    , m_isRandomColorSelected(false)
+    , m_difficultySlider(nullptr)
+    , m_difficultyLabel(nullptr)
+    , m_difficultyValueLabel(nullptr)
+    , m_thinkingLabel(nullptr)
+    , m_networkManager(nullptr)
+    , m_onlineModeButton(nullptr)
+    , m_connectionStatusLabel(nullptr)
+    , m_roomInfoLabel(nullptr)
+    , m_isOnlineGame(false)
+    , m_waitingForOpponent(false)
+    , m_onlineHostSelectedColor(PieceColor::White)
+    , m_bgmPlayer(nullptr)
+    , m_bgmEnabled(true)
+    , m_bgmVolume(30)
+    , m_lastBgmIndex(-1)
+    , m_animationOverlay(nullptr)
+    , m_animationLabel(nullptr)
+    , m_animationSubLabel(nullptr)
+    , m_animationTimer(nullptr)
+    , m_animationStep(0)
+    , m_pendingGameStart(false)
+    , m_startupAnimationTimer(nullptr)
+    , m_startupAnimationStep(0)
+    , m_fadeAnimation(nullptr)
+    , m_scaleAnimation(nullptr)
+    , m_opacityEffect(nullptr)
+    , m_updateChecker(nullptr)
+    , m_manualUpdateCheck(false)
+    , m_mainMenuWidget(nullptr)
+    , m_mainMenuLocalPlayButton(nullptr)
+    , m_mainMenuComputerPlayButton(nullptr)
+    , m_mainMenuOnlinePlayButton(nullptr)
+    , m_mainMenuSettingsButton(nullptr)
+    , m_gameContentWidget(nullptr)
+    , m_backToMenuButton(nullptr)
+{
+    ui->setupUi(this);
+    setWindowTitle("♔ 國際象棋 - 科技對弈 ♚");
+    resize(900, 660);  // 增加寬度以容納時間控制面板
+
+    // 設置最小視窗大小以確保所有內容都能完整顯示而不被裁切
+    // 最小寬度：允許棋盤至少 8*MIN_SQUARE_SIZE 加上面板和邊距
+    // 最小高度：允許棋盤和控制項合理顯示，同時確保主選單完整顯示
+    setMinimumSize(814, 480);  // 增加最小高度以容納主選單
+
+    setMouseTracking(true);
+    
+    // 應用現代科技風格全局樣式表
+    applyModernStylesheet();
+
+    loadSoundSettings();
+    initializeSounds();
+    initializeBackgroundMusic();  // 初始化背景音樂
+    loadPieceIconSettings();
+    loadBoardColorSettings();
+    loadBoardFlipSettings();
+    loadPieceIconsToCache(); // 載入設定後將圖示載入快取
+    // setupMenuBar();  // 已移除選單欄功能
+    setupUI();
+    setupMainMenu();  // 在 setupUI() 之後設置主選單
+    loadTimeControlSettings();  // 在 setupUI() 之後載入以確保元件存在
+    loadEngineSettings();  // 載入引擎設定
+    initializeEngine();  // 初始化棋局引擎
+    initializeNetwork(); // 初始化網路管理器
+    updateBoard();
+    updateStatus();
+    updateTimeDisplays();
+    updateReplayButtons();  // 設置回放按鈕初始狀態
+    updateCapturedPiecesDisplay();  // 初始化被吃掉棋子顯示
+    
+    // 初始隱藏遊戲內容，顯示主選單
+    showMainMenu();
+    
+    // 初始化更新檢查器
+    m_updateChecker = new UpdateChecker(this);
+    connect(m_updateChecker, &UpdateChecker::updateCheckFinished, 
+            this, &Qt_Chess::onUpdateCheckFinished);
+    connect(m_updateChecker, &UpdateChecker::updateCheckFailed, 
+            this, &Qt_Chess::onUpdateCheckFailed);
+    
+    // 啟動後自動檢查更新（延遲以免干擾啟動動畫）
+    QTimer::singleShot(UPDATE_CHECK_DELAY_MS, this, [this]() {
+        m_updateChecker->checkForUpdates();
+    });
+    
+    // 在視窗顯示後播放啟動動畫
+    QTimer::singleShot(100, this, &Qt_Chess::playStartupAnimation);
+}
 
 Qt_Chess::~Qt_Chess()
 {
