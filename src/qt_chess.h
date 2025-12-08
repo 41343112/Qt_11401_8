@@ -86,12 +86,32 @@ private slots:
     void onBackToMainMenuClicked();
 
 private:
+    // ========================================
+    // 核心遊戲狀態 (Core Game State)
+    // ========================================
     Ui::Qt_Chess *ui;
     ChessBoard m_chessBoard;
-    std::vector<std::vector<QPushButton*>> m_squares;
-    QMap<QPushButton*, QPoint> m_buttonCoordinates; // 用於高效的按鈕到坐標查找
+    GameMode m_currentGameMode;          // 當前遊戲模式
+    bool m_gameStarted;                  // 追蹤遊戲是否已開始
     QPoint m_selectedSquare;
     bool m_pieceSelected;
+    QPoint m_lastMoveFrom;               // 上一步移動的高亮
+    QPoint m_lastMoveTo;
+    
+    // ========================================
+    // UI 元件 - 基礎佈局 (UI Components - Basic Layout)
+    // ========================================
+    QWidget* m_boardWidget;
+    QWidget* m_boardContainer;           // 帶有疊加時間顯示的棋盤容器
+    QHBoxLayout* m_contentLayout;        // 主內容佈局，用於調整伸展因子
+    int m_rightStretchIndex;             // 右側伸展項的索引
+    QMenuBar* m_menuBar;
+    
+    // ========================================
+    // UI 元件 - 棋盤 (UI Components - Chess Board)
+    // ========================================
+    std::vector<std::vector<QPushButton*>> m_squares;
+    QMap<QPushButton*, QPoint> m_buttonCoordinates; // 用於高效的按鈕到坐標查找
     
     // 拖放狀態
     bool m_isDragging;
@@ -99,24 +119,121 @@ private:
     QLabel* m_dragLabel;
     bool m_wasSelectedBeforeDrag;
     
+    // ========================================
+    // UI 元件 - 遊戲控制按鈕 (UI Components - Game Control Buttons)
+    // ========================================
     QPushButton* m_newGameButton;
-    QPushButton* m_resignButton;      // 認輸按鈕
-    QPushButton* m_requestDrawButton; // 請求和棋按鈕
-    QPushButton* m_exitButton;        // 退出按鈕（本地遊戲）
-    QWidget* m_boardButtonPanel;      // 棋盤下方按鈕面板
-    QWidget* m_boardWidget;
-    QMenuBar* m_menuBar;
-    bool m_gameStarted;  // 追蹤遊戲是否已開始
+    QPushButton* m_resignButton;         // 認輸按鈕
+    QPushButton* m_requestDrawButton;    // 請求和棋按鈕
+    QPushButton* m_exitButton;           // 退出按鈕（本地遊戲）
+    QWidget* m_boardButtonPanel;         // 棋盤下方按鈕面板
+    QPushButton* m_startButton;
     
-    // 音效
-    QSoundEffect m_moveSound;
-    QSoundEffect m_captureSound;
-    QSoundEffect m_castlingSound;
-    QSoundEffect m_checkSound;
-    QSoundEffect m_checkmateSound;
-    SoundSettingsDialog::SoundSettings m_soundSettings;
+    // ========================================
+    // UI 元件 - 主選單 (UI Components - Main Menu)
+    // ========================================
+    QWidget* m_mainMenuWidget;           // 主選單容器
+    QPushButton* m_mainMenuLocalPlayButton;    // 本地遊玩按鈕
+    QPushButton* m_mainMenuComputerPlayButton; // 與電腦對戰按鈕
+    QPushButton* m_mainMenuOnlinePlayButton;   // 線上遊玩按鈕
+    QPushButton* m_mainMenuSettingsButton;     // 設定按鈕
+    QWidget* m_gameContentWidget;        // 遊戲內容容器
+    QPushButton* m_backToMenuButton;     // 返回主選單按鈕
     
-    // 線上對戰
+    // ========================================
+    // 時間控制系統 (Time Control System)
+    // ========================================
+    QWidget* m_timeControlPanel;         // 時間控制設定面板
+    QSlider* m_whiteTimeLimitSlider;     // 白方時間的獨立滑桿
+    QLabel* m_whiteTimeLimitLabel;
+    QLabel* m_whiteTimeLimitTitleLabel;  // 白方時間的標題標籤
+    QSlider* m_blackTimeLimitSlider;     // 黑方時間的獨立滑桿
+    QLabel* m_blackTimeLimitLabel;
+    QLabel* m_blackTimeLimitTitleLabel;  // 黑方時間的標題標籤
+    QSlider* m_incrementSlider;
+    QLabel* m_incrementLabel;
+    QLabel* m_incrementTitleLabel;       // 增量的標題標籤
+    QLabel* m_whiteTimeLabel;
+    QLabel* m_blackTimeLabel;
+    QProgressBar* m_whiteTimeProgressBar;  // 白方時間進度條
+    QProgressBar* m_blackTimeProgressBar;  // 黑方時間進度條
+    QTimer* m_gameTimer;
+    int m_whiteTimeMs;                   // 白方剩餘時間（毫秒）
+    int m_blackTimeMs;                   // 黑方剩餘時間（毫秒）
+    int m_whiteInitialTimeMs;            // 白方初始時間（毫秒），用於進度條計算
+    int m_blackInitialTimeMs;            // 黑方初始時間（毫秒），用於進度條計算
+    int m_incrementMs;                   // 每步的增量（毫秒）
+    bool m_timeControlEnabled;
+    bool m_timerStarted;                 // 追蹤計時器是否已手動啟動
+    qint64 m_serverTimeOffset;           // 伺服器時間偏移（ms）：serverTime - localTime
+    qint64 m_gameStartLocalTime;         // 遊戲開始時的本地時間戳（ms）
+    qint64 m_currentTurnStartTime;       // 當前回合開始的時間戳（ms）
+    
+    // 伺服器控制的計時器狀態
+    qint64 m_serverTimeA;                // 玩家 A (房主) 剩餘時間（毫秒）
+    qint64 m_serverTimeB;                // 玩家 B (房客) 剩餘時間（毫秒）
+    QString m_serverCurrentPlayer;       // 伺服器端當前玩家 ("White" or "Black")
+    qint64 m_serverLastSwitchTime;       // 伺服器最後切換時間（UNIX 秒數）
+    bool m_useServerTimer;               // 是否使用伺服器控制的計時器
+    qint64 m_lastServerUpdateTime;       // 最後一次收到伺服器更新的本地時間（毫秒）
+    
+    // 遊戲結束時的上下方面板
+    QWidget* m_topEndGamePanel;          // 遊戲結束時對方的時間和吃子紀錄（棋盤上方）
+    QWidget* m_bottomEndGamePanel;       // 遊戲結束時我方的時間和吃子紀錄（棋盤下方）
+    
+    // ========================================
+    // 棋譜系統 (Move History System)
+    // ========================================
+    QListWidget* m_moveListWidget;
+    QPushButton* m_exportPGNButton;
+    QPushButton* m_copyPGNButton;
+    QWidget* m_moveListPanel;
+    
+    // ========================================
+    // 被吃棋子顯示系統 (Captured Pieces Display System)
+    // ========================================
+    QWidget* m_capturedWhitePanel;
+    QWidget* m_capturedBlackPanel;
+    QList<QLabel*> m_capturedWhiteLabels;
+    QList<QLabel*> m_capturedBlackLabels;
+    QLabel* m_whiteScoreDiffLabel;       // 白方分差標籤
+    QLabel* m_blackScoreDiffLabel;       // 黑方分差標籤
+    QWidget* m_rightTimePanel;           // 右側時間和被吃棋子的容器
+    
+    // ========================================
+    // 回放系統 (Replay System)
+    // ========================================
+    QLabel* m_replayTitle;
+    QPushButton* m_replayFirstButton;
+    QPushButton* m_replayPrevButton;
+    QPushButton* m_replayNextButton;
+    QPushButton* m_replayLastButton;
+    bool m_isReplayMode;
+    int m_replayMoveIndex;               // 當前回放的棋步索引（-1 表示初始狀態）
+    std::vector<std::vector<ChessPiece>> m_savedBoardState;  // 儲存進入回放前的棋盤狀態
+    PieceColor m_savedCurrentPlayer;     // 儲存進入回放前的當前玩家
+    
+    // ========================================
+    // 電腦對弈系統 (Computer Chess Engine System)
+    // ========================================
+    ChessEngine* m_chessEngine;
+    QPushButton* m_humanModeButton;      // 雙人對弈按鈕
+    QPushButton* m_computerModeButton;   // 電腦對弈按鈕
+    QLabel* m_gameModeStatusLabel;       // 顯示電腦模式時的執白/執黑狀態
+    QWidget* m_colorSelectionWidget;     // 選邊按鈕容器
+    QPushButton* m_whiteButton;          // 執白按鈕
+    QPushButton* m_randomButton;         // 隨機按鈕
+    QPushButton* m_blackButton;          // 執黑按鈕
+    bool m_isRandomColorSelected;        // 是否選擇隨機顏色
+    QSlider* m_difficultySlider;
+    QLabel* m_difficultyLabel;
+    QLabel* m_difficultyValueLabel;
+    QLabel* m_thinkingLabel;             // 顯示「電腦思考中...」
+    QStringList m_uciMoveHistory;        // UCI 格式的移動歷史
+    
+    // ========================================
+    // 線上對戰系統 (Online Game System)
+    // ========================================
     NetworkManager* m_networkManager;    // 網路管理器
     QPushButton* m_onlineModeButton;     // 線上對戰按鈕
     QPushButton* m_exitRoomButton;       // 退出房間按鈕
@@ -126,14 +243,44 @@ private:
     bool m_waitingForOpponent;           // 等待對手
     PieceColor m_onlineHostSelectedColor;  // 房主選擇的顏色（線上模式）
     
+    // ========================================
+    // 音效系統 (Sound System)
+    // ========================================
+    QSoundEffect m_moveSound;
+    QSoundEffect m_captureSound;
+    QSoundEffect m_castlingSound;
+    QSoundEffect m_checkSound;
+    QSoundEffect m_checkmateSound;
+    SoundSettingsDialog::SoundSettings m_soundSettings;
+    
     // 背景音樂
     QMediaPlayer* m_bgmPlayer;
-    QAudioOutput* m_audioOutput;  // Qt6: 音量控制, Qt5: nullptr (音量控制不可用)
+    QAudioOutput* m_audioOutput;         // Qt6: 音量控制, Qt5: nullptr
     bool m_bgmEnabled;
-    int m_bgmVolume;  // 0-100
-    QStringList m_bgmList;  // 背景音樂列表
-    int m_lastBgmIndex;     // 上一次播放的音樂索引，避免重複
+    int m_bgmVolume;                     // 0-100
+    QStringList m_bgmList;               // 背景音樂列表
+    int m_lastBgmIndex;                  // 上一次播放的音樂索引，避免重複
     
+    // ========================================
+    // 動畫系統 (Animation System)
+    // ========================================
+    QWidget* m_animationOverlay;         // 動畫疊加層
+    QLabel* m_animationLabel;            // 動畫文字標籤
+    QLabel* m_animationSubLabel;         // 動畫副標籤（用於多行動畫）
+    QTimer* m_animationTimer;            // 動畫計時器
+    int m_animationStep;                 // 動畫當前步驟
+    bool m_pendingGameStart;             // 是否有待處理的遊戲開始
+    
+    // 啟動動畫
+    QTimer* m_startupAnimationTimer;     // 啟動動畫計時器
+    int m_startupAnimationStep;          // 啟動動畫當前步驟
+    QPropertyAnimation* m_fadeAnimation; // 淡入淡出動畫
+    QPropertyAnimation* m_scaleAnimation; // 縮放動畫
+    QGraphicsOpacityEffect* m_opacityEffect; // 透明度效果
+    
+    // ========================================
+    // 設定系統 (Settings System)
+    // ========================================
     // 棋子圖示設定
     PieceIconSettingsDialog::PieceIconSettings m_pieceIconSettings;
     QMap<QString, QPixmap> m_pieceIconCache; // 已載入棋子圖示的快取
@@ -144,138 +291,63 @@ private:
     // 棋盤翻轉狀態
     bool m_isBoardFlipped;
     
-    // 上一步移動的高亮
-    QPoint m_lastMoveFrom;
-    QPoint m_lastMoveTo;
+    // ========================================
+    // 更新檢查系統 (Update Checker System)
+    // ========================================
+    UpdateChecker* m_updateChecker;      // 更新檢查器
+    bool m_manualUpdateCheck;            // 是否為手動檢查更新
     
-    // 時間控制
-    QSlider* m_whiteTimeLimitSlider;  // 白方時間的獨立滑桿
-    QLabel* m_whiteTimeLimitLabel;
-    QLabel* m_whiteTimeLimitTitleLabel;  // 白方時間的標題標籤
-    QSlider* m_blackTimeLimitSlider;  // 黑方時間的獨立滑桿
-    QLabel* m_blackTimeLimitLabel;
-    QLabel* m_blackTimeLimitTitleLabel;  // 黑方時間的標題標籤
-    QSlider* m_incrementSlider;
-    QLabel* m_incrementLabel;
-    QLabel* m_incrementTitleLabel;  // 增量的標題標籤
-    QLabel* m_whiteTimeLabel;
-    QLabel* m_blackTimeLabel;
-    QProgressBar* m_whiteTimeProgressBar;  // 白方時間進度條
-    QProgressBar* m_blackTimeProgressBar;  // 黑方時間進度條
-    QPushButton* m_startButton;
-    QTimer* m_gameTimer;
-    int m_whiteTimeMs;  // 白方剩餘時間（毫秒）
-    int m_blackTimeMs;  // 黑方剩餘時間（毫秒）
-    int m_whiteInitialTimeMs;  // 白方初始時間（毫秒），用於進度條計算
-    int m_blackInitialTimeMs;  // 黑方初始時間（毫秒），用於進度條計算
-    int m_incrementMs;  // 每步的增量（毫秒）
-    bool m_timeControlEnabled;
-    bool m_timerStarted;  // 追蹤計時器是否已手動啟動
-    qint64 m_serverTimeOffset;  // 伺服器時間偏移（ms）：serverTime - localTime，用於線上模式同步計時器顯示
-    qint64 m_gameStartLocalTime;  // 遊戲開始時的本地時間戳（ms），用於計算經過時間
-    qint64 m_currentTurnStartTime;  // 當前回合開始的時間戳（ms），用於線上模式計算當前玩家已用時間
-    
-    // 伺服器控制的計時器狀態
-    qint64 m_serverTimeA;  // 玩家 A (房主) 剩餘時間（毫秒）
-    qint64 m_serverTimeB;  // 玩家 B (房客) 剩餘時間（毫秒）
-    QString m_serverCurrentPlayer;  // 伺服器端當前玩家 ("White" or "Black")
-    qint64 m_serverLastSwitchTime;  // 伺服器最後切換時間（UNIX 秒數）
-    bool m_useServerTimer;  // 是否使用伺服器控制的計時器
-    qint64 m_lastServerUpdateTime;  // 最後一次收到伺服器更新的本地時間（毫秒）
-    
-    QWidget* m_boardContainer;  // 帶有疊加時間顯示的棋盤容器
-    QWidget* m_timeControlPanel;  // 時間控制設定面板
-    QHBoxLayout* m_contentLayout;  // 主內容佈局，用於調整伸展因子
-    int m_rightStretchIndex;  // 右側伸展項的索引
-    
-    // 棋譜面板
-    QListWidget* m_moveListWidget;
-    QPushButton* m_exportPGNButton;
-    QPushButton* m_copyPGNButton;
-    QWidget* m_moveListPanel;
-    
-    // 被吃掉的棋子面板和右側時間/吃子顯示面板
-    QWidget* m_capturedWhitePanel;
-    QWidget* m_capturedBlackPanel;
-    QList<QLabel*> m_capturedWhiteLabels;
-    QList<QLabel*> m_capturedBlackLabels;
-    QLabel* m_whiteScoreDiffLabel;  // 白方分差標籤
-    QLabel* m_blackScoreDiffLabel;  // 黑方分差標籤
-    QWidget* m_rightTimePanel;  // 右側時間和被吃棋子的容器
-    
-    // 遊戲結束時的上下方面板
-    QWidget* m_topEndGamePanel;     // 遊戲結束時對方的時間和吃子紀錄（棋盤上方）
-    QWidget* m_bottomEndGamePanel;  // 遊戲結束時我方的時間和吃子紀錄（棋盤下方）
-    
-    // 回放控制
-    QLabel* m_replayTitle;
-    QPushButton* m_replayFirstButton;
-    QPushButton* m_replayPrevButton;
-    QPushButton* m_replayNextButton;
-    QPushButton* m_replayLastButton;
-    bool m_isReplayMode;
-    int m_replayMoveIndex;  // 當前回放的棋步索引（-1 表示初始狀態）
-    std::vector<std::vector<ChessPiece>> m_savedBoardState;  // 儲存進入回放前的棋盤狀態
-    PieceColor m_savedCurrentPlayer;  // 儲存進入回放前的當前玩家
-    
-    // 電腦對弈引擎
-    ChessEngine* m_chessEngine;
-    QPushButton* m_humanModeButton;      // 雙人對弈按鈕
-    QPushButton* m_computerModeButton;   // 電腦對弈按鈕
-    QLabel* m_gameModeStatusLabel;       // 顯示電腦模式時的執白/執黑狀態
-    GameMode m_currentGameMode;          // 當前遊戲模式
-    // 選邊按鈕（電腦模式時顯示）
-    QWidget* m_colorSelectionWidget;     // 選邊按鈕容器
-    QPushButton* m_whiteButton;          // 執白按鈕
-    QPushButton* m_randomButton;         // 隨機按鈕
-    QPushButton* m_blackButton;          // 執黑按鈕
-    bool m_isRandomColorSelected;        // 是否選擇隨機顏色
-    QSlider* m_difficultySlider;
-    QLabel* m_difficultyLabel;
-    QLabel* m_difficultyValueLabel;
-    QLabel* m_thinkingLabel;  // 顯示「電腦思考中...」
-    QStringList m_uciMoveHistory;  // UCI 格式的移動歷史
-    
+    // ========================================
+    // UI 設置與佈局 (UI Setup and Layout)
+    // ========================================
     void setupUI();
     void setupMenuBar();
+    void setupMainMenu();
+    void setupTimeControlUI(QVBoxLayout* timeControlPanelLayout);
+    void setupEngineUI(QVBoxLayout* layout);
+    void updateSquareSizes();
+    void updateTimeControlSizes();
+    void applyModernStylesheet();
+    
+    // ========================================
+    // 主選單管理 (Main Menu Management)
+    // ========================================
+    void showMainMenu();
+    void showGameContent();
+    void resetGameState();
+    
+    // ========================================
+    // 棋盤顯示與更新 (Board Display and Update)
+    // ========================================
     void updateBoard();
     void updateSquareColor(int row, int col);
-    QString getPieceTextColor(int logicalRow, int logicalCol) const;
     void updateStatus();
+    void displayPieceOnSquare(QPushButton* square, const ChessPiece& piece);
+    QString getPieceTextColor(int logicalRow, int logicalCol) const;
+    
+    // 高亮顯示
     void highlightValidMoves();
     void clearHighlights();
     void applyCheckHighlight(const QPoint& excludeSquare = QPoint(-1, -1));
     void applyLastMoveHighlight();
-    void restorePieceToSquare(const QPoint& square);
-    PieceType showPromotionDialog(PieceColor color);
-    QPoint getSquareAtPosition(const QPoint& pos) const;
-    void updateSquareSizes();
-    void initializeSounds();
-    void loadSoundSettings();
-    void applySoundSettings();
-    void setSoundSource(QSoundEffect& sound, const QString& path);
-    void stopAllSounds();
-    bool isCaptureMove(const QPoint& from, const QPoint& to) const;
-    bool isCastlingMove(const QPoint& from, const QPoint& to) const;
-    void playSoundForMove(bool isCapture, bool isCastling);
-    void loadPieceIconSettings();
-    void applyPieceIconSettings();
-    QString getPieceIconPath(PieceType type, PieceColor color) const;
-    void displayPieceOnSquare(QPushButton* square, const ChessPiece& piece);
-    void loadPieceIconsToCache();
-    void clearPieceIconCache();
-    QPixmap getCachedPieceIcon(PieceType type, PieceColor color) const;
-    int calculateIconSize(QPushButton* square) const;
-    void loadBoardColorSettings();
-    void applyBoardColorSettings();
-    void loadBoardFlipSettings();
-    void saveBoardFlipSettings();
+    
+    // 棋盤座標轉換
     int getDisplayRow(int logicalRow) const;
     int getDisplayCol(int logicalCol) const;
     int getLogicalRow(int displayRow) const;
     int getLogicalCol(int displayCol) const;
-    void setupTimeControlUI(QVBoxLayout* timeControlPanelLayout);
+    QPoint getSquareAtPosition(const QPoint& pos) const;
+    
+    // 棋盤輔助功能
+    void restorePieceToSquare(const QPoint& square);
+    void resetBoardState();
+    PieceType showPromotionDialog(PieceColor color);
+    
+    // ========================================
+    // 時間控制系統 (Time Control System)
+    // ========================================
     void updateTimeDisplays();
+    void updateTimeDisplaysFromServer();
     void onWhiteTimeLimitChanged(int value);
     void onBlackTimeLimitChanged(int value);
     void onIncrementChanged(int value);
@@ -285,28 +357,31 @@ private:
     void applyIncrement();
     void loadTimeControlSettings();
     void saveTimeControlSettings();
-    void handleGameEnd();  // 處理遊戲結束狀態的輔助函數
-    void moveWidgetsForGameEnd();  // 將時間和吃子紀錄移動到棋盤上下方
-    void restoreWidgetsFromGameEnd();  // 將時間和吃子紀錄恢復到右側面板
-    void showTimeControlAfterTimeout();  // 時間到期後顯示時間控制面板的輔助函數
-    void updateTimeControlSizes();  // 根據視窗大小更新時間控制 UI 元素大小的輔助函數
-    void resetBoardState();  // 重置棋盤到初始狀態的輔助函數
-    int calculateTimeFromSliderValue(int value) const;  // 根據滑桿值計算時間（毫秒）的輔助函數
-    QString getTimeTextFromSliderValue(int value) const;  // 根據滑桿值取得顯示文字的輔助函數
-    void setRightPanelStretch(int stretch);  // 設置右側面板伸展因子的輔助函數
-    void updateTimeDisplaysFromServer();  // 根據伺服器計時器狀態更新時間顯示
+    void handleGameEnd();
+    void moveWidgetsForGameEnd();
+    void restoreWidgetsFromGameEnd();
+    void showTimeControlAfterTimeout();
+    int calculateTimeFromSliderValue(int value) const;
+    QString getTimeTextFromSliderValue(int value) const;
+    void setRightPanelStretch(int stretch);
     
-    // 棋譜功能
+    // ========================================
+    // 棋譜管理系統 (Move History Management)
+    // ========================================
     void updateMoveList();
     void exportPGN();
     void copyPGN();
     QString generatePGN() const;
     
-    // 被吃掉的棋子顯示
+    // ========================================
+    // 被吃棋子顯示系統 (Captured Pieces Display)
+    // ========================================
     void updateCapturedPiecesDisplay();
-    int getPieceValue(PieceType type) const;  // 取得棋子分值的輔助函數
+    int getPieceValue(PieceType type) const;
     
-    // 回放功能
+    // ========================================
+    // 回放系統 (Replay System)
+    // ========================================
     void enterReplayMode();
     void exitReplayMode();
     void replayToMove(int moveIndex);
@@ -318,103 +393,103 @@ private:
     void saveBoardState();
     void restoreBoardState();
     
-    // 電腦對弈功能
-    void setupEngineUI(QVBoxLayout* layout);
+    // ========================================
+    // 電腦對弈系統 (Computer Chess Engine)
+    // ========================================
     void initializeEngine();
-    void onHumanModeClicked();           // 雙人模式按鈕點擊
-    void onComputerModeClicked();        // 電腦模式按鈕點擊
-    void onWhiteColorClicked();          // 執白按鈕點擊
-    void onRandomColorClicked();         // 隨機按鈕點擊
-    void onBlackColorClicked();          // 執黑按鈕點擊
+    void onHumanModeClicked();
+    void onComputerModeClicked();
+    void onWhiteColorClicked();
+    void onRandomColorClicked();
+    void onBlackColorClicked();
     void onDifficultyChanged(int value);
     void onEngineBestMove(const QString& move);
     void onEngineReady();
     void onEngineError(const QString& error);
     void requestEngineMove();
     bool isComputerTurn() const;
-    bool isPlayerPiece(PieceColor pieceColor) const;  // 檢查棋子是否為玩家的
-    GameMode getCurrentGameMode() const;  // 取得當前遊戲模式
+    bool isPlayerPiece(PieceColor pieceColor) const;
+    GameMode getCurrentGameMode() const;
     void loadEngineSettings();
     void saveEngineSettings();
     QString getEnginePath() const;
-    void updateGameModeUI();             // 更新遊戲模式 UI 狀態
+    void updateGameModeUI();
     
-    // 線上對戰功能
-    void initializeNetwork();            // 初始化網路管理器
-    void onOnlineModeClicked();          // 線上對戰按鈕點擊
-    void onNetworkConnected();           // 網路連接成功
-    void onNetworkDisconnected();        // 網路斷開連接
-    void onNetworkError(const QString& error);  // 網路錯誤
-    void onRoomCreated(const QString& roomNumber);  // 房間創建
-    void onOpponentJoined();             // 對手加入
-    void onPlayerLeft();                 // 對手離開（遊戲開始前）
-    void onPromotedToHost();             // 被提升為房主
-    void onOpponentMove(const QPoint& from, const QPoint& to, PieceType promotionType);  // 對手移動
-    void onGameStartReceived(PieceColor playerColor);  // 遊戲開始
-    void onStartGameReceived(int whiteTimeMs, int blackTimeMs, int incrementMs, PieceColor hostColor, qint64 serverTimeOffset);  // 收到開始遊戲通知（包含時間設定、房主顏色和伺服器時間偏移）
-    void onTimeSettingsReceived(int whiteTimeMs, int blackTimeMs, int incrementMs);  // 收到時間設定更新
-    void onTimerStateReceived(qint64 timeA, qint64 timeB, const QString& currentPlayer, qint64 lastSwitchTime);  // 收到伺服器計時器狀態
-    void onSurrenderReceived();          // 收到投降訊息
-    void onDrawOfferReceived();          // 收到和棋請求
-    void onDrawResponseReceived(bool accepted);  // 收到和棋回應
-    void onOpponentDisconnected();       // 對手斷線
-    void onCancelRoomClicked();          // 取消房間
-    void onExitRoomClicked();            // 退出房間
-    void updateConnectionStatus();       // 更新連線狀態顯示
-    bool isOnlineTurn() const;           // 是否輪到線上玩家
-    void showRoomInfoDialog(const QString& roomNumber);  // 顯示房間資訊
+    // ========================================
+    // 線上對戰系統 (Online Game System)
+    // ========================================
+    void initializeNetwork();
+    void onOnlineModeClicked();
+    void onNetworkConnected();
+    void onNetworkDisconnected();
+    void onNetworkError(const QString& error);
+    void onRoomCreated(const QString& roomNumber);
+    void onOpponentJoined();
+    void onPlayerLeft();
+    void onPromotedToHost();
+    void onOpponentMove(const QPoint& from, const QPoint& to, PieceType promotionType);
+    void onGameStartReceived(PieceColor playerColor);
+    void onStartGameReceived(int whiteTimeMs, int blackTimeMs, int incrementMs, PieceColor hostColor, qint64 serverTimeOffset);
+    void onTimeSettingsReceived(int whiteTimeMs, int blackTimeMs, int incrementMs);
+    void onTimerStateReceived(qint64 timeA, qint64 timeB, const QString& currentPlayer, qint64 lastSwitchTime);
+    void onSurrenderReceived();
+    void onDrawOfferReceived();
+    void onDrawResponseReceived(bool accepted);
+    void onOpponentDisconnected();
+    void onCancelRoomClicked();
+    void onExitRoomClicked();
+    void updateConnectionStatus();
+    bool isOnlineTurn() const;
+    void showRoomInfoDialog(const QString& roomNumber);
     
-    void applyModernStylesheet();        // 應用現代科技風格全局樣式表
+    // ========================================
+    // 音效系統 (Sound System)
+    // ========================================
+    void initializeSounds();
+    void loadSoundSettings();
+    void applySoundSettings();
+    void setSoundSource(QSoundEffect& sound, const QString& path);
+    void stopAllSounds();
+    bool isCaptureMove(const QPoint& from, const QPoint& to) const;
+    bool isCastlingMove(const QPoint& from, const QPoint& to) const;
+    void playSoundForMove(bool isCapture, bool isCastling);
     
-    // 遊戲開始動畫
-    void playGameStartAnimation();       // 播放遊戲開始動畫
-    void onAnimationStep();              // 動畫步驟更新
-    void finishGameStartAnimation();     // 動畫完成後的處理
+    // 背景音樂
+    void initializeBackgroundMusic();
+    void startBackgroundMusic();
+    void stopBackgroundMusic();
+    void toggleBackgroundMusic();
+    void setBackgroundMusicVolume(int volume);
     
-    // 應用程式啟動動畫
-    void playStartupAnimation();         // 播放啟動動畫
-    void onStartupAnimationStep();       // 啟動動畫步驟更新
-    void finishStartupAnimation();       // 啟動動畫完成後的處理
+    // ========================================
+    // 動畫系統 (Animation System)
+    // ========================================
+    void playGameStartAnimation();
+    void onAnimationStep();
+    void finishGameStartAnimation();
+    void playStartupAnimation();
+    void onStartupAnimationStep();
+    void finishStartupAnimation();
     void playStartupTextAnimation(QLabel* label, const QString& text, const QString& color, int fontSize);
     
-    // 背景音樂控制
-    void initializeBackgroundMusic();    // 初始化背景音樂
-    void startBackgroundMusic();         // 開始播放背景音樂
-    void stopBackgroundMusic();          // 停止背景音樂
-    void toggleBackgroundMusic();        // 切換背景音樂開關
-    void setBackgroundMusicVolume(int volume);  // 設定背景音樂音量 (0-100)
+    // ========================================
+    // 設定系統 (Settings System)
+    // ========================================
+    // 棋子圖示設定
+    void loadPieceIconSettings();
+    void applyPieceIconSettings();
+    QString getPieceIconPath(PieceType type, PieceColor color) const;
+    void loadPieceIconsToCache();
+    void clearPieceIconCache();
+    QPixmap getCachedPieceIcon(PieceType type, PieceColor color) const;
+    int calculateIconSize(QPushButton* square) const;
     
-    // 動畫相關成員
-    QWidget* m_animationOverlay;         // 動畫疊加層
-    QLabel* m_animationLabel;            // 動畫文字標籤
-    QLabel* m_animationSubLabel;         // 動畫副標籤（用於多行動畫）
-    QTimer* m_animationTimer;            // 動畫計時器
-    int m_animationStep;                 // 動畫當前步驟
-    bool m_pendingGameStart;             // 是否有待處理的遊戲開始
+    // 棋盤顏色設定
+    void loadBoardColorSettings();
+    void applyBoardColorSettings();
     
-    // 啟動動畫相關成員
-    QTimer* m_startupAnimationTimer;     // 啟動動畫計時器
-    int m_startupAnimationStep;          // 啟動動畫當前步驟
-    QPropertyAnimation* m_fadeAnimation; // 淡入淡出動畫
-    QPropertyAnimation* m_scaleAnimation; // 縮放動畫
-    QGraphicsOpacityEffect* m_opacityEffect; // 透明度效果
-    
-    // 更新檢查器
-    UpdateChecker* m_updateChecker;      // 更新檢查器
-    bool m_manualUpdateCheck;            // 是否為手動檢查更新
-    
-    // 主選單
-    QWidget* m_mainMenuWidget;           // 主選單容器
-    QPushButton* m_mainMenuLocalPlayButton;    // 本地遊玩按鈕
-    QPushButton* m_mainMenuComputerPlayButton; // 與電腦對戰按鈕
-    QPushButton* m_mainMenuOnlinePlayButton;   // 線上遊玩按鈕
-    QPushButton* m_mainMenuSettingsButton;     // 設定按鈕
-    QWidget* m_gameContentWidget;        // 遊戲內容容器
-    QPushButton* m_backToMenuButton;     // 返回主選單按鈕
-    
-    void setupMainMenu();                // 設置主選單 UI
-    void showMainMenu();                 // 顯示主選單
-    void showGameContent();              // 顯示遊戲內容
-    void resetGameState();               // 重置遊戲狀態
+    // 棋盤翻轉設定
+    void loadBoardFlipSettings();
+    void saveBoardFlipSettings();
 };
 #endif // QT_CHESS_H
