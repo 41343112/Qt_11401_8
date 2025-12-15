@@ -5350,8 +5350,7 @@ void Qt_Chess::onOnlineModeClicked() {
 void Qt_Chess::onCreateRoomButtonClicked() {
     // 顯示遊戲模式選擇對話框
     OnlineDialog dialog(this);
-    dialog.m_createRoomRadio->setChecked(true);
-    dialog.onCreateRoomClicked(); // 啟用遊戲模式選擇
+    // OnlineDialog 默認就是創建房間模式，遊戲模式選擇會自動顯示
     
     if (dialog.exec() != QDialog::Accepted) {
         return; // 使用者取消
