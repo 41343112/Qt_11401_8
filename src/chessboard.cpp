@@ -2,6 +2,12 @@
 #include <QRandomGenerator>
 #include <algorithm>
 
+namespace {
+    // 地雷放置區域常數
+    const int MIN_MINE_ROW = 2;  // 地雷放置的最小行（避免影響起始棋子）
+    const int MAX_MINE_ROW = 6;  // 地雷放置的最大行（不包含，使用 < 而非 <=）
+}
+
 ChessBoard::ChessBoard()
     : m_board(8, std::vector<ChessPiece>(8)), m_currentPlayer(PieceColor::White), m_enPassantTarget(-1, -1), m_gameResult(GameResult::InProgress),
       m_minesweeperEnabled(false), m_minePositions(8, std::vector<bool>(8, false)), m_revealedSquares(8, std::vector<bool>(8, false))
@@ -703,7 +709,7 @@ void ChessBoard::placeMines(int count) {
     
     // 獲取所有空方格（中間4行，避免放在起始棋子位置）
     std::vector<QPoint> emptySquares;
-    for (int row = 2; row < 6; ++row) {
+    for (int row = MIN_MINE_ROW; row < MAX_MINE_ROW; ++row) {
         for (int col = 0; col < 8; ++col) {
             if (m_board[row][col].getType() == PieceType::None) {
                 emptySquares.push_back(QPoint(col, row));
@@ -715,6 +721,11 @@ void ChessBoard::placeMines(int count) {
     QRandomGenerator* rng = QRandomGenerator::global();
     int placedMines = 0;
     int availableSize = static_cast<int>(emptySquares.size());
+    
+    // 確保有足夠的空格放置地雷
+    if (availableSize == 0) {
+        return;  // 沒有可用的空格，無法放置地雷
+    }
     
     while (placedMines < count && placedMines < availableSize) {
         // 從剩餘的位置中隨機選擇一個

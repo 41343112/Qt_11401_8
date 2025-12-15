@@ -87,6 +87,18 @@ const int MIN_TIME_LABEL_HEIGHT = 30;  // 時間標籤的最小高度
 const int MAX_TIME_LABEL_HEIGHT = 50;  // 時間標籤的最大高度
 const int MIN_TIME_LABEL_WIDTH = 0;  // 時間標籤的最小寬度（水平定位）
 
+// 地雷數字顏色映射
+const QMap<int, QString> MINE_COUNT_COLORS = {
+    {1, "#0000FF"},  // 藍色
+    {2, "#008000"},  // 綠色
+    {3, "#FF0000"},  // 紅色
+    {4, "#000080"},  // 深藍色
+    {5, "#800000"},  // 褐紅色
+    {6, "#008080"},  // 青色
+    {7, "#000000"},  // 黑色
+    {8, "#808080"}   // 灰色
+};
+
 // 時間控制 UI 縮放常數
 const int TIME_CONTROL_FONT_DIVISOR = 6;     // 縮放時間控制標籤字體的除數
 const int BUTTON_FONT_DIVISOR = 5;           // 縮放按鈕字體的除數
@@ -7375,16 +7387,27 @@ void Qt_Chess::updateMinesweeperDisplay() {
             int displayCol = getDisplayCol(col);
             QPushButton* square = m_squares[displayRow][displayCol];
             
+            // 計算邏輯坐標以確定正確的淺色/深色模式
+            int logicalRow = getLogicalRow(displayRow);
+            int logicalCol = getLogicalCol(displayCol);
+            bool isLight = (logicalRow + logicalCol) % 2 == 0;
+            QColor baseColor = isLight ? m_boardColorSettings.lightSquareColor : m_boardColorSettings.darkSquareColor;
+            QString textColor = getPieceTextColor(logicalRow, logicalCol);
+            
             // 如果方格已揭開且有地雷，顯示地雷符號
             if (m_chessBoard.isSquareRevealed(row, col) && m_chessBoard.hasMine(row, col)) {
                 QString existingText = square->text();
                 // 如果方格上沒有棋子，顯示地雷符號
                 if (existingText.isEmpty()) {
                     square->setText("💣");
-                    // 重新應用基礎樣式並添加地雷背景
-                    updateSquareColor(displayRow, displayCol);
-                    QString baseStyle = square->styleSheet();
-                    square->setStyleSheet(baseStyle.replace("}", " background-color: rgba(255, 0, 0, 0.3); }"));
+                    // 應用地雷樣式（紅色半透明背景）
+                    square->setStyleSheet(QString(
+                        "QPushButton { "
+                        "background-color: rgba(255, 0, 0, 0.5); "
+                        "border: 1px solid rgba(0, 255, 255, 0.3); "
+                        "color: %1; "
+                        "}"
+                    ).arg(textColor));
                 }
             }
             // 如果方格已揭開且沒有棋子，顯示周圍地雷數量
@@ -7392,13 +7415,18 @@ void Qt_Chess::updateMinesweeperDisplay() {
                      m_chessBoard.getPiece(row, col).getType() == PieceType::None) {
                 int mineCount = m_chessBoard.getAdjacentMineCount(row, col);
                 if (mineCount > 0) {
-                    QString color = getMineCountColor(mineCount);
+                    QString mineColor = getMineCountColor(mineCount);
                     square->setText(QString::number(mineCount));
-                    // 重新應用基礎樣式並添加文字樣式
-                    updateSquareColor(displayRow, displayCol);
-                    QString baseStyle = square->styleSheet();
-                    square->setStyleSheet(baseStyle.replace("}", 
-                        QString(" color: %1; font-weight: bold; font-size: 16pt; }").arg(color)));
+                    // 應用數字樣式（保持原背景，改變文字顏色和粗細）
+                    square->setStyleSheet(QString(
+                        "QPushButton { "
+                        "background-color: %1; "
+                        "border: 1px solid rgba(0, 255, 255, 0.3); "
+                        "color: %2; "
+                        "font-weight: bold; "
+                        "font-size: 16pt; "
+                        "}"
+                    ).arg(baseColor.name(), mineColor));
                 }
             }
         }
@@ -7434,17 +7462,7 @@ void Qt_Chess::saveMinesweeperSettings() {
 }
 
 QString Qt_Chess::getMineCountColor(int count) const {
-    static const QMap<int, QString> colors = {
-        {1, "#0000FF"},  // 藍色
-        {2, "#008000"},  // 綠色
-        {3, "#FF0000"},  // 紅色
-        {4, "#000080"},  // 深藍色
-        {5, "#800000"},  // 褐紅色
-        {6, "#008080"},  // 青色
-        {7, "#000000"},  // 黑色
-        {8, "#808080"}   // 灰色
-    };
-    return colors.value(count, "#000000");
+    return MINE_COUNT_COLORS.value(count, "#000000");
 }
 
 
