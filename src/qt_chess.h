@@ -25,6 +25,7 @@
 #include <QProgressBar>
 #include <QRadioButton>
 #include <QButtonGroup>
+#include <QCheckBox>
 #include <QPropertyAnimation>
 #include <QGraphicsOpacityEffect>
 #include <vector>
@@ -84,6 +85,10 @@ private slots:
     void onMainMenuOnlinePlayClicked();
     void onMainMenuSettingsClicked();
     void onBackToMainMenuClicked();
+    
+    // 地雷模式
+    void onToggleMinesweeperModeClicked();
+    void onMinesweeperDifficultyChanged(int value);
 
 private:
     // ========================================
@@ -292,6 +297,15 @@ private:
     bool m_isBoardFlipped;
     
     // ========================================
+    // 地雷模式系統 (Minesweeper Mode System)
+    // ========================================
+    QCheckBox* m_minesweeperCheckbox;    // 啟用地雷模式複選框
+    QSlider* m_minesweeperSlider;        // 地雷數量滑桿
+    QLabel* m_minesweeperLabel;          // 地雷數量標籤
+    bool m_minesweeperEnabled;           // 地雷模式是否啟用
+    int m_mineCount;                     // 地雷數量
+    
+    // ========================================
     // 更新檢查系統 (Update Checker System)
     // ========================================
     UpdateChecker* m_updateChecker;      // 更新檢查器
@@ -491,5 +505,13 @@ private:
     // 棋盤翻轉設定
     void loadBoardFlipSettings();
     void saveBoardFlipSettings();
+    
+    // ========================================
+    // 地雷模式系統 (Minesweeper Mode System)
+    // ========================================
+    void setupMinesweeperUI(QVBoxLayout* layout);
+    void updateMinesweeperDisplay();
+    void loadMinesweeperSettings();
+    void saveMinesweeperSettings();
 };
 #endif // QT_CHESS_H

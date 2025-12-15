@@ -268,6 +268,11 @@ Qt_Chess::Qt_Chess(QWidget *parent)
     , m_mainMenuSettingsButton(nullptr)
     , m_gameContentWidget(nullptr)
     , m_backToMenuButton(nullptr)
+    , m_minesweeperCheckbox(nullptr)
+    , m_minesweeperSlider(nullptr)
+    , m_minesweeperLabel(nullptr)
+    , m_minesweeperEnabled(false)
+    , m_mineCount(8)
 {
     ui->setupUi(this);
     setWindowTitle("♔ 國際象棋 - 科技對弈 ♚");
@@ -289,6 +294,7 @@ Qt_Chess::Qt_Chess(QWidget *parent)
     loadPieceIconSettings();
     loadBoardColorSettings();
     loadBoardFlipSettings();
+    loadMinesweeperSettings();  // 載入地雷模式設定
     loadPieceIconsToCache(); // 載入設定後將圖示載入快取
     // setupMenuBar();  // 已移除選單欄功能
     setupUI();
@@ -1173,6 +1179,9 @@ void Qt_Chess::setupTimeControlUI(QVBoxLayout* timeControlPanelLayout) {
     m_difficultyLabel->setVisible(isVsComputer);
     m_difficultyValueLabel->setVisible(isVsComputer);
     m_difficultySlider->setVisible(isVsComputer);
+    
+    // 設置地雷模式 UI
+    setupMinesweeperUI(timeControlLayout);
 
     // 添加伸展以填充群組框中的剩餘空間
     timeControlLayout->addStretch();
@@ -1820,6 +1829,9 @@ void Qt_Chess::updateBoard() {
         highlightValidMoves();
     }
     
+    // 更新地雷模式顯示
+    updateMinesweeperDisplay();
+    
     // 更新被吃掉的棋子顯示
     updateCapturedPiecesDisplay();
 }
@@ -2049,6 +2061,11 @@ void Qt_Chess::resetBoardState() {
     m_chessBoard.initializeBoard();
     m_pieceSelected = false;
     
+    // 重新應用地雷模式設定
+    if (m_minesweeperEnabled) {
+        m_chessBoard.enableMinesweeperMode(true, m_mineCount);
+    }
+    
     // 重置上一步移動高亮
     m_lastMoveFrom = QPoint(-1, -1);
     m_lastMoveTo = QPoint(-1, -1);
@@ -2175,6 +2192,13 @@ void Qt_Chess::onSquareClicked(int displayRow, int displayCol) {
             // 記錄 UCI 格式的移動
             PieceType promType = PieceType::None;
             
+            // 檢查棋子是否踩到地雷
+            bool hitMine = false;
+            if (m_chessBoard.isMinesweeperModeEnabled() && 
+                m_chessBoard.hasMine(clickedSquare.y(), clickedSquare.x())) {
+                hitMine = true;
+            }
+            
             // 檢查是否為第一步棋，如果是且計時器未啟動，則啟動計時器
             bool isFirstMove = m_uciMoveHistory.isEmpty();
             if (isFirstMove && m_timeControlEnabled && !m_timerStarted) {
@@ -2191,6 +2215,14 @@ void Qt_Chess::onSquareClicked(int displayRow, int displayCol) {
             }
 
             updateBoard();
+
+            // 如果踩到地雷，顯示提示訊息
+            if (hitMine) {
+                PieceColor currentPlayer = m_chessBoard.getCurrentPlayer() == PieceColor::White ? PieceColor::Black : PieceColor::White;
+                QString playerName = (currentPlayer == PieceColor::White) ? "白方" : "黑方";
+                QMessageBox::warning(this, "踩到地雷！", 
+                    QString("💣 %1的棋子踩到地雷被炸毀了！").arg(playerName));
+            }
 
             // 檢查是否需要兵升變
             if (m_chessBoard.needsPromotion(clickedSquare)) {
@@ -2254,6 +2286,11 @@ void Qt_Chess::onNewGameClicked() {
     m_pieceSelected = false;
     m_gameStarted = false;  // 重置遊戲開始狀態
     m_uciMoveHistory.clear();  // 清空 UCI 移動歷史
+    
+    // 重新應用地雷模式設定
+    if (m_minesweeperEnabled) {
+        m_chessBoard.enableMinesweeperMode(true, m_mineCount);
+    }
     
     // 停止背景音樂（遊戲未開始）
     stopBackgroundMusic();
@@ -7235,4 +7272,173 @@ void Qt_Chess::onUpdateCheckFailed(const QString& error) {
     // 重設手動檢查標記
     m_manualUpdateCheck = false;
 }
+
+// ========================================
+// 地雷模式系統實現 (Minesweeper Mode System Implementation)
+// ========================================
+
+void Qt_Chess::setupMinesweeperUI(QVBoxLayout* layout) {
+    QFont labelFont;
+    labelFont.setPointSize(10);
+    
+    // 地雷模式分隔線
+    QFrame* separator = new QFrame(this);
+    separator->setFrameShape(QFrame::HLine);
+    separator->setFrameShadow(QFrame::Sunken);
+    separator->setStyleSheet(QString("QFrame { color: %1; }").arg(THEME_BORDER));
+    layout->addWidget(separator);
+    
+    // 地雷模式標題和複選框
+    QHBoxLayout* titleLayout = new QHBoxLayout();
+    QLabel* minesweeperTitle = new QLabel("💣 地雷模式", this);
+    minesweeperTitle->setFont(labelFont);
+    minesweeperTitle->setStyleSheet(QString("QLabel { color: %1; font-weight: bold; }").arg(THEME_ACCENT_SECONDARY));
+    titleLayout->addWidget(minesweeperTitle);
+    
+    m_minesweeperCheckbox = new QCheckBox("啟用", this);
+    m_minesweeperCheckbox->setFont(labelFont);
+    m_minesweeperCheckbox->setStyleSheet(QString(
+        "QCheckBox { color: %1; }"
+        "QCheckBox::indicator { width: 18px; height: 18px; }"
+        "QCheckBox::indicator:unchecked { border: 2px solid %2; border-radius: 3px; background: %3; }"
+        "QCheckBox::indicator:checked { border: 2px solid %4; border-radius: 3px; background: %4; }"
+    ).arg(THEME_TEXT_PRIMARY, THEME_BORDER, THEME_BG_DARK, THEME_ACCENT_SECONDARY));
+    connect(m_minesweeperCheckbox, &QCheckBox::toggled, this, &Qt_Chess::onToggleMinesweeperModeClicked);
+    titleLayout->addWidget(m_minesweeperCheckbox);
+    titleLayout->addStretch();
+    layout->addLayout(titleLayout);
+    
+    // 地雷數量標籤
+    m_minesweeperLabel = new QLabel("地雷數量: 8", this);
+    m_minesweeperLabel->setFont(labelFont);
+    m_minesweeperLabel->setAlignment(Qt::AlignCenter);
+    m_minesweeperLabel->setStyleSheet(QString(
+        "QLabel { color: %1; padding: 4px; background: rgba(233, 69, 96, 0.1); border-radius: 4px; }"
+    ).arg(THEME_ACCENT_SECONDARY));
+    layout->addWidget(m_minesweeperLabel);
+    
+    // 地雷數量滑桿
+    m_minesweeperSlider = new QSlider(Qt::Horizontal, this);
+    m_minesweeperSlider->setMinimum(1);
+    m_minesweeperSlider->setMaximum(20);
+    m_minesweeperSlider->setValue(8);
+    m_minesweeperSlider->setTickPosition(QSlider::TicksBelow);
+    m_minesweeperSlider->setTickInterval(1);
+    connect(m_minesweeperSlider, &QSlider::valueChanged, this, &Qt_Chess::onMinesweeperDifficultyChanged);
+    layout->addWidget(m_minesweeperSlider);
+    
+    // 初始隱藏地雷設定（當複選框未選中時）
+    m_minesweeperLabel->setVisible(false);
+    m_minesweeperSlider->setVisible(false);
+}
+
+void Qt_Chess::onToggleMinesweeperModeClicked() {
+    m_minesweeperEnabled = m_minesweeperCheckbox->isChecked();
+    
+    // 顯示/隱藏地雷數量控制項
+    m_minesweeperLabel->setVisible(m_minesweeperEnabled);
+    m_minesweeperSlider->setVisible(m_minesweeperEnabled);
+    
+    // 啟用或禁用地雷模式
+    m_chessBoard.enableMinesweeperMode(m_minesweeperEnabled, m_mineCount);
+    
+    // 儲存設定
+    saveMinesweeperSettings();
+    
+    // 更新顯示
+    updateBoard();
+}
+
+void Qt_Chess::onMinesweeperDifficultyChanged(int value) {
+    m_mineCount = value;
+    m_minesweeperLabel->setText(QString("地雷數量: %1").arg(value));
+    
+    // 如果地雷模式已啟用，重新放置地雷
+    if (m_minesweeperEnabled) {
+        m_chessBoard.enableMinesweeperMode(true, m_mineCount);
+        updateBoard();
+    }
+    
+    // 儲存設定
+    saveMinesweeperSettings();
+}
+
+void Qt_Chess::updateMinesweeperDisplay() {
+    if (!m_minesweeperEnabled || !m_chessBoard.isMinesweeperModeEnabled()) {
+        return;
+    }
+    
+    // 更新棋盤顯示以顯示地雷和數字
+    for (int row = 0; row < 8; ++row) {
+        for (int col = 0; col < 8; ++col) {
+            int displayRow = getDisplayRow(row);
+            int displayCol = getDisplayCol(col);
+            QPushButton* square = m_squares[displayRow][displayCol];
+            
+            // 如果方格已揭開且有地雷，顯示地雷符號
+            if (m_chessBoard.isSquareRevealed(row, col) && m_chessBoard.hasMine(row, col)) {
+                QString existingText = square->text();
+                // 如果方格上沒有棋子，顯示地雷符號
+                if (existingText.isEmpty()) {
+                    square->setText("💣");
+                    square->setStyleSheet(square->styleSheet() + " background-color: rgba(255, 0, 0, 0.3);");
+                }
+            }
+            // 如果方格已揭開且沒有棋子，顯示周圍地雷數量
+            else if (m_chessBoard.isSquareRevealed(row, col) && 
+                     m_chessBoard.getPiece(row, col).getType() == PieceType::None) {
+                int mineCount = m_chessBoard.getAdjacentMineCount(row, col);
+                if (mineCount > 0) {
+                    // 使用不同顏色表示不同數量的地雷
+                    QString color;
+                    switch (mineCount) {
+                        case 1: color = "#0000FF"; break; // 藍色
+                        case 2: color = "#008000"; break; // 綠色
+                        case 3: color = "#FF0000"; break; // 紅色
+                        case 4: color = "#000080"; break; // 深藍色
+                        case 5: color = "#800000"; break; // 褐紅色
+                        case 6: color = "#008080"; break; // 青色
+                        case 7: color = "#000000"; break; // 黑色
+                        case 8: color = "#808080"; break; // 灰色
+                        default: color = "#000000"; break;
+                    }
+                    square->setText(QString::number(mineCount));
+                    square->setStyleSheet(square->styleSheet() + 
+                        QString(" color: %1; font-weight: bold; font-size: 16pt;").arg(color));
+                }
+            }
+        }
+    }
+}
+
+void Qt_Chess::loadMinesweeperSettings() {
+    QSettings settings("Qt_Chess", "MinesweeperSettings");
+    m_minesweeperEnabled = settings.value("enabled", false).toBool();
+    m_mineCount = settings.value("mineCount", 8).toInt();
+    
+    // 限制地雷數量在有效範圍內
+    m_mineCount = qBound(1, m_mineCount, 20);
+    
+    // 更新 UI
+    if (m_minesweeperCheckbox) {
+        m_minesweeperCheckbox->setChecked(m_minesweeperEnabled);
+    }
+    if (m_minesweeperSlider) {
+        m_minesweeperSlider->setValue(m_mineCount);
+    }
+    if (m_minesweeperLabel) {
+        m_minesweeperLabel->setText(QString("地雷數量: %1").arg(m_mineCount));
+        m_minesweeperLabel->setVisible(m_minesweeperEnabled);
+    }
+    if (m_minesweeperSlider) {
+        m_minesweeperSlider->setVisible(m_minesweeperEnabled);
+    }
+}
+
+void Qt_Chess::saveMinesweeperSettings() {
+    QSettings settings("Qt_Chess", "MinesweeperSettings");
+    settings.setValue("enabled", m_minesweeperEnabled);
+    settings.setValue("mineCount", m_mineCount);
+}
+
 

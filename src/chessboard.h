@@ -73,6 +73,19 @@ public:
     const std::vector<ChessPiece>& getCapturedPieces(PieceColor color) const;
     void clearCapturedPieces();
     
+    // 地雷模式 (Minesweeper Mode)
+    void enableMinesweeperMode(bool enable, int mineCount = 8);
+    bool isMinesweeperModeEnabled() const { return m_minesweeperEnabled; }
+    void placeMines(int count);
+    bool hasMine(int row, int col) const;
+    bool isMineRevealed(int row, int col) const;
+    void revealMine(int row, int col);
+    int getAdjacentMineCount(int row, int col) const;
+    bool isSquareRevealed(int row, int col) const;
+    void revealSquare(int row, int col);
+    const std::vector<std::vector<bool>>& getMinePositions() const { return m_minePositions; }
+    const std::vector<std::vector<bool>>& getRevealedSquares() const { return m_revealedSquares; }
+    
 private:
     std::vector<std::vector<ChessPiece>> m_board;
     PieceColor m_currentPlayer;
@@ -81,6 +94,11 @@ private:
     GameResult m_gameResult; // 遊戲結果
     std::vector<ChessPiece> m_capturedWhite; // 被吃掉的白色棋子
     std::vector<ChessPiece> m_capturedBlack; // 被吃掉的黑色棋子
+    
+    // 地雷模式狀態 (Minesweeper Mode State)
+    bool m_minesweeperEnabled; // 是否啟用地雷模式
+    std::vector<std::vector<bool>> m_minePositions; // 地雷位置 (8x8)
+    std::vector<std::vector<bool>> m_revealedSquares; // 已揭開的方格 (8x8)
     
     void switchPlayer();
     bool wouldBeInCheck(const QPoint& from, const QPoint& to, PieceColor color) const;
