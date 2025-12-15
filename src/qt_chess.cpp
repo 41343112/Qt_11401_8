@@ -41,6 +41,7 @@
 #include <QUrl>
 #include <QTextEdit>
 #include <algorithm>
+#include <cmath>
 
 namespace {
 // Note: CHECK_HIGHLIGHT_STYLE is no longer used - check highlighting now dynamically 
@@ -2446,7 +2447,7 @@ void Qt_Chess::onRequestDrawClicked() {
     if (timeSinceLastRequest < DRAW_REQUEST_COOLDOWN_MS && m_lastDrawRequestTime > 0) {
         // 還在冷卻時間內，顯示剩餘時間（向上取整到秒）
         qint64 remainingMs = DRAW_REQUEST_COOLDOWN_MS - timeSinceLastRequest;
-        int remainingSeconds = static_cast<int>((remainingMs + 999) / 1000);  // 向上取整：(x + 999) / 1000
+        int remainingSeconds = static_cast<int>(std::ceil(remainingMs / 1000.0));
         if (m_connectionStatusLabel) {
             m_connectionStatusLabel->setText(QString("⏳ 請等待 %1 秒後再次發送").arg(remainingSeconds));
         }
