@@ -43,6 +43,12 @@ class Qt_Chess;
 }
 QT_END_NAMESPACE
 
+// Constants for online mode
+constexpr qint64 DRAW_REQUEST_COOLDOWN_MS = 3000;  // 3 seconds cooldown for draw requests
+constexpr int ROOM_NUMBER_MIN = 1000;              // Minimum room number
+constexpr int ROOM_NUMBER_MAX = 9999;              // Maximum room number
+constexpr int ROOM_NUMBER_LENGTH = 4;              // Room number length
+
 class Qt_Chess : public QMainWindow
 {
     Q_OBJECT
@@ -237,11 +243,15 @@ private:
     NetworkManager* m_networkManager;    // 網路管理器
     QPushButton* m_onlineModeButton;     // 線上對戰按鈕
     QPushButton* m_exitRoomButton;       // 退出房間按鈕
+    QPushButton* m_createRoomButton;     // 創建房間按鈕（右側面板）
+    QPushButton* m_joinRoomButton;       // 加入房間按鈕（右側面板）
+    QWidget* m_onlineButtonsWidget;      // 線上模式按鈕容器
     QLabel* m_connectionStatusLabel;     // 連線狀態標籤
     QLabel* m_roomInfoLabel;             // 房間資訊標籤
     bool m_isOnlineGame;                 // 是否為線上對戰
     bool m_waitingForOpponent;           // 等待對手
     PieceColor m_onlineHostSelectedColor;  // 房主選擇的顏色（線上模式）
+    qint64 m_lastDrawRequestTime;        // 上次請求和棋的時間（毫秒）
     
     // ========================================
     // 音效系統 (Sound System)
@@ -420,6 +430,8 @@ private:
     // ========================================
     void initializeNetwork();
     void onOnlineModeClicked();
+    void onCreateRoomButtonClicked();
+    void onJoinRoomButtonClicked();
     void onNetworkConnected();
     void onNetworkDisconnected();
     void onNetworkError(const QString& error);
