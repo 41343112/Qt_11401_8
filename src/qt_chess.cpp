@@ -241,10 +241,10 @@ Qt_Chess::Qt_Chess(QWidget *parent)
     , m_thinkingLabel(nullptr)
     , m_networkManager(nullptr)
     , m_onlineModeButton(nullptr)
+    , m_exitRoomButton(nullptr)
     , m_createRoomButton(nullptr)
     , m_joinRoomButton(nullptr)
     , m_onlineButtonsWidget(nullptr)
-    , m_exitRoomButton(nullptr)
     , m_connectionStatusLabel(nullptr)
     , m_roomInfoLabel(nullptr)
     , m_isOnlineGame(false)
@@ -2444,8 +2444,9 @@ void Qt_Chess::onRequestDrawClicked() {
     qint64 timeSinceLastRequest = currentTime - m_lastDrawRequestTime;
     
     if (timeSinceLastRequest < DRAW_REQUEST_COOLDOWN_MS && m_lastDrawRequestTime > 0) {
-        // 還在冷卻時間內，顯示剩餘時間
-        int remainingSeconds = static_cast<int>((DRAW_REQUEST_COOLDOWN_MS - timeSinceLastRequest + 999) / 1000);  // 向上取整
+        // 還在冷卻時間內，顯示剩餘時間（向上取整到秒）
+        qint64 remainingMs = DRAW_REQUEST_COOLDOWN_MS - timeSinceLastRequest;
+        int remainingSeconds = static_cast<int>((remainingMs + 999) / 1000);  // 向上取整：(x + 999) / 1000
         if (m_connectionStatusLabel) {
             m_connectionStatusLabel->setText(QString("⏳ 請等待 %1 秒後再次發送").arg(remainingSeconds));
         }
