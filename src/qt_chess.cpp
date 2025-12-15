@@ -2484,6 +2484,7 @@ void Qt_Chess::onExitClicked() {
     // 重置棋盤後啟用開始按鈕
     if (m_startButton) {
         m_startButton->setEnabled(true);
+        m_startButton->setText("▶ 開始對弈");
         m_startButton->show();
     }
     
