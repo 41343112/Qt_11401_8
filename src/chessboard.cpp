@@ -1,5 +1,6 @@
 #include "chessboard.h"
 #include <QRandomGenerator>
+#include <algorithm>
 
 ChessBoard::ChessBoard()
     : m_board(8, std::vector<ChessPiece>(8)), m_currentPlayer(PieceColor::White), m_enPassantTarget(-1, -1), m_gameResult(GameResult::InProgress),
@@ -710,17 +711,22 @@ void ChessBoard::placeMines(int count) {
         }
     }
     
-    // 隨機選擇位置放置地雷
+    // 使用 Fisher-Yates 洗牌算法的部分選擇來放置地雷
+    QRandomGenerator* rng = QRandomGenerator::global();
     int placedMines = 0;
-    while (placedMines < count && !emptySquares.empty()) {
-        int index = QRandomGenerator::global()->bounded(static_cast<int>(emptySquares.size()));
-        QPoint pos = emptySquares[index];
+    int availableSize = static_cast<int>(emptySquares.size());
+    
+    while (placedMines < count && placedMines < availableSize) {
+        // 從剩餘的位置中隨機選擇一個
+        int index = placedMines + rng->bounded(availableSize - placedMines);
         
+        // 交換選中的位置到已處理區域
+        std::swap(emptySquares[placedMines], emptySquares[index]);
+        
+        // 在選中的位置放置地雷
+        QPoint pos = emptySquares[placedMines];
         m_minePositions[pos.y()][pos.x()] = true;
         placedMines++;
-        
-        // 從列表中移除已使用的位置
-        emptySquares.erase(emptySquares.begin() + index);
     }
 }
 

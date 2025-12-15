@@ -513,5 +513,6 @@ private:
     void updateMinesweeperDisplay();
     void loadMinesweeperSettings();
     void saveMinesweeperSettings();
+    QString getMineCountColor(int count) const;
 };
 #endif // QT_CHESS_H

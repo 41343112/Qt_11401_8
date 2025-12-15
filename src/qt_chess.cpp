@@ -7381,7 +7381,10 @@ void Qt_Chess::updateMinesweeperDisplay() {
                 // 如果方格上沒有棋子，顯示地雷符號
                 if (existingText.isEmpty()) {
                     square->setText("💣");
-                    square->setStyleSheet(square->styleSheet() + " background-color: rgba(255, 0, 0, 0.3);");
+                    // 重新應用基礎樣式並添加地雷背景
+                    updateSquareColor(displayRow, displayCol);
+                    QString baseStyle = square->styleSheet();
+                    square->setStyleSheet(baseStyle.replace("}", " background-color: rgba(255, 0, 0, 0.3); }"));
                 }
             }
             // 如果方格已揭開且沒有棋子，顯示周圍地雷數量
@@ -7389,22 +7392,13 @@ void Qt_Chess::updateMinesweeperDisplay() {
                      m_chessBoard.getPiece(row, col).getType() == PieceType::None) {
                 int mineCount = m_chessBoard.getAdjacentMineCount(row, col);
                 if (mineCount > 0) {
-                    // 使用不同顏色表示不同數量的地雷
-                    QString color;
-                    switch (mineCount) {
-                        case 1: color = "#0000FF"; break; // 藍色
-                        case 2: color = "#008000"; break; // 綠色
-                        case 3: color = "#FF0000"; break; // 紅色
-                        case 4: color = "#000080"; break; // 深藍色
-                        case 5: color = "#800000"; break; // 褐紅色
-                        case 6: color = "#008080"; break; // 青色
-                        case 7: color = "#000000"; break; // 黑色
-                        case 8: color = "#808080"; break; // 灰色
-                        default: color = "#000000"; break;
-                    }
+                    QString color = getMineCountColor(mineCount);
                     square->setText(QString::number(mineCount));
-                    square->setStyleSheet(square->styleSheet() + 
-                        QString(" color: %1; font-weight: bold; font-size: 16pt;").arg(color));
+                    // 重新應用基礎樣式並添加文字樣式
+                    updateSquareColor(displayRow, displayCol);
+                    QString baseStyle = square->styleSheet();
+                    square->setStyleSheet(baseStyle.replace("}", 
+                        QString(" color: %1; font-weight: bold; font-size: 16pt; }").arg(color)));
                 }
             }
         }
@@ -7425,13 +7419,11 @@ void Qt_Chess::loadMinesweeperSettings() {
     }
     if (m_minesweeperSlider) {
         m_minesweeperSlider->setValue(m_mineCount);
+        m_minesweeperSlider->setVisible(m_minesweeperEnabled);
     }
     if (m_minesweeperLabel) {
         m_minesweeperLabel->setText(QString("地雷數量: %1").arg(m_mineCount));
         m_minesweeperLabel->setVisible(m_minesweeperEnabled);
-    }
-    if (m_minesweeperSlider) {
-        m_minesweeperSlider->setVisible(m_minesweeperEnabled);
     }
 }
 
@@ -7439,6 +7431,20 @@ void Qt_Chess::saveMinesweeperSettings() {
     QSettings settings("Qt_Chess", "MinesweeperSettings");
     settings.setValue("enabled", m_minesweeperEnabled);
     settings.setValue("mineCount", m_mineCount);
+}
+
+QString Qt_Chess::getMineCountColor(int count) const {
+    static const QMap<int, QString> colors = {
+        {1, "#0000FF"},  // 藍色
+        {2, "#008000"},  // 綠色
+        {3, "#FF0000"},  // 紅色
+        {4, "#000080"},  // 深藍色
+        {5, "#800000"},  // 褐紅色
+        {6, "#008080"},  // 青色
+        {7, "#000000"},  // 黑色
+        {8, "#808080"}   // 灰色
+    };
+    return colors.value(count, "#000000");
 }
 
 
