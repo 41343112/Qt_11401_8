@@ -2783,9 +2783,9 @@ void Qt_Chess::onStartButtonClicked() {
                 m_requestDrawButton->show();
             }
         } else {
-            // 本地遊戲進行中時不顯示退出按鈕（遊戲進行時不要有返回主選單的按鍵）
+            // 本地遊戲進行中時顯示退出按鈕，讓玩家可以退出當前回合
             if (m_exitButton) {
-                m_exitButton->hide();
+                m_exitButton->show();
             }
         }
         
@@ -2888,9 +2888,9 @@ void Qt_Chess::onStartButtonClicked() {
                 m_requestDrawButton->show();
             }
         } else {
-            // 本地遊戲進行中時不顯示退出按鈕（遊戲進行時不要有返回主選單的按鍵）
+            // 本地遊戲進行中時顯示退出按鈕，讓玩家可以退出當前回合
             if (m_exitButton) {
-                m_exitButton->hide();
+                m_exitButton->show();
             }
         }
         
@@ -2968,9 +2968,9 @@ void Qt_Chess::onStartButtonClicked() {
                 m_requestDrawButton->show();
             }
         } else {
-            // 本地遊戲進行中時不顯示退出按鈕（遊戲進行時不要有返回主選單的按鍵）
+            // 本地遊戲進行中時顯示退出按鈕，讓玩家可以退出當前回合
             if (m_exitButton) {
-                m_exitButton->hide();
+                m_exitButton->show();
             }
         }
         
