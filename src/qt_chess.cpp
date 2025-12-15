@@ -2392,12 +2392,12 @@ void Qt_Chess::onRequestDrawClicked() {
 
 void Qt_Chess::onExitClicked() {
     // 退出當前對局，返回到開始對弈前的狀態（還在本地遊戲）
-    // 如果有進行中的遊戲，詢問是否確定要退出
+    // 如果遊戲已開始，詢問是否確定要退出
     if (m_gameStarted && m_chessBoard.getGameResult() == GameResult::InProgress) {
         QMessageBox::StandardButton reply = QMessageBox::question(
             this, 
             "退出遊戲", 
-            "遊戲進行中，確定要退出遊戲嗎？當前回合將被停止。",
+            "遊戲已開始，確定要退出遊戲嗎？當前回合將被停止。",
             QMessageBox::Yes | QMessageBox::No
         );
         if (reply == QMessageBox::No) {
