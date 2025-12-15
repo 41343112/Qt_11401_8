@@ -1738,6 +1738,9 @@ void Qt_Chess::resetGameState() {
     m_waitingForOpponent = false;
     m_isOnlineGame = false;
     
+    // 清除線上模式的遊戲模式選擇
+    m_selectedGameModes.clear();
+    
     // 停止計時器
     if (m_gameTimer) {
         if (m_gameTimer->isActive()) {
@@ -4870,6 +4873,9 @@ void Qt_Chess::onHumanModeClicked() {
     m_currentGameMode = GameMode::HumanVsHuman;
     updateGameModeUI();
     
+    // 清除線上模式的遊戲模式選擇
+    m_selectedGameModes.clear();
+    
     // 更新引擎的遊戲模式
     if (m_chessEngine) {
         m_chessEngine->setGameMode(m_currentGameMode);
@@ -4887,6 +4893,9 @@ void Qt_Chess::onComputerModeClicked() {
     }
     
     updateGameModeUI();
+    
+    // 清除線上模式的遊戲模式選擇
+    m_selectedGameModes.clear();
     
     // 更新引擎的遊戲模式
     if (m_chessEngine) {
@@ -6559,6 +6568,9 @@ void Qt_Chess::onCancelRoomClicked() {
         m_isOnlineGame = false;
         m_waitingForOpponent = false;
         
+        // 清除線上模式的遊戲模式選擇
+        m_selectedGameModes.clear();
+        
         // 隱藏開始按鈕，直到重新創建或加入房間
         if (m_startButton) {
             m_startButton->hide();
@@ -6656,6 +6668,9 @@ void Qt_Chess::onExitRoomClicked() {
         // 重置線上模式標記（在關閉連接後）
         m_isOnlineGame = false;
         m_waitingForOpponent = false;
+        
+        // 清除線上模式的遊戲模式選擇
+        m_selectedGameModes.clear();
         
         // 只有在確實是線上遊戲時才重置棋盤
         if (wasOnlineGame) {
