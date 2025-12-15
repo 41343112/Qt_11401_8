@@ -2391,7 +2391,7 @@ void Qt_Chess::onRequestDrawClicked() {
 }
 
 void Qt_Chess::onExitClicked() {
-    // 退出遊戲並停止當前回合
+    // 退出當前對局，返回到開始對弈前的狀態（還在本地遊戲）
     // 如果有進行中的遊戲，詢問是否確定要退出
     if (m_gameStarted && m_chessBoard.getGameResult() == GameResult::InProgress) {
         QMessageBox::StandardButton reply = QMessageBox::question(
@@ -2405,28 +2405,105 @@ void Qt_Chess::onExitClicked() {
         }
     }
     
-    // 停止計時器
-    stopTimer();
-    m_timerStarted = false;
+    // 如果在回放模式中，先退出
+    if (m_isReplayMode) {
+        exitReplayMode();
+    }
+    
+    // 重置棋盤到初始狀態
+    m_chessBoard.initializeBoard();
+    m_pieceSelected = false;
+    m_gameStarted = false;
+    m_uciMoveHistory.clear();
     
     // 停止背景音樂
     stopBackgroundMusic();
     
-    // 停止所有音效
-    stopAllSounds();
+    // 重置上一步移動高亮
+    m_lastMoveFrom = QPoint(-1, -1);
+    m_lastMoveTo = QPoint(-1, -1);
     
-    // 停止棋局引擎
+    // 重置時間控制
+    stopTimer();
+    m_timerStarted = false;
+    
+    // 停止引擎思考並重置引擎
     if (m_chessEngine) {
-        m_chessEngine->stopEngine();
+        m_chessEngine->stop();
+        m_chessEngine->newGame();
     }
     
-    // 關閉網路連線
-    if (m_networkManager && m_isOnlineGame) {
-        m_networkManager->leaveRoom();
+    // 將時間和吃子紀錄恢復到右側面板
+    restoreWidgetsFromGameEnd();
+    
+    // 顯示時間控制面板
+    if (m_timeControlPanel) {
+        m_timeControlPanel->show();
     }
     
-    // 退出應用程式
-    QApplication::quit();
+    // 隱藏時間顯示和進度條
+    if (m_whiteTimeLabel) m_whiteTimeLabel->hide();
+    if (m_blackTimeLabel) m_blackTimeLabel->hide();
+    if (m_whiteTimeProgressBar) m_whiteTimeProgressBar->hide();
+    if (m_blackTimeProgressBar) m_blackTimeProgressBar->hide();
+    
+    // 隱藏認輸、請求和棋和退出按鈕
+    if (m_resignButton) m_resignButton->hide();
+    if (m_requestDrawButton) m_requestDrawButton->hide();
+    if (m_exitButton) m_exitButton->hide();
+    
+    // 隱藏匯出 PGN 按鈕和複製棋譜按鈕
+    if (m_exportPGNButton) m_exportPGNButton->hide();
+    if (m_copyPGNButton) m_copyPGNButton->hide();
+    
+    // 隱藏電腦思考標籤
+    if (m_thinkingLabel) m_thinkingLabel->hide();
+    
+    // 清空棋譜列表
+    if (m_moveListWidget) m_moveListWidget->clear();
+    
+    // 根據滑桿值重置時間
+    if (m_whiteTimeLimitSlider) {
+        m_whiteTimeMs = calculateTimeFromSliderValue(m_whiteTimeLimitSlider->value());
+    }
+    if (m_blackTimeLimitSlider) {
+        m_blackTimeMs = calculateTimeFromSliderValue(m_blackTimeLimitSlider->value());
+    }
+    
+    // 檢查是否啟用時間控制
+    m_timeControlEnabled = (m_whiteTimeMs > 0 || m_blackTimeMs > 0);
+    
+    // 重置棋盤後啟用開始按鈕
+    if (m_startButton) {
+        m_startButton->setEnabled(true);
+        m_startButton->show();
+    }
+    
+    // 啟用時間控制滑桿
+    if (m_whiteTimeLimitSlider) m_whiteTimeLimitSlider->setEnabled(true);
+    if (m_blackTimeLimitSlider) m_blackTimeLimitSlider->setEnabled(true);
+    if (m_incrementSlider) m_incrementSlider->setEnabled(true);
+    
+    // 在電腦模式下，重新啟用顏色選擇按鈕
+    if (m_currentGameMode == GameMode::HumanVsComputer) {
+        if (m_whiteButton) m_whiteButton->setEnabled(true);
+        if (m_randomButton) m_randomButton->setEnabled(true);
+        if (m_blackButton) m_blackButton->setEnabled(true);
+    }
+    
+    updateBoard();
+    updateStatus();
+    updateTimeDisplays();
+    updateCapturedPiecesDisplay();
+    
+    // 更新回放按鈕狀態（新遊戲沒有移動歷史）
+    updateReplayButtons();
+    
+    // 當遊戲還沒開始時，將右側伸展設為 0
+    setRightPanelStretch(0);
+    
+    // 清除任何殘留的高亮顯示（例如選中的棋子、有效移動、將軍警告）
+    clearHighlights();
 }
 
 void Qt_Chess::onStartButtonClicked() {
