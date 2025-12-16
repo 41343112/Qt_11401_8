@@ -1770,6 +1770,11 @@ void Qt_Chess::resetGameState() {
         m_rightTimePanel->hide();
     }
     
+    // 隱藏線上模式的房間創建UI（確保返回主選單時不會顯示）
+    if (m_onlineButtonsWidget) {
+        m_onlineButtonsWidget->hide();
+    }
+    
     // 如果有網路連接，斷開連接
     if (m_networkManager && m_networkManager->getStatus() == ConnectionStatus::Connected) {
         m_networkManager->closeConnection();
