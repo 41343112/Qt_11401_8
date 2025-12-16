@@ -252,6 +252,7 @@ private:
     bool m_waitingForOpponent;           // 等待對手
     PieceColor m_onlineHostSelectedColor;  // 房主選擇的顏色（線上模式）
     qint64 m_lastDrawRequestTime;        // 上次請求和棋的時間（毫秒）
+    QMap<QString, bool> m_selectedGameModes;  // 選擇的遊戲模式
     
     // ========================================
     // 音效系統 (Sound System)
