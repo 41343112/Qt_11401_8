@@ -3,7 +3,7 @@ QT       += core gui multimedia multimediawidgets network websockets
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
 CONFIG += c++17
-
+RC_FILE = app.rc
 # Enable console output for qDebug() on Windows
 win32: CONFIG += console
 
