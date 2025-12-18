@@ -276,6 +276,7 @@ Qt_Chess::Qt_Chess(QWidget *parent)
     , m_mainMenuSettingsButton(nullptr)
     , m_gameContentWidget(nullptr)
     , m_backToMenuButton(nullptr)
+    , m_settingsPageWidget(nullptr)
 {
     ui->setupUi(this);
     setWindowTitle("♔ 國際象棋 - 科技對弈 ♚");
@@ -970,6 +971,91 @@ void Qt_Chess::setupMainMenu() {
     
     // 將主選單添加到根佈局
     rootLayout->addWidget(m_mainMenuWidget);
+    
+    // 創建設定頁面容器
+    m_settingsPageWidget = new QWidget(central);
+    QVBoxLayout* settingsLayout = new QVBoxLayout(m_settingsPageWidget);
+    settingsLayout->setContentsMargins(20, 10, 20, 10);
+    settingsLayout->setSpacing(10);
+    
+    // 標題標籤 - 現代科技風格
+    QLabel* settingsTitleLabel = new QLabel("⚙️ 設定選單", m_settingsPageWidget);
+    settingsTitleLabel->setAlignment(Qt::AlignCenter);
+    settingsTitleLabel->setWordWrap(true);
+    settingsTitleLabel->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Minimum);
+    QFont settingsTitleFont;
+    settingsTitleFont.setPointSize(24);
+    settingsTitleFont.setBold(true);
+    settingsTitleLabel->setFont(settingsTitleFont);
+    settingsTitleLabel->setStyleSheet(QString(
+        "QLabel { "
+        "  color: %1; "
+        "  padding: 10px; "
+        "  background: qlineargradient(x1:0, y1:0, x2:1, y2:0, "
+        "    stop:0 transparent, stop:0.5 rgba(0, 255, 255, 0.3), stop:1 transparent); "
+        "  border-radius: 10px; "
+        "}"
+    ).arg(THEME_ACCENT_PRIMARY));
+    settingsLayout->addWidget(settingsTitleLabel);
+    
+    settingsLayout->addSpacing(10);
+    
+    // 按鈕樣式 - 現代科技風格
+    QString settingsButtonStyle = QString(
+        "QPushButton { "
+        "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1, "
+        "    stop:0 %1, stop:1 %2); "
+        "  color: %3; "
+        "  padding: 12px; "
+        "  font-size: 16pt; "
+        "  font-weight: bold; "
+        "  border: 3px solid %4; "
+        "  border-radius: 10px; "
+        "  min-width: 250px; "
+        "  min-height: 40px; "
+        "} "
+        "QPushButton:hover { "
+        "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1, "
+        "    stop:0 %4, stop:1 %1); "
+        "  border: 3px solid %5; "
+        "} "
+        "QPushButton:pressed { "
+        "  background: %2; "
+        "}"
+    ).arg(THEME_BG_PANEL, THEME_BG_MEDIUM, THEME_TEXT_PRIMARY, 
+          THEME_ACCENT_PRIMARY, THEME_ACCENT_SUCCESS);
+    
+    // 音效設定按鈕
+    QPushButton* soundButton = new QPushButton("🔊 音效設定", m_settingsPageWidget);
+    soundButton->setStyleSheet(settingsButtonStyle);
+    connect(soundButton, &QPushButton::clicked, this, &Qt_Chess::onSoundSettingsClicked);
+    settingsLayout->addWidget(soundButton, 0, Qt::AlignCenter);
+    
+    // 棋子圖標設定按鈕
+    QPushButton* pieceIconButton = new QPushButton("♟ 棋子圖標設定", m_settingsPageWidget);
+    pieceIconButton->setStyleSheet(settingsButtonStyle);
+    connect(pieceIconButton, &QPushButton::clicked, this, &Qt_Chess::onPieceIconSettingsClicked);
+    settingsLayout->addWidget(pieceIconButton, 0, Qt::AlignCenter);
+    
+    // 棋盤顏色設定按鈕
+    QPushButton* boardColorButton = new QPushButton("🎨 棋盤顏色設定", m_settingsPageWidget);
+    boardColorButton->setStyleSheet(settingsButtonStyle);
+    connect(boardColorButton, &QPushButton::clicked, this, &Qt_Chess::onBoardColorSettingsClicked);
+    settingsLayout->addWidget(boardColorButton, 0, Qt::AlignCenter);
+    
+    settingsLayout->addSpacing(10);
+    
+    // 返回主選單按鈕
+    QPushButton* backButton = new QPushButton("🏠 返回主選單", m_settingsPageWidget);
+    backButton->setStyleSheet(settingsButtonStyle);
+    connect(backButton, &QPushButton::clicked, this, &Qt_Chess::showMainMenu);
+    settingsLayout->addWidget(backButton, 0, Qt::AlignCenter);
+    
+    settingsLayout->addStretch();
+    
+    // 將設定頁面添加到根佈局
+    rootLayout->addWidget(m_settingsPageWidget);
+    m_settingsPageWidget->hide();  // 初始隱藏
 }
 
 void Qt_Chess::setupTimeControlUI(QVBoxLayout* timeControlPanelLayout) {
@@ -1711,6 +1797,9 @@ void Qt_Chess::showMainMenu() {
     if (m_gameContentWidget) {
         m_gameContentWidget->hide();
     }
+    if (m_settingsPageWidget) {
+        m_settingsPageWidget->hide();
+    }
     // 選單欄已移除，不需要隱藏
 }
 
@@ -1721,10 +1810,25 @@ void Qt_Chess::showGameContent() {
     if (m_gameContentWidget) {
         m_gameContentWidget->show();
     }
+    if (m_settingsPageWidget) {
+        m_settingsPageWidget->hide();
+    }
     // 選單欄已移除，不需要顯示
     // 顯示返回主選單按鈕
     if (m_exitButton) {
         m_exitButton->show();
+    }
+}
+
+void Qt_Chess::showSettingsPage() {
+    if (m_mainMenuWidget) {
+        m_mainMenuWidget->hide();
+    }
+    if (m_gameContentWidget) {
+        m_gameContentWidget->hide();
+    }
+    if (m_settingsPageWidget) {
+        m_settingsPageWidget->show();
     }
 }
 
@@ -1807,54 +1911,8 @@ void Qt_Chess::onMainMenuOnlinePlayClicked() {
 }
 
 void Qt_Chess::onMainMenuSettingsClicked() {
-    // 顯示設定選單 - 提供多個選項
-    QDialog settingsDialog(this);
-    settingsDialog.setWindowTitle("⚙️ 設定");
-    settingsDialog.setMinimumWidth(300);
-    
-    QVBoxLayout* layout = new QVBoxLayout(&settingsDialog);
-    
-    // 標題
-    QLabel* titleLabel = new QLabel("選擇要設定的項目：", &settingsDialog);
-    titleLabel->setStyleSheet("QLabel { font-size: 14pt; font-weight: bold; padding: 10px; }");
-    layout->addWidget(titleLabel);
-    
-    // 音效設定按鈕
-    QPushButton* soundButton = new QPushButton("🔊 音效設定", &settingsDialog);
-    soundButton->setStyleSheet("QPushButton { padding: 12px; font-size: 12pt; }");
-    connect(soundButton, &QPushButton::clicked, [this, &settingsDialog]() {
-        settingsDialog.accept();
-        onSoundSettingsClicked();
-    });
-    layout->addWidget(soundButton);
-    
-    // 棋子圖標設定按鈕
-    QPushButton* pieceIconButton = new QPushButton("♟ 棋子圖標設定", &settingsDialog);
-    pieceIconButton->setStyleSheet("QPushButton { padding: 12px; font-size: 12pt; }");
-    connect(pieceIconButton, &QPushButton::clicked, [this, &settingsDialog]() {
-        settingsDialog.accept();
-        onPieceIconSettingsClicked();
-    });
-    layout->addWidget(pieceIconButton);
-    
-    // 棋盤顏色設定按鈕
-    QPushButton* boardColorButton = new QPushButton("🎨 棋盤顏色設定", &settingsDialog);
-    boardColorButton->setStyleSheet("QPushButton { padding: 12px; font-size: 12pt; }");
-    connect(boardColorButton, &QPushButton::clicked, [this, &settingsDialog]() {
-        settingsDialog.accept();
-        onBoardColorSettingsClicked();
-    });
-    layout->addWidget(boardColorButton);
-    
-    layout->addSpacing(10);
-    
-    // 關閉按鈕
-    QPushButton* closeButton = new QPushButton("關閉", &settingsDialog);
-    closeButton->setStyleSheet("QPushButton { padding: 10px; font-size: 11pt; }");
-    connect(closeButton, &QPushButton::clicked, &settingsDialog, &QDialog::accept);
-    layout->addWidget(closeButton);
-    
-    settingsDialog.exec();
+    // 顯示設定頁面
+    showSettingsPage();
 }
 
 void Qt_Chess::onBackToMainMenuClicked() {

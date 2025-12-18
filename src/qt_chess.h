@@ -145,6 +145,7 @@ private:
     QPushButton* m_mainMenuSettingsButton;     // 設定按鈕
     QWidget* m_gameContentWidget;        // 遊戲內容容器
     QPushButton* m_backToMenuButton;     // 返回主選單按鈕
+    QWidget* m_settingsPageWidget;       // 設定頁面容器
     
     // ========================================
     // 時間控制系統 (Time Control System)
@@ -325,6 +326,7 @@ private:
     // ========================================
     void showMainMenu();
     void showGameContent();
+    void showSettingsPage();
     void resetGameState();
     
     // ========================================
