@@ -73,6 +73,14 @@ public:
     const std::vector<ChessPiece>& getCapturedPieces(PieceColor color) const;
     void clearCapturedPieces();
     
+    // 地雷模式功能
+    void initializeMinesweeper();  // 初始化地雷模式（放置4-5個地雷）
+    bool hasMine(int row, int col) const;  // 檢查該位置是否有地雷
+    int getMineCount(int row, int col) const;  // 獲取周圍地雷數量
+    bool isMinesweeperSquare(int row, int col) const;  // 檢查是否在地雷區域（3-6行，a-h列）
+    void revealMineCount(int row, int col);  // 顯示周圍地雷數量
+    bool checkMineExplosion(const QPoint& pos);  // 檢查是否踩到地雷，如果是則移除棋子
+    
 private:
     std::vector<std::vector<ChessPiece>> m_board;
     PieceColor m_currentPlayer;
@@ -81,6 +89,11 @@ private:
     GameResult m_gameResult; // 遊戲結果
     std::vector<ChessPiece> m_capturedWhite; // 被吃掉的白色棋子
     std::vector<ChessPiece> m_capturedBlack; // 被吃掉的黑色棋子
+    
+    // 地雷模式數據
+    std::vector<std::vector<bool>> m_mineField;  // 地雷位置（8x8網格，true表示有地雷）
+    std::vector<std::vector<int>> m_mineCounts;  // 每個格子周圍的地雷數量
+    std::vector<std::vector<bool>> m_mineRevealed;  // 地雷數量是否已顯示
     
     void switchPlayer();
     bool wouldBeInCheck(const QPoint& from, const QPoint& to, PieceColor color) const;

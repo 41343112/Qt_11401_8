@@ -959,6 +959,13 @@ void Qt_Chess::setupMainMenu() {
             this, &Qt_Chess::onMainMenuOnlinePlayClicked);
     menuLayout->addWidget(m_mainMenuOnlinePlayButton, 0, Qt::AlignCenter);
     
+    // 地雷模式按鈕
+    m_mainMenuMinesweeperButton = new QPushButton("💣 地雷模式", m_mainMenuWidget);
+    m_mainMenuMinesweeperButton->setStyleSheet(buttonStyle);
+    connect(m_mainMenuMinesweeperButton, &QPushButton::clicked, 
+            this, &Qt_Chess::onMainMenuMinesweeperClicked);
+    menuLayout->addWidget(m_mainMenuMinesweeperButton, 0, Qt::AlignCenter);
+    
     // 設定按鈕
     m_mainMenuSettingsButton = new QPushButton("⚙️ 設定", m_mainMenuWidget);
     m_mainMenuSettingsButton->setStyleSheet(buttonStyle);
@@ -1806,6 +1813,21 @@ void Qt_Chess::onMainMenuOnlinePlayClicked() {
     onOnlineModeClicked();  // 顯示線上對戰對話框
 }
 
+void Qt_Chess::onMainMenuMinesweeperClicked() {
+    // 切換到地雷模式
+    showGameContent();
+    
+    // 設置為地雷模式
+    m_currentGameMode = GameMode::Minesweeper;
+    updateGameModeUI();
+    
+    // 初始化地雷
+    m_chessBoard.initializeMinesweeper();
+    
+    // 開始新遊戲
+    onNewGameClicked();
+}
+
 void Qt_Chess::onMainMenuSettingsClicked() {
     // 顯示設定選單 - 提供多個選項
     QDialog settingsDialog(this);
@@ -1887,7 +1909,37 @@ void Qt_Chess::updateBoard() {
             int displayRow = getDisplayRow(logicalRow);
             int displayCol = getDisplayCol(logicalCol);
             const ChessPiece& piece = m_chessBoard.getPiece(logicalRow, logicalCol);
-            displayPieceOnSquare(m_squares[displayRow][displayCol], piece);
+            
+            // 地雷模式：在空格子上顯示地雷數量
+            if (m_currentGameMode == GameMode::Minesweeper && 
+                m_chessBoard.isMinesweeperSquare(logicalRow, logicalCol)) {
+                // 如果是空格且地雷數量已顯示，則在方格上顯示數字
+                if (piece.getType() == PieceType::None) {
+                    int mineCount = m_chessBoard.getMineCount(logicalRow, logicalCol);
+                    if (mineCount > 0) {
+                        // 用顏色標示地雷數量
+                        QString colorStyle;
+                        switch (mineCount) {
+                            case 1: colorStyle = "color: blue;"; break;
+                            case 2: colorStyle = "color: green;"; break;
+                            case 3: colorStyle = "color: red;"; break;
+                            case 4: colorStyle = "color: purple;"; break;
+                            default: colorStyle = "color: black;"; break;
+                        }
+                        m_squares[displayRow][displayCol]->setText(QString::number(mineCount));
+                        m_squares[displayRow][displayCol]->setStyleSheet(
+                            m_squares[displayRow][displayCol]->styleSheet() + colorStyle + " font-size: 20pt; font-weight: bold;"
+                        );
+                    } else {
+                        displayPieceOnSquare(m_squares[displayRow][displayCol], piece);
+                    }
+                } else {
+                    displayPieceOnSquare(m_squares[displayRow][displayCol], piece);
+                }
+            } else {
+                displayPieceOnSquare(m_squares[displayRow][displayCol], piece);
+            }
+            
             updateSquareColor(displayRow, displayCol);
         }
     }
@@ -2272,6 +2324,15 @@ void Qt_Chess::onSquareClicked(int displayRow, int displayCol) {
             }
 
             updateBoard();
+
+            // 地雷模式：檢查是否踩到地雷
+            if (m_currentGameMode == GameMode::Minesweeper) {
+                if (m_chessBoard.checkMineExplosion(clickedSquare)) {
+                    // 棋子踩到地雷，已被移除
+                    QMessageBox::warning(this, "地雷爆炸", "💣 該棋子踩到地雷並被移除！");
+                    updateBoard();  // 重新更新棋盤顯示
+                }
+            }
 
             // 檢查是否需要兵升變
             if (m_chessBoard.needsPromotion(clickedSquare)) {

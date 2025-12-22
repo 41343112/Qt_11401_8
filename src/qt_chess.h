@@ -88,6 +88,7 @@ private slots:
     void onMainMenuLocalPlayClicked();
     void onMainMenuComputerPlayClicked();
     void onMainMenuOnlinePlayClicked();
+    void onMainMenuMinesweeperClicked();
     void onMainMenuSettingsClicked();
     void onBackToMainMenuClicked();
 
@@ -142,6 +143,7 @@ private:
     QPushButton* m_mainMenuLocalPlayButton;    // 本地遊玩按鈕
     QPushButton* m_mainMenuComputerPlayButton; // 與電腦對戰按鈕
     QPushButton* m_mainMenuOnlinePlayButton;   // 線上遊玩按鈕
+    QPushButton* m_mainMenuMinesweeperButton;  // 地雷模式按鈕
     QPushButton* m_mainMenuSettingsButton;     // 設定按鈕
     QWidget* m_gameContentWidget;        // 遊戲內容容器
     QPushButton* m_backToMenuButton;     // 返回主選單按鈕

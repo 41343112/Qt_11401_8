@@ -1,7 +1,9 @@
 #include "chessboard.h"
+#include <QRandomGenerator>
 
 ChessBoard::ChessBoard()
-    : m_board(8, std::vector<ChessPiece>(8)), m_currentPlayer(PieceColor::White), m_enPassantTarget(-1, -1), m_gameResult(GameResult::InProgress)
+    : m_board(8, std::vector<ChessPiece>(8)), m_currentPlayer(PieceColor::White), m_enPassantTarget(-1, -1), m_gameResult(GameResult::InProgress),
+      m_mineField(8, std::vector<bool>(8, false)), m_mineCounts(8, std::vector<int>(8, 0)), m_mineRevealed(8, std::vector<bool>(8, false))
 {
     initializeBoard();
 }
@@ -642,4 +644,106 @@ const std::vector<ChessPiece>& ChessBoard::getCapturedPieces(PieceColor color) c
 void ChessBoard::clearCapturedPieces() {
     m_capturedWhite.clear();
     m_capturedBlack.clear();
+}
+
+// 地雷模式功能實現
+
+void ChessBoard::initializeMinesweeper() {
+    // 重置地雷數據
+    for (int row = 0; row < 8; ++row) {
+        for (int col = 0; col < 8; ++col) {
+            m_mineField[row][col] = false;
+            m_mineCounts[row][col] = 0;
+            m_mineRevealed[row][col] = false;
+        }
+    }
+    
+    // 地雷區域：行 3-6（索引），列 a-h（0-7）
+    // 隨機放置 4-5 個地雷
+    int numMines = 4 + (QRandomGenerator::global()->bounded(2));  // 4 或 5
+    int minesPlaced = 0;
+    
+    while (minesPlaced < numMines) {
+        int row = 3 + QRandomGenerator::global()->bounded(4);  // 行 3-6
+        int col = QRandomGenerator::global()->bounded(8);      // 列 0-7 (a-h)
+        
+        // 確保不重複放置
+        if (!m_mineField[row][col]) {
+            m_mineField[row][col] = true;
+            minesPlaced++;
+        }
+    }
+    
+    // 計算每個格子周圍的地雷數量（九宮格算法）
+    for (int row = 0; row < 8; ++row) {
+        for (int col = 0; col < 8; ++col) {
+            if (!isMinesweeperSquare(row, col)) continue;
+            
+            int count = 0;
+            // 檢查周圍 8 個格子
+            for (int dr = -1; dr <= 1; ++dr) {
+                for (int dc = -1; dc <= 1; ++dc) {
+                    if (dr == 0 && dc == 0) continue;  // 跳過自己
+                    
+                    int newRow = row + dr;
+                    int newCol = col + dc;
+                    
+                    // 檢查邊界和是否有地雷
+                    if (newRow >= 0 && newRow < 8 && newCol >= 0 && newCol < 8) {
+                        if (m_mineField[newRow][newCol]) {
+                            count++;
+                        }
+                    }
+                }
+            }
+            m_mineCounts[row][col] = count;
+        }
+    }
+}
+
+bool ChessBoard::hasMine(int row, int col) const {
+    if (row < 0 || row >= 8 || col < 0 || col >= 8) {
+        return false;
+    }
+    return m_mineField[row][col];
+}
+
+int ChessBoard::getMineCount(int row, int col) const {
+    if (row < 0 || row >= 8 || col < 0 || col >= 8) {
+        return 0;
+    }
+    return m_mineCounts[row][col];
+}
+
+bool ChessBoard::isMinesweeperSquare(int row, int col) const {
+    // 地雷區域：行 3-6，列 a-h（0-7）
+    return (row >= 3 && row <= 6 && col >= 0 && col <= 7);
+}
+
+void ChessBoard::revealMineCount(int row, int col) {
+    if (row >= 0 && row < 8 && col >= 0 && col < 8) {
+        m_mineRevealed[row][col] = true;
+    }
+}
+
+bool ChessBoard::checkMineExplosion(const QPoint& pos) {
+    int row = pos.y();
+    int col = pos.x();
+    
+    // 檢查是否在地雷區域
+    if (!isMinesweeperSquare(row, col)) {
+        return false;
+    }
+    
+    // 顯示該位置的地雷數量
+    revealMineCount(row, col);
+    
+    // 檢查是否踩到地雷
+    if (hasMine(row, col)) {
+        // 移除該位置的棋子
+        m_board[row][col] = ChessPiece(PieceType::None, PieceColor::None);
+        return true;  // 踩到地雷
+    }
+    
+    return false;  // 沒有地雷
 }
