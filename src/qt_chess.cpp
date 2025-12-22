@@ -1910,25 +1910,31 @@ void Qt_Chess::updateBoard() {
             int displayCol = getDisplayCol(logicalCol);
             const ChessPiece& piece = m_chessBoard.getPiece(logicalRow, logicalCol);
             
+            // First update square color
+            updateSquareColor(displayRow, displayCol);
+            
             // 地雷模式：在空格子上顯示地雷數量
             if (m_currentGameMode == GameMode::Minesweeper && 
                 m_chessBoard.isMinesweeperSquare(logicalRow, logicalCol)) {
                 // 如果是空格且地雷數量已顯示，則在方格上顯示數字
-                if (piece.getType() == PieceType::None) {
+                if (piece.getType() == PieceType::None && 
+                    m_chessBoard.isMineCountRevealed(logicalRow, logicalCol)) {
                     int mineCount = m_chessBoard.getMineCount(logicalRow, logicalCol);
                     if (mineCount > 0) {
                         // 用顏色標示地雷數量
                         QString colorStyle;
                         switch (mineCount) {
-                            case 1: colorStyle = "color: blue;"; break;
-                            case 2: colorStyle = "color: green;"; break;
-                            case 3: colorStyle = "color: red;"; break;
-                            case 4: colorStyle = "color: purple;"; break;
-                            default: colorStyle = "color: black;"; break;
+                            case 1: colorStyle = "color: #0000FF;"; break;  // 藍色
+                            case 2: colorStyle = "color: #00AA00;"; break;  // 綠色
+                            case 3: colorStyle = "color: #FF0000;"; break;  // 紅色
+                            case 4: colorStyle = "color: #AA00AA;"; break;  // 紫色
+                            default: colorStyle = "color: #000000;"; break; // 黑色
                         }
                         m_squares[displayRow][displayCol]->setText(QString::number(mineCount));
+                        // Append text styling to existing square style
+                        QString currentStyle = m_squares[displayRow][displayCol]->styleSheet();
                         m_squares[displayRow][displayCol]->setStyleSheet(
-                            m_squares[displayRow][displayCol]->styleSheet() + colorStyle + " font-size: 20pt; font-weight: bold;"
+                            currentStyle + " " + colorStyle + " font-size: 20pt; font-weight: bold;"
                         );
                     } else {
                         displayPieceOnSquare(m_squares[displayRow][displayCol], piece);
@@ -1939,8 +1945,6 @@ void Qt_Chess::updateBoard() {
             } else {
                 displayPieceOnSquare(m_squares[displayRow][displayCol], piece);
             }
-            
-            updateSquareColor(displayRow, displayCol);
         }
     }
 
@@ -1967,9 +1971,17 @@ void Qt_Chess::updateSquareColor(int displayRow, int displayCol) {
     // 使用輔助函數獲取文字顏色
     QString textColor = getPieceTextColor(logicalRow, logicalCol);
     
+    // 地雷模式：為地雷區域添加特殊邊框
+    QString borderStyle = "1px solid rgba(0, 255, 255, 0.3)";
+    if (m_currentGameMode == GameMode::Minesweeper && 
+        m_chessBoard.isMinesweeperSquare(logicalRow, logicalCol)) {
+        // 地雷區域使用紅色邊框提示
+        borderStyle = "2px solid rgba(255, 100, 0, 0.6)";
+    }
+    
     // 現代科技風格 - 帶有微妙的霓虹青色發光邊框效果和適當的文字顏色
     m_squares[displayRow][displayCol]->setStyleSheet(
-        QString("QPushButton { background-color: %1; border: 1px solid rgba(0, 255, 255, 0.3); color: %2; }").arg(color.name(), textColor)
+        QString("QPushButton { background-color: %1; border: %2; color: %3; }").arg(color.name(), borderStyle, textColor)
         );
 }
 
@@ -2393,6 +2405,12 @@ void Qt_Chess::onNewGameClicked() {
     }
 
     m_chessBoard.initializeBoard();
+    
+    // 地雷模式：初始化地雷
+    if (m_currentGameMode == GameMode::Minesweeper) {
+        m_chessBoard.initializeMinesweeper();
+    }
+    
     m_pieceSelected = false;
     m_gameStarted = false;  // 重置遊戲開始狀態
     m_uciMoveHistory.clear();  // 清空 UCI 移動歷史

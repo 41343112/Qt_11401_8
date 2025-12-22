@@ -726,6 +726,13 @@ void ChessBoard::revealMineCount(int row, int col) {
     }
 }
 
+bool ChessBoard::isMineCountRevealed(int row, int col) const {
+    if (row >= 0 && row < 8 && col >= 0 && col < 8) {
+        return m_mineRevealed[row][col];
+    }
+    return false;
+}
+
 bool ChessBoard::checkMineExplosion(const QPoint& pos) {
     int row = pos.y();
     int col = pos.x();
