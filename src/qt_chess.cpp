@@ -2791,6 +2791,13 @@ void Qt_Chess::onStartButtonClicked() {
                 m_requestDrawButton->show();
             }
         } else {
+            // 本地和電腦模式不顯示認輸和請求和棋按鈕
+            if (m_resignButton) {
+                m_resignButton->hide();
+            }
+            if (m_requestDrawButton) {
+                m_requestDrawButton->hide();
+            }
             // 本地遊戲進行中時顯示退出按鈕，讓玩家可以退出當前回合
             if (m_exitButton) {
                 m_exitButton->show();
@@ -2896,6 +2903,13 @@ void Qt_Chess::onStartButtonClicked() {
                 m_requestDrawButton->show();
             }
         } else {
+            // 本地和電腦模式不顯示認輸和請求和棋按鈕
+            if (m_resignButton) {
+                m_resignButton->hide();
+            }
+            if (m_requestDrawButton) {
+                m_requestDrawButton->hide();
+            }
             // 本地遊戲進行中時顯示退出按鈕，讓玩家可以退出當前回合
             if (m_exitButton) {
                 m_exitButton->show();
@@ -2976,6 +2990,13 @@ void Qt_Chess::onStartButtonClicked() {
                 m_requestDrawButton->show();
             }
         } else {
+            // 本地和電腦模式不顯示認輸和請求和棋按鈕
+            if (m_resignButton) {
+                m_resignButton->hide();
+            }
+            if (m_requestDrawButton) {
+                m_requestDrawButton->hide();
+            }
             // 本地遊戲進行中時顯示退出按鈕，讓玩家可以退出當前回合
             if (m_exitButton) {
                 m_exitButton->show();
