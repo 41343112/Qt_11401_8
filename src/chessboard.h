@@ -81,6 +81,7 @@ public:
     void revealMineCount(int row, int col);  // 顯示周圍地雷數量
     bool isMineCountRevealed(int row, int col) const;  // 檢查地雷數量是否已顯示
     bool checkMineExplosion(const QPoint& pos);  // 檢查是否踩到地雷，如果是則移除棋子
+    void chainRevealSurrounding(int row, int col);  // 連鎖顯示周圍格子（當格子周圍無地雷時）
     
 private:
     std::vector<std::vector<ChessPiece>> m_board;

@@ -761,6 +761,11 @@ bool ChessBoard::checkMineExplosion(const QPoint& pos) {
     // 顯示該位置的地雷數量
     revealMineCount(row, col);
     
+    // 如果周圍沒有地雷（count = 0），連鎖顯示周圍格子
+    if (getMineCount(row, col) == 0) {
+        chainRevealSurrounding(row, col);
+    }
+    
     // 檢查是否踩到地雷
     if (hasMine(row, col)) {
         // 移除該位置的棋子
@@ -769,4 +774,31 @@ bool ChessBoard::checkMineExplosion(const QPoint& pos) {
     }
     
     return false;  // 沒有地雷
+}
+
+void ChessBoard::chainRevealSurrounding(int row, int col) {
+    // 連鎖顯示周圍 8 個格子的地雷數量
+    for (int dr = -1; dr <= 1; ++dr) {
+        for (int dc = -1; dc <= 1; ++dc) {
+            if (dr == 0 && dc == 0) continue;  // 跳過自己
+            
+            int newRow = row + dr;
+            int newCol = col + dc;
+            
+            // 檢查邊界和是否在地雷區域
+            if (newRow >= 0 && newRow < 8 && newCol >= 0 && newCol < 8 &&
+                isMinesweeperSquare(newRow, newCol)) {
+                
+                // 如果該格子還沒被顯示過，就顯示它
+                if (!isMineCountRevealed(newRow, newCol)) {
+                    revealMineCount(newRow, newCol);
+                    
+                    // 如果這個格子周圍也沒有地雷，遞迴顯示
+                    if (getMineCount(newRow, newCol) == 0 && !hasMine(newRow, newCol)) {
+                        chainRevealSurrounding(newRow, newCol);
+                    }
+                }
+            }
+        }
+    }
 }
