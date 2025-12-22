@@ -5278,6 +5278,7 @@ bool Qt_Chess::isComputerTurn() const {
             // 電腦執白，人執黑
             return currentPlayer == PieceColor::White;
         case GameMode::OnlineGame:
+        case GameMode::Minesweeper:
         case GameMode::HumanVsHuman:
         default:
             return false;
@@ -5295,7 +5296,8 @@ bool Qt_Chess::isPlayerPiece(PieceColor pieceColor) const {
             // 電腦執白，人執黑
             return pieceColor == PieceColor::Black;
         case GameMode::OnlineGame:
-            // 線上對戰，只有本地玩家的顏色是玩家的
+        case GameMode::Minesweeper:
+            // 線上對戰或地雷模式，只有本地玩家的顏色是玩家的
             if (m_networkManager) {
                 return pieceColor == m_networkManager->getPlayerColor();
             }
