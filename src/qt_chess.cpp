@@ -2253,33 +2253,87 @@ void Qt_Chess::getVisibleSquaresForPlayer(PieceColor playerColor, std::vector<st
                 // 根據棋子類型計算可見範圍
                 QPoint from(col, row);
                 
-                // 檢查所有可能的目標位置
-                for (int targetRow = 0; targetRow < 8; ++targetRow) {
-                    for (int targetCol = 0; targetCol < 8; ++targetCol) {
-                        QPoint to(targetCol, targetRow);
-                        
-                        // 如果該棋子可以移動到目標位置，則該位置可見
-                        if (piece.isValidMove(from, to, board, m_chessBoard.getEnPassantTarget())) {
-                            visibility[targetRow][targetCol] = true;
+                // 根據棋子類型優化可見範圍計算
+                switch (piece.getType()) {
+                    case PieceType::Pawn: {
+                        // 兵：前方1-2格和斜前方2格
+                        int direction = (playerColor == PieceColor::White) ? -1 : 1;
+                        // 前方
+                        for (int i = 1; i <= 2; ++i) {
+                            int targetRow = row + i * direction;
+                            if (targetRow >= 0 && targetRow < 8) {
+                                visibility[targetRow][col] = true;
+                                // 如果前方有棋子，不能看到更遠的格子
+                                if (board[targetRow][col].getType() != PieceType::None) break;
+                            }
                         }
-                        
-                        // 特殊處理：兵可以看到斜前方的格子（即使那裡沒有敵方棋子）
-                        if (piece.getType() == PieceType::Pawn) {
-                            int direction = (playerColor == PieceColor::White) ? -1 : 1;
-                            int targetRow1 = row + direction;
-                            int targetCol1 = col - 1;
-                            int targetCol2 = col + 1;
-                            
-                            if (targetRow1 >= 0 && targetRow1 < 8) {
-                                if (targetCol1 >= 0 && targetCol1 < 8) {
-                                    visibility[targetRow1][targetCol1] = true;
-                                }
-                                if (targetCol2 >= 0 && targetCol2 < 8) {
-                                    visibility[targetRow1][targetCol2] = true;
+                        // 斜前方（攻擊視野）
+                        int targetRow = row + direction;
+                        if (targetRow >= 0 && targetRow < 8) {
+                            if (col > 0) visibility[targetRow][col - 1] = true;
+                            if (col < 7) visibility[targetRow][col + 1] = true;
+                        }
+                        break;
+                    }
+                    case PieceType::Knight: {
+                        // 騎士：所有可能的L形移動
+                        const int knightMoves[8][2] = {{-2,-1}, {-2,1}, {-1,-2}, {-1,2}, {1,-2}, {1,2}, {2,-1}, {2,1}};
+                        for (int i = 0; i < 8; ++i) {
+                            int targetRow = row + knightMoves[i][0];
+                            int targetCol = col + knightMoves[i][1];
+                            if (targetRow >= 0 && targetRow < 8 && targetCol >= 0 && targetCol < 8) {
+                                visibility[targetRow][targetCol] = true;
+                            }
+                        }
+                        break;
+                    }
+                    case PieceType::King: {
+                        // 國王：周圍8格
+                        for (int dr = -1; dr <= 1; ++dr) {
+                            for (int dc = -1; dc <= 1; ++dc) {
+                                if (dr == 0 && dc == 0) continue;
+                                int targetRow = row + dr;
+                                int targetCol = col + dc;
+                                if (targetRow >= 0 && targetRow < 8 && targetCol >= 0 && targetCol < 8) {
+                                    visibility[targetRow][targetCol] = true;
                                 }
                             }
                         }
+                        break;
                     }
+                    case PieceType::Rook:
+                    case PieceType::Bishop:
+                    case PieceType::Queen: {
+                        // 車、象、后：直線/斜線視野直到遇到阻擋
+                        std::vector<std::pair<int,int>> directions;
+                        if (piece.getType() == PieceType::Rook || piece.getType() == PieceType::Queen) {
+                            directions.push_back({-1, 0});  // 上
+                            directions.push_back({1, 0});   // 下
+                            directions.push_back({0, -1});  // 左
+                            directions.push_back({0, 1});   // 右
+                        }
+                        if (piece.getType() == PieceType::Bishop || piece.getType() == PieceType::Queen) {
+                            directions.push_back({-1, -1}); // 左上
+                            directions.push_back({-1, 1});  // 右上
+                            directions.push_back({1, -1});  // 左下
+                            directions.push_back({1, 1});   // 右下
+                        }
+                        
+                        for (const auto& dir : directions) {
+                            int targetRow = row + dir.first;
+                            int targetCol = col + dir.second;
+                            while (targetRow >= 0 && targetRow < 8 && targetCol >= 0 && targetCol < 8) {
+                                visibility[targetRow][targetCol] = true;
+                                // 如果遇到棋子，停止（但該格子仍可見）
+                                if (board[targetRow][targetCol].getType() != PieceType::None) break;
+                                targetRow += dir.first;
+                                targetCol += dir.second;
+                            }
+                        }
+                        break;
+                    }
+                    default:
+                        break;
                 }
             }
         }
