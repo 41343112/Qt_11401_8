@@ -7716,7 +7716,7 @@ bool Qt_Chess::isSquareVisible(int row, int col) const {
 // ========================================
 
 void Qt_Chess::applyGravity() {
-    if (!m_gravityModeEnabled) {
+    if (!m_gravityModeEnabled || m_isReplayMode) {
         return;
     }
     
