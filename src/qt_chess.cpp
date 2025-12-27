@@ -1899,17 +1899,34 @@ void Qt_Chess::updateBoard() {
             
             // 檢查該格子是否可見
             bool isVisible = !fogEnabled || visibility[logicalRow][logicalCol];
+            bool isEmpty = piece.getType() == PieceType::None;
             
             if (isVisible) {
                 // 正常顯示棋子
                 displayPieceOnSquare(m_squares[displayRow][displayCol], piece);
                 updateSquareColor(displayRow, displayCol);
+                
+                // 如果霧戰模式啟用且格子為空，添加半透明霧效果
+                if (fogEnabled && isEmpty) {
+                    // 計算邏輯坐標以確定正確的淺色/深色模式
+                    bool isLight = (logicalRow + logicalCol) % 2 == 0;
+                    QColor baseColor = isLight ? m_boardColorSettings.lightSquareColor : m_boardColorSettings.darkSquareColor;
+                    
+                    // 使用半透明深灰色覆蓋表示霧（50% 透明度）
+                    QString fogOverlay = "rgba(42, 42, 42, 0.5)";
+                    QString textColor = getPieceTextColor(logicalRow, logicalCol);
+                    
+                    m_squares[displayRow][displayCol]->setStyleSheet(
+                        QString("QPushButton { background: qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 %1, stop:1 %2), %3; border: 1px solid rgba(0, 255, 255, 0.3); color: %4; }")
+                        .arg(baseColor.name(), baseColor.darker(110).name(), fogOverlay, textColor)
+                    );
+                }
             } else {
-                // 應用霧效果：顯示為空格子，並使用特殊顏色表示霧
+                // 應用完全霧效果：顯示為空格子，並使用特殊顏色表示霧
                 ChessPiece emptyPiece(PieceType::None, PieceColor::None);
                 displayPieceOnSquare(m_squares[displayRow][displayCol], emptyPiece);
                 
-                // 使用深灰色表示霧
+                // 使用深灰色表示完全的霧
                 QString fogColor = "#2A2A2A";
                 m_squares[displayRow][displayCol]->setStyleSheet(
                     QString("QPushButton { background-color: %1; border: 1px solid #1A1A1A; }").arg(fogColor)
