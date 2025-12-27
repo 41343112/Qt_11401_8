@@ -6134,6 +6134,9 @@ void Qt_Chess::onStartGameReceived(int whiteTimeMs, int blackTimeMs, int increme
     if (m_selectedGameModes.contains("地吸引力") && m_selectedGameModes["地吸引力"]) {
         m_gravityModeEnabled = true;
         qDebug() << "[Qt_Chess::onStartGameReceived] Gravity mode enabled";
+        
+        // 開始時應用重力，讓所有棋子往右掉（棋盤轉90度效果）
+        applyGravity();
     } else {
         m_gravityModeEnabled = false;
     }
@@ -7740,35 +7743,35 @@ void Qt_Chess::applyGravity() {
     
     bool pieceMoved = false;
     
-    // 從下往上檢查每一行，讓棋子往下掉
+    // 棋盤轉90度：讓棋子往右掉（朝向col 7）
     // 重複執行直到沒有棋子移動為止
     do {
         pieceMoved = false;
         
-        // 從倒數第二行開始往上檢查（最底行不需要檢查）
-        for (int row = 6; row >= 0; --row) {
-            for (int col = 0; col < 8; ++col) {
+        // 從右往左檢查每一列（最右列不需要檢查）
+        for (int col = 6; col >= 0; --col) {
+            for (int row = 0; row < 8; ++row) {
                 ChessPiece& piece = m_chessBoard.getPiece(row, col);
                 
                 // 如果這個位置有棋子
                 if (piece.getType() != PieceType::None) {
-                    // 檢查下面的位置是否為空
-                    int targetRow = row + 1;
+                    // 檢查右邊的位置是否為空
+                    int targetCol = col + 1;
                     
-                    // 讓棋子一直往下掉，直到碰到底部或其他棋子
-                    // 注意：短路求值確保 targetRow < 8 為假時不會訪問 getPiece
-                    while (targetRow < 8 && m_chessBoard.getPiece(targetRow, col).getType() == PieceType::None) {
-                        targetRow++;
+                    // 讓棋子一直往右掉，直到碰到右邊界或其他棋子
+                    // 注意：短路求值確保 targetCol < 8 為假時不會訪問 getPiece
+                    while (targetCol < 8 && m_chessBoard.getPiece(row, targetCol).getType() == PieceType::None) {
+                        targetCol++;
                     }
                     
-                    // targetRow-1 是棋子應該停止的位置
-                    targetRow--;
+                    // targetCol-1 是棋子應該停止的位置
+                    targetCol--;
                     
                     // 如果棋子需要移動
-                    if (targetRow > row) {
+                    if (targetCol > col) {
                         // 將棋子移動到新位置，保留棋子的狀態（包括 hasMoved）
                         ChessPiece movedPiece = piece;
-                        m_chessBoard.setPiece(targetRow, col, movedPiece);
+                        m_chessBoard.setPiece(row, targetCol, movedPiece);
                         m_chessBoard.setPiece(row, col, ChessPiece(PieceType::None, PieceColor::None));
                         pieceMoved = true;
                     }
