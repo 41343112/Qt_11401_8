@@ -6135,10 +6135,16 @@ void Qt_Chess::onStartGameReceived(int whiteTimeMs, int blackTimeMs, int increme
         m_gravityModeEnabled = true;
         qDebug() << "[Qt_Chess::onStartGameReceived] Gravity mode enabled";
         
+        // UI顯示旋轉：將棋盤順時針旋轉90度
+        rotateBoardDisplay(true);
+        
         // 開始時應用重力，讓所有棋子往右掉（棋盤轉90度效果）
         applyGravity();
     } else {
         m_gravityModeEnabled = false;
+        
+        // 恢復正常顯示
+        rotateBoardDisplay(false);
     }
     
     // 更新棋盤和狀態
@@ -7779,6 +7785,61 @@ void Qt_Chess::applyGravity() {
             }
         }
     } while (pieceMoved);
+}
+
+// 旋轉棋盤UI顯示（90度順時針）
+void Qt_Chess::rotateBoardDisplay(bool rotate) {
+    if (!m_boardWidget) return;
+    
+    QGridLayout* gridLayout = qobject_cast<QGridLayout*>(m_boardWidget->layout());
+    if (!gridLayout) return;
+    
+    if (rotate) {
+        // 順時針旋轉90度：重新排列格子
+        // 旋轉後的位置：新行 = 舊列，新列 = 7 - 舊行
+        qDebug() << "[Qt_Chess] Rotating board display 90 degrees clockwise";
+        
+        // 創建臨時數組保存當前佈局
+        std::vector<std::vector<QPushButton*>> tempSquares(8, std::vector<QPushButton*>(8));
+        
+        for (int row = 0; row < 8; ++row) {
+            for (int col = 0; col < 8; ++col) {
+                tempSquares[row][col] = m_squares[row][col];
+                gridLayout->removeWidget(m_squares[row][col]);
+            }
+        }
+        
+        // 重新添加格子到旋轉後的位置
+        for (int oldRow = 0; oldRow < 8; ++oldRow) {
+            for (int oldCol = 0; oldCol < 8; ++oldCol) {
+                int newRow = oldCol;
+                int newCol = 7 - oldRow;
+                gridLayout->addWidget(tempSquares[oldRow][oldCol], newRow, newCol);
+            }
+        }
+        
+    } else {
+        // 恢復正常佈局
+        qDebug() << "[Qt_Chess] Restoring normal board display";
+        
+        // 移除所有widget
+        for (int row = 0; row < 8; ++row) {
+            for (int col = 0; col < 8; ++col) {
+                gridLayout->removeWidget(m_squares[row][col]);
+            }
+        }
+        
+        // 重新添加到原始位置
+        for (int row = 0; row < 8; ++row) {
+            for (int col = 0; col < 8; ++col) {
+                gridLayout->addWidget(m_squares[row][col], row, col);
+            }
+        }
+    }
+    
+    // 強制更新佈局
+    gridLayout->update();
+    m_boardWidget->update();
 }
 
 

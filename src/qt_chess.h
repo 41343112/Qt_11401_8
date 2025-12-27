@@ -469,6 +469,7 @@ private:
     
     // 地吸引力模式 (Gravity Mode)
     void applyGravity();                 // 應用地吸引力讓棋子下落
+    void rotateBoardDisplay(bool rotate);  // 旋轉棋盤UI顯示
     
     // ========================================
     // 音效系統 (Sound System)
