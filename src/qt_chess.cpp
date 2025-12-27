@@ -2089,6 +2089,17 @@ void Qt_Chess::applyCheckHighlight(const QPoint& excludeSquare) {
     }
 }
 
+void Qt_Chess::highlightSquareForLastMove(const QPoint& square) {
+    int displayRow = getDisplayRow(square.y());
+    int displayCol = getDisplayCol(square.x());
+    bool isLight = (square.y() + square.x()) % 2 == 0;
+    QString color = isLight ? LAST_MOVE_LIGHT_COLOR : LAST_MOVE_DARK_COLOR;
+    QString textColor = getPieceTextColor(square.y(), square.x());
+    m_squares[displayRow][displayCol]->setStyleSheet(
+        QString("QPushButton { background-color: %1; border: 1px solid #333; color: %2; }").arg(color, textColor)
+    );
+}
+
 void Qt_Chess::applyLastMoveHighlight() {
     // 如果沒有上一步移動，則不高亮
     if (m_lastMoveFrom.x() < 0 || m_lastMoveTo.x() < 0) {
@@ -2108,51 +2119,17 @@ void Qt_Chess::applyLastMoveHighlight() {
         getVisibleSquaresForPlayer(viewingPlayer, visibility);
         
         // 只高亮可見的格子
-        bool fromVisible = visibility[m_lastMoveFrom.y()][m_lastMoveFrom.x()];
-        bool toVisible = visibility[m_lastMoveTo.y()][m_lastMoveTo.x()];
-        
-        if (fromVisible) {
-            int fromDisplayRow = getDisplayRow(m_lastMoveFrom.y());
-            int fromDisplayCol = getDisplayCol(m_lastMoveFrom.x());
-            bool fromIsLight = (m_lastMoveFrom.y() + m_lastMoveFrom.x()) % 2 == 0;
-            QString fromColor = fromIsLight ? LAST_MOVE_LIGHT_COLOR : LAST_MOVE_DARK_COLOR;
-            QString fromTextColor = getPieceTextColor(m_lastMoveFrom.y(), m_lastMoveFrom.x());
-            m_squares[fromDisplayRow][fromDisplayCol]->setStyleSheet(
-                QString("QPushButton { background-color: %1; border: 1px solid #333; color: %2; }").arg(fromColor, fromTextColor)
-            );
+        if (visibility[m_lastMoveFrom.y()][m_lastMoveFrom.x()]) {
+            highlightSquareForLastMove(m_lastMoveFrom);
         }
         
-        if (toVisible) {
-            int toDisplayRow = getDisplayRow(m_lastMoveTo.y());
-            int toDisplayCol = getDisplayCol(m_lastMoveTo.x());
-            bool toIsLight = (m_lastMoveTo.y() + m_lastMoveTo.x()) % 2 == 0;
-            QString toColor = toIsLight ? LAST_MOVE_LIGHT_COLOR : LAST_MOVE_DARK_COLOR;
-            QString toTextColor = getPieceTextColor(m_lastMoveTo.y(), m_lastMoveTo.x());
-            m_squares[toDisplayRow][toDisplayCol]->setStyleSheet(
-                QString("QPushButton { background-color: %1; border: 1px solid #333; color: %2; }").arg(toColor, toTextColor)
-            );
+        if (visibility[m_lastMoveTo.y()][m_lastMoveTo.x()]) {
+            highlightSquareForLastMove(m_lastMoveTo);
         }
     } else {
         // 非霧戰模式，正常高亮
-        // 高亮「從」格子（黃色）
-        int fromDisplayRow = getDisplayRow(m_lastMoveFrom.y());
-        int fromDisplayCol = getDisplayCol(m_lastMoveFrom.x());
-        bool fromIsLight = (m_lastMoveFrom.y() + m_lastMoveFrom.x()) % 2 == 0;
-        QString fromColor = fromIsLight ? LAST_MOVE_LIGHT_COLOR : LAST_MOVE_DARK_COLOR;
-        QString fromTextColor = getPieceTextColor(m_lastMoveFrom.y(), m_lastMoveFrom.x());
-        m_squares[fromDisplayRow][fromDisplayCol]->setStyleSheet(
-            QString("QPushButton { background-color: %1; border: 1px solid #333; color: %2; }").arg(fromColor, fromTextColor)
-        );
-        
-        // 高亮「到」格子（黃色）
-        int toDisplayRow = getDisplayRow(m_lastMoveTo.y());
-        int toDisplayCol = getDisplayCol(m_lastMoveTo.x());
-        bool toIsLight = (m_lastMoveTo.y() + m_lastMoveTo.x()) % 2 == 0;
-        QString toColor = toIsLight ? LAST_MOVE_LIGHT_COLOR : LAST_MOVE_DARK_COLOR;
-        QString toTextColor = getPieceTextColor(m_lastMoveTo.y(), m_lastMoveTo.x());
-        m_squares[toDisplayRow][toDisplayCol]->setStyleSheet(
-            QString("QPushButton { background-color: %1; border: 1px solid #333; color: %2; }").arg(toColor, toTextColor)
-        );
+        highlightSquareForLastMove(m_lastMoveFrom);
+        highlightSquareForLastMove(m_lastMoveTo);
     }
 }
 
@@ -2296,7 +2273,7 @@ void Qt_Chess::getVisibleSquaresForPlayer(PieceColor playerColor, std::vector<st
                 // 根據棋子類型優化可見範圍計算
                 switch (piece.getType()) {
                     case PieceType::Pawn: {
-                        // 兵：前方1-2格和斜前方2格
+                        // 兵：前方1-2格和斜前方攻擊視野
                         int direction = (playerColor == PieceColor::White) ? -1 : 1;
                         // 前方
                         for (int i = 1; i <= 2; ++i) {

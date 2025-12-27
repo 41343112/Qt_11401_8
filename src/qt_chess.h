@@ -341,6 +341,7 @@ private:
     void clearHighlights();
     void applyCheckHighlight(const QPoint& excludeSquare = QPoint(-1, -1));
     void applyLastMoveHighlight();
+    void highlightSquareForLastMove(const QPoint& square);  // 霧戰模式輔助函數
     
     // 棋盤座標轉換
     int getDisplayRow(int logicalRow) const;
