@@ -1885,9 +1885,16 @@ void Qt_Chess::updateBoard() {
     // 如果啟用霧戰模式，計算當前玩家的可見範圍
     std::vector<std::vector<bool>> visibility;
     bool fogEnabled = isFogModeEnabled();
-    PieceColor viewingPlayer = m_chessBoard.getCurrentPlayer();
+    PieceColor viewingPlayer;
     
     if (fogEnabled) {
+        // 在線上模式，使用本地玩家的顏色
+        // 在本地模式，使用當前回合玩家的顏色
+        if (m_isOnlineGame && m_networkManager) {
+            viewingPlayer = m_networkManager->getPlayerColor();
+        } else {
+            viewingPlayer = m_chessBoard.getCurrentPlayer();
+        }
         getVisibleSquaresForPlayer(viewingPlayer, visibility);
     }
     
