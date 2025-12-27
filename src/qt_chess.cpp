@@ -1940,9 +1940,13 @@ void Qt_Chess::updateSquareColor(int displayRow, int displayCol) {
         bool isVisible = isSquareVisibleInFogOfWar(logicalRow, logicalCol, viewingPlayer);
         
         if (!isVisible) {
-            // 不可見的方格顯示為深灰色霧狀效果
+            // 不可見的方格顯示為深灰色霧狀效果，無邊框
             color = QColor(50, 50, 60); // 深灰藍色
             textColor = "#888888"; // 灰色文字
+            m_squares[displayRow][displayCol]->setStyleSheet(
+                QString("QPushButton { background-color: %1; border: none; color: %2; }").arg(color.name(), textColor)
+            );
+            return;
         }
     }
     
@@ -2044,14 +2048,8 @@ bool Qt_Chess::isFogOfWarEnabled() const {
 PieceColor Qt_Chess::getViewingPlayer() const {
     // 決定視角
     if (m_isOnlineGame && m_networkManager) {
-        // 線上模式：根據玩家在房間中的角色決定視角
-        if (m_networkManager->getRole() == NetworkRole::Host) {
-            // 房主的視角取決於其選擇的顏色
-            return m_onlineHostSelectedColor;
-        } else {
-            // 房客的視角是房主選擇顏色的對立面
-            return (m_onlineHostSelectedColor == PieceColor::White) ? PieceColor::Black : PieceColor::White;
-        }
+        // 線上模式：使用玩家自己的顏色作為視角
+        return m_networkManager->getPlayerColor();
     } else {
         // 本地模式或電腦模式：使用當前玩家視角（輪流顯示各自的霧戰視野）
         return m_chessBoard.getCurrentPlayer();
