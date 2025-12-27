@@ -7740,7 +7740,7 @@ void Qt_Chess::applyGravity() {
     
     bool pieceMoved = false;
     
-    // 從下往上檢查每一列，讓棋子往下掉
+    // 從下往上檢查每一行，讓棋子往下掉
     // 重複執行直到沒有棋子移動為止
     do {
         pieceMoved = false;
@@ -7756,6 +7756,7 @@ void Qt_Chess::applyGravity() {
                     int targetRow = row + 1;
                     
                     // 讓棋子一直往下掉，直到碰到底部或其他棋子
+                    // 注意：短路求值確保 targetRow < 8 為假時不會訪問 getPiece
                     while (targetRow < 8 && m_chessBoard.getPiece(targetRow, col).getType() == PieceType::None) {
                         targetRow++;
                     }
