@@ -253,6 +253,7 @@ Qt_Chess::Qt_Chess(QWidget *parent)
     , m_onlineHostSelectedColor(PieceColor::White)
     , m_lastDrawRequestTime(0)
     , m_fogOfWarEnabled(false)
+    , m_gravityModeEnabled(false)
     , m_bgmPlayer(nullptr)
     , m_bgmEnabled(true)
     , m_bgmVolume(30)
@@ -1749,6 +1750,9 @@ void Qt_Chess::resetGameState() {
     // 停用霧戰模式
     m_fogOfWarEnabled = false;
     
+    // 停用地吸引力模式
+    m_gravityModeEnabled = false;
+    
     // 停止計時器
     if (m_gameTimer) {
         if (m_gameTimer->isActive()) {
@@ -2311,6 +2315,12 @@ void Qt_Chess::onSquareClicked(int displayRow, int displayCol) {
                 PieceType promotionType = showPromotionDialog(piece.getColor());
                 m_chessBoard.promotePawn(clickedSquare, promotionType);
                 promType = promotionType;
+                updateBoard();
+            }
+            
+            // 應用地吸引力模式（如果啟用）
+            if (m_gravityModeEnabled) {
+                applyGravity();
                 updateBoard();
             }
             
@@ -3320,6 +3330,12 @@ void Qt_Chess::mouseReleaseEvent(QMouseEvent *event) {
                     PieceType promotionType = showPromotionDialog(piece.getColor());
                     m_chessBoard.promotePawn(logicalDropSquare, promotionType);
                     promType = promotionType;
+                    updateBoard();
+                }
+                
+                // 應用地吸引力模式（如果啟用）
+                if (m_gravityModeEnabled) {
+                    applyGravity();
                     updateBoard();
                 }
                 
@@ -4916,6 +4932,9 @@ void Qt_Chess::onHumanModeClicked() {
     // 停用霧戰模式
     m_fogOfWarEnabled = false;
     
+    // 停用地吸引力模式
+    m_gravityModeEnabled = false;
+    
     // 隱藏線上模式的房間創建UI
     if (m_onlineButtonsWidget) {
         m_onlineButtonsWidget->hide();
@@ -4949,6 +4968,9 @@ void Qt_Chess::onComputerModeClicked() {
     
     // 停用霧戰模式
     m_fogOfWarEnabled = false;
+    
+    // 停用地吸引力模式
+    m_gravityModeEnabled = false;
     
     // 隱藏線上模式的房間創建UI
     if (m_onlineButtonsWidget) {
@@ -5129,6 +5151,12 @@ void Qt_Chess::onEngineBestMove(const QString& move) {
                 // 預設升變為后
                 m_chessBoard.promotePawn(to, PieceType::Queen);
             }
+            updateBoard();
+        }
+        
+        // 應用地吸引力模式（如果啟用）
+        if (m_gravityModeEnabled) {
+            applyGravity();
             updateBoard();
         }
         
@@ -5795,6 +5823,11 @@ void Qt_Chess::onOpponentMove(const QPoint& from, const QPoint& to, PieceType pr
             m_chessBoard.promotePawn(to, promotionType);
         }
         
+        // 應用地吸引力模式（如果啟用）
+        if (m_gravityModeEnabled) {
+            applyGravity();
+        }
+        
         updateBoard();
         updateStatus();
         updateMoveList();
@@ -6077,6 +6110,14 @@ void Qt_Chess::onStartGameReceived(int whiteTimeMs, int blackTimeMs, int increme
         qDebug() << "[Qt_Chess::onStartGameReceived] Fog of War mode enabled";
     } else {
         m_fogOfWarEnabled = false;
+    }
+    
+    // 檢查是否啟用地吸引力模式
+    if (m_selectedGameModes.contains("地吸引力") && m_selectedGameModes["地吸引力"]) {
+        m_gravityModeEnabled = true;
+        qDebug() << "[Qt_Chess::onStartGameReceived] Gravity mode enabled";
+    } else {
+        m_gravityModeEnabled = false;
     }
     
     // 更新棋盤和狀態
@@ -6607,6 +6648,9 @@ void Qt_Chess::onCancelRoomClicked() {
         // 停用霧戰模式
         m_fogOfWarEnabled = false;
         
+        // 停用地吸引力模式
+        m_gravityModeEnabled = false;
+        
         // 隱藏開始按鈕，直到重新創建或加入房間
         if (m_startButton) {
             m_startButton->hide();
@@ -6710,6 +6754,9 @@ void Qt_Chess::onExitRoomClicked() {
         
         // 停用霧戰模式
         m_fogOfWarEnabled = false;
+        
+        // 停用地吸引力模式
+        m_gravityModeEnabled = false;
         
         // 只有在確實是線上遊戲時才重置棋盤
         if (wasOnlineGame) {
@@ -7662,6 +7709,53 @@ bool Qt_Chess::isSquareVisible(int row, int col) const {
         return false;
     }
     return m_visibleSquares[row][col];
+}
+
+// ========================================
+// 地吸引力模式實現 (Gravity Mode Implementation)
+// ========================================
+
+void Qt_Chess::applyGravity() {
+    if (!m_gravityModeEnabled) {
+        return;
+    }
+    
+    bool pieceMoved = false;
+    
+    // 從下往上檢查每一列，讓棋子往下掉
+    // 重複執行直到沒有棋子移動為止
+    do {
+        pieceMoved = false;
+        
+        // 從倒數第二行開始往上檢查（最底行不需要檢查）
+        for (int row = 6; row >= 0; --row) {
+            for (int col = 0; col < 8; ++col) {
+                ChessPiece& piece = m_chessBoard.getPiece(row, col);
+                
+                // 如果這個位置有棋子
+                if (piece.getType() != PieceType::None) {
+                    // 檢查下面的位置是否為空
+                    int targetRow = row + 1;
+                    
+                    // 讓棋子一直往下掉，直到碰到底部或其他棋子
+                    while (targetRow < 8 && m_chessBoard.getPiece(targetRow, col).getType() == PieceType::None) {
+                        targetRow++;
+                    }
+                    
+                    // targetRow-1 是棋子應該停止的位置
+                    targetRow--;
+                    
+                    // 如果棋子需要移動
+                    if (targetRow > row) {
+                        // 將棋子移動到新位置
+                        m_chessBoard.setPiece(targetRow, col, piece);
+                        m_chessBoard.setPiece(row, col, ChessPiece(PieceType::None, PieceColor::None));
+                        pieceMoved = true;
+                    }
+                }
+            }
+        }
+    } while (pieceMoved);
 }
 
 

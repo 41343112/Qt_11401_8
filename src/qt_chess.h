@@ -258,6 +258,9 @@ private:
     bool m_fogOfWarEnabled;              // 是否啟用霧戰模式
     std::vector<std::vector<bool>> m_visibleSquares;  // 可見方格（8x8）
     
+    // 地吸引力模式相關 (Gravity Mode)
+    bool m_gravityModeEnabled;           // 是否啟用地吸引力模式
+    
     // ========================================
     // 音效系統 (Sound System)
     // ========================================
@@ -463,6 +466,9 @@ private:
     void updateVisibleSquares();         // 更新可見方格
     bool isSquareVisible(int row, int col) const;  // 檢查方格是否可見
     void calculateVisibleSquares(PieceColor playerColor);  // 計算玩家可見的方格
+    
+    // 地吸引力模式 (Gravity Mode)
+    void applyGravity();                 // 應用地吸引力讓棋子下落
     
     // ========================================
     // 音效系統 (Sound System)
