@@ -1886,9 +1886,21 @@ void Qt_Chess::updateBoard() {
     std::vector<std::vector<bool>> visibility;
     bool fogEnabled = isFogModeEnabled();
     
+    qDebug() << "[Qt_Chess::updateBoard] Fog mode enabled:" << fogEnabled;
+    
     if (fogEnabled) {
         PieceColor viewingPlayer = getCurrentViewingPlayer();
+        qDebug() << "[Qt_Chess::updateBoard] Viewing player:" << (viewingPlayer == PieceColor::White ? "White" : "Black");
         getVisibleSquaresForPlayer(viewingPlayer, visibility);
+        
+        // 計算有多少格子可見
+        int visibleCount = 0;
+        for (int r = 0; r < 8; ++r) {
+            for (int c = 0; c < 8; ++c) {
+                if (visibility[r][c]) visibleCount++;
+            }
+        }
+        qDebug() << "[Qt_Chess::updateBoard] Visible squares:" << visibleCount << "/ 64";
     }
     
     for (int logicalRow = 0; logicalRow < 8; ++logicalRow) {
@@ -2251,7 +2263,13 @@ PieceType Qt_Chess::showPromotionDialog(PieceColor color) {
 
 bool Qt_Chess::isFogModeEnabled() const {
     // 檢查霧戰模式是否已啟用
-    return m_selectedGameModes.contains("霧戰") && m_selectedGameModes["霧戰"];
+    bool enabled = m_selectedGameModes.contains("霧戰") && m_selectedGameModes["霧戰"];
+    qDebug() << "[Qt_Chess::isFogModeEnabled] Checking fog mode:"
+             << "| contains '霧戰':" << m_selectedGameModes.contains("霧戰")
+             << "| value:" << (m_selectedGameModes.contains("霧戰") ? m_selectedGameModes["霧戰"] : false)
+             << "| m_isOnlineGame:" << m_isOnlineGame
+             << "| enabled:" << enabled;
+    return enabled;
 }
 
 PieceColor Qt_Chess::getCurrentViewingPlayer() const {
