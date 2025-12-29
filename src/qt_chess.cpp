@@ -2056,7 +2056,7 @@ void Qt_Chess::handleMineExplosion(const QPoint& logicalPosition, bool isOpponen
         explodedSquare->setText("");
         
         // 載入並設置爆炸圖片作為方格的圖示
-        QPixmap boomPixmap(":/resources/images/boom.jpg");
+        QPixmap boomPixmap(":/resources/images/boom.png");
         if (!boomPixmap.isNull()) {
             QIcon boomIcon(boomPixmap);
             explodedSquare->setIcon(boomIcon);
