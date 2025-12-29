@@ -353,6 +353,7 @@ private:
     void restorePieceToSquare(const QPoint& square);
     void resetBoardState();
     PieceType showPromotionDialog(PieceColor color);
+    void handleMineExplosion(const QPoint& logicalPosition, bool isOpponentMove = false);
     
     // ========================================
     // 時間控制系統 (Time Control System)
