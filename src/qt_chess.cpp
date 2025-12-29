@@ -8392,9 +8392,11 @@ void Qt_Chess::generateDice() {
         PieceType::Queen
     };
     
-    // 隨機打亂順序 (使用 C++11 標準的 std::shuffle)
-    std::random_device rd;
-    std::mt19937 gen(rd());
+    // 使用靜態隨機數生成器以提高效能
+    static std::random_device rd;
+    static std::mt19937 gen(rd());
+    
+    // 隨機打亂順序
     std::shuffle(availableTypes.begin(), availableTypes.end(), gen);
     
     // 選擇前三個不同的棋子類型
@@ -8403,14 +8405,14 @@ void Qt_Chess::generateDice() {
     }
     
     // 確保生成了正確數量的骰子，如果不足則補充
-    while (m_diceList.size() < DICE_COUNT && !availableTypes.empty()) {
+    while (static_cast<int>(m_diceList.size()) < DICE_COUNT && !m_diceList.empty()) {
         qWarning() << "[Qt_Chess::generateDice] Insufficient dice, filling remaining slots";
         // 從已選擇的骰子中隨機選擇一個重複使用
         std::uniform_int_distribution<> dist(0, m_diceList.size() - 1);
         m_diceList.push_back(m_diceList[dist(gen)]);
     }
     
-    if (m_diceList.size() != DICE_COUNT) {
+    if (static_cast<int>(m_diceList.size()) != DICE_COUNT) {
         qCritical() << "[Qt_Chess::generateDice] Critical: Failed to generate" << DICE_COUNT 
                     << "dice, only got" << m_diceList.size();
     }
@@ -8582,11 +8584,9 @@ bool Qt_Chess::hasAnyUsableDice() const {
     for (int i = m_currentDiceIndex; i < static_cast<int>(m_diceList.size()); ++i) {
         if (i < static_cast<int>(m_diceUsed.size()) && !m_diceUsed[i]) {
             // 檢查該骰子類型是否有可用的移動
-            if (i < static_cast<int>(m_diceList.size())) {
-                PieceType diceType = m_diceList[i];
-                if (hasPieceTypeWithValidMoves(diceType, currentPlayer)) {
-                    return true;
-                }
+            PieceType diceType = m_diceList[i];
+            if (hasPieceTypeWithValidMoves(diceType, currentPlayer)) {
+                return true;
             }
         }
     }
