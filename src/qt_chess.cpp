@@ -25,6 +25,7 @@
 #include <QSlider>
 #include <QTimer>
 #include <QGroupBox>
+#include <QFrame>
 #include <QFileDialog>
 #include <QDate>
 #include <QDateTime>
@@ -1761,6 +1762,11 @@ void Qt_Chess::resetGameState() {
     m_teleportPortal1 = QPoint(-1, -1);
     m_teleportPortal2 = QPoint(-1, -1);
     
+    // 停用骰子模式
+    m_diceModeEnabled = false;
+    m_diceRoll.clear();
+    m_dicePanel = nullptr;
+    
     // 停止計時器
     if (m_gameTimer) {
         if (m_gameTimer->isActive()) {
@@ -2141,6 +2147,11 @@ void Qt_Chess::clearHighlights() {
     applyLastMoveHighlight();
     // 如果被將軍，重新應用國王的紅色背景
     applyCheckHighlight();
+    
+    // 更新骰子顯示（取消選擇時恢復橘色邊框）
+    if (m_diceModeEnabled) {
+        updateDiceDisplay();
+    }
 }
 
 void Qt_Chess::applyCheckHighlight(const QPoint& excludeSquare) {
@@ -2340,9 +2351,33 @@ void Qt_Chess::onSquareClicked(int displayRow, int displayCol) {
         if (piece.getType() != PieceType::None &&
             piece.getColor() == m_chessBoard.getCurrentPlayer() &&
             isPlayerPiece(piece.getColor())) {  // 檢查是否為玩家的棋子
+            
+            // 骰子模式：檢查棋子是否在骰子中
+            if (m_diceModeEnabled && !isPieceInDice(clickedSquare)) {
+                // 顯示錯誤訊息，列出當前骰子的棋子
+                QStringList diceNames;
+                for (const DicePiece& dice : m_diceRoll) {
+                    if (!dice.used) {
+                        QString name = getPieceChineseName(dice.type);
+                        const ChessPiece& dicePiece = m_chessBoard.getPiece(dice.position.y(), dice.position.x());
+                        QString symbol = dicePiece.getSymbol();
+                        diceNames.append(symbol + " " + name);
+                    }
+                }
+                
+                QString message = "當前骰子為：" + diceNames.join("、");
+                QMessageBox::information(this, "無法移動", message);
+                return;
+            }
+            
             m_selectedSquare = clickedSquare;
             m_pieceSelected = true;
             highlightValidMoves();
+            
+            // 更新骰子顯示（綠色邊框顯示當前選中）
+            if (m_diceModeEnabled) {
+                updateDiceDisplay();
+            }
         }
     } else {
         // 在執行移動之前檢測移動類型
@@ -2424,6 +2459,11 @@ void Qt_Chess::onSquareClicked(int displayRow, int displayCol) {
             updateTimeDisplays();
 
             updateStatus();
+            
+            // 骰子模式：標記使用的骰子
+            if (m_diceModeEnabled) {
+                markDiceAsUsed(m_lastMoveFrom);
+            }
             
             // 如果是線上模式，發送移動給對手（包含最終位置）
             if (m_isOnlineGame && m_networkManager) {
@@ -6034,6 +6074,11 @@ void Qt_Chess::onOpponentMove(const QPoint& from, const QPoint& to, PieceType pr
         if (m_timeControlEnabled && m_timerStarted) {
             applyIncrement();
         }
+        
+        // 骰子模式：對手完成移動後，重新投骰子
+        if (m_diceModeEnabled) {
+            rollDice();
+        }
     } else {
         qDebug() << "[Qt_Chess::onOpponentMove] Move failed!";
     }
@@ -6330,6 +6375,21 @@ void Qt_Chess::onStartGameReceived(int whiteTimeMs, int blackTimeMs, int increme
         m_teleportModeEnabled = false;
         m_teleportPortal1 = QPoint(-1, -1);
         m_teleportPortal2 = QPoint(-1, -1);
+    }
+    
+    // 檢查是否啟用骰子模式
+    if (m_selectedGameModes.contains("骰子") && m_selectedGameModes["骰子"]) {
+        m_diceModeEnabled = true;
+        qDebug() << "[Qt_Chess::onStartGameReceived] Dice mode enabled";
+        
+        // 初始化骰子模式UI
+        initializeDiceMode();
+    } else {
+        m_diceModeEnabled = false;
+        m_diceRoll.clear();
+        if (m_dicePanel) {
+            m_dicePanel->hide();
+        }
     }
     
     // 更新棋盤和狀態
@@ -8206,3 +8266,280 @@ void Qt_Chess::applyFinalPosition(const QPoint& to, const QPoint& finalPosition)
 }
 
 
+
+// ========================================
+// 骰子模式實現 (Dice Mode Implementation)
+// ========================================
+
+void Qt_Chess::initializeDiceMode() {
+    if (!m_diceModeEnabled) {
+        return;
+    }
+    
+    qDebug() << "[Qt_Chess::initializeDiceMode] Initializing dice mode UI";
+    
+    // 創建骰子顯示面板
+    if (!m_dicePanel) {
+        m_dicePanel = new QWidget(this);
+        m_dicePanel->setStyleSheet(QString(
+            "QWidget { "
+            "  background-color: %1; "
+            "  border: 2px solid %2; "
+            "  border-radius: 10px; "
+            "  padding: 10px; "
+            "}"
+        ).arg(THEME_BG_MEDIUM, THEME_ACCENT_PRIMARY));
+        
+        QVBoxLayout* diceLayout = new QVBoxLayout(m_dicePanel);
+        
+        QLabel* diceTitle = new QLabel("🎲 骰子", m_dicePanel);
+        diceTitle->setStyleSheet(QString(
+            "QLabel { "
+            "  font-size: 14pt; "
+            "  font-weight: bold; "
+            "  color: %1; "
+            "  border: none; "
+            "  padding: 5px; "
+            "}"
+        ).arg(THEME_TEXT_PRIMARY));
+        diceTitle->setAlignment(Qt::AlignCenter);
+        diceLayout->addWidget(diceTitle);
+        
+        // 創建3個骰子顯示框
+        m_diceLabels.clear();
+        m_diceFrames.clear();
+        
+        for (int i = 0; i < 3; i++) {
+            QFrame* frame = new QFrame(m_dicePanel);
+            frame->setFrameShape(QFrame::Box);
+            frame->setLineWidth(3);
+            frame->setMinimumHeight(60);
+            frame->setStyleSheet(QString(
+                "QFrame { "
+                "  background-color: %1; "
+                "  border: 3px solid #FFA500; "  // 橘色邊框 (未使用)
+                "  border-radius: 8px; "
+                "  padding: 5px; "
+                "}"
+            ).arg(THEME_BG_DARK));
+            
+            QVBoxLayout* frameLayout = new QVBoxLayout(frame);
+            
+            QLabel* label = new QLabel("?", frame);
+            label->setStyleSheet(QString(
+                "QLabel { "
+                "  font-size: 24pt; "
+                "  color: %1; "
+                "  border: none; "
+                "  padding: 5px; "
+                "}"
+            ).arg(THEME_TEXT_PRIMARY));
+            label->setAlignment(Qt::AlignCenter);
+            
+            frameLayout->addWidget(label);
+            frame->setLayout(frameLayout);
+            
+            m_diceLabels.push_back(label);
+            m_diceFrames.push_back(frame);
+            diceLayout->addWidget(frame);
+        }
+        
+        m_dicePanel->setLayout(diceLayout);
+        
+        // 將骰子面板添加到右側面板
+        if (m_rightTimePanel) {
+            QVBoxLayout* rightLayout = qobject_cast<QVBoxLayout*>(m_rightTimePanel->layout());
+            if (rightLayout) {
+                rightLayout->insertWidget(0, m_dicePanel);
+            }
+        }
+    }
+    
+    // 初始投骰子
+    rollDice();
+}
+
+std::vector<QPoint> Qt_Chess::getLegalMovablePieces(PieceColor color) const {
+    std::vector<QPoint> movablePieces;
+    
+    // 遍歷棋盤上所有位置
+    for (int row = 0; row < 8; row++) {
+        for (int col = 0; col < 8; col++) {
+            const ChessPiece& piece = m_chessBoard.getPiece(row, col);
+            
+            // 檢查是否為指定顏色的棋子
+            if (piece.getType() != PieceType::None && piece.getColor() == color) {
+                QPoint from(col, row);
+                
+                // 檢查這個棋子是否有任何合法移動
+                bool hasLegalMove = false;
+                for (int toRow = 0; toRow < 8; toRow++) {
+                    for (int toCol = 0; toCol < 8; toCol++) {
+                        QPoint to(toCol, toRow);
+                        if (m_chessBoard.isValidMove(from, to)) {
+                            hasLegalMove = true;
+                            break;
+                        }
+                    }
+                    if (hasLegalMove) break;
+                }
+                
+                if (hasLegalMove) {
+                    movablePieces.push_back(from);
+                }
+            }
+        }
+    }
+    
+    return movablePieces;
+}
+
+void Qt_Chess::rollDice() {
+    if (!m_diceModeEnabled) {
+        return;
+    }
+    
+    qDebug() << "[Qt_Chess::rollDice] Rolling dice for current player";
+    
+    // 清空當前骰子
+    m_diceRoll.clear();
+    
+    // 獲取當前玩家所有有合法移動的棋子
+    std::vector<QPoint> movablePieces = getLegalMovablePieces(m_chessBoard.getCurrentPlayer());
+    
+    qDebug() << "[Qt_Chess::rollDice] Found" << movablePieces.size() << "movable pieces";
+    
+    // 如果可移動棋子少於3個，全部加入骰子
+    if (movablePieces.size() <= 3) {
+        for (const QPoint& pos : movablePieces) {
+            DicePiece dice;
+            dice.position = pos;
+            dice.type = m_chessBoard.getPiece(pos.y(), pos.x()).getType();
+            dice.used = false;
+            m_diceRoll.push_back(dice);
+        }
+    } else {
+        // 隨機選擇3個不同的棋子
+        std::vector<int> indices;
+        for (size_t i = 0; i < movablePieces.size(); i++) {
+            indices.push_back(i);
+        }
+        
+        // 使用 Fisher-Yates shuffle 隨機打亂
+        for (size_t i = indices.size() - 1; i > 0; i--) {
+            int j = QRandomGenerator::global()->bounded(i + 1);
+            std::swap(indices[i], indices[j]);
+        }
+        
+        // 選擇前3個
+        for (int i = 0; i < 3; i++) {
+            QPoint pos = movablePieces[indices[i]];
+            DicePiece dice;
+            dice.position = pos;
+            dice.type = m_chessBoard.getPiece(pos.y(), pos.x()).getType();
+            dice.used = false;
+            m_diceRoll.push_back(dice);
+        }
+    }
+    
+    qDebug() << "[Qt_Chess::rollDice] Rolled" << m_diceRoll.size() << "dice";
+    
+    // 更新顯示
+    updateDiceDisplay();
+}
+
+QString Qt_Chess::getPieceChineseName(PieceType type) const {
+    switch (type) {
+        case PieceType::Pawn:   return "兵";
+        case PieceType::Rook:   return "城堡";
+        case PieceType::Knight: return "騎士";
+        case PieceType::Bishop: return "主教";
+        case PieceType::Queen:  return "皇后";
+        case PieceType::King:   return "國王";
+        default:                return "未知";
+    }
+}
+
+void Qt_Chess::updateDiceDisplay() {
+    if (!m_diceModeEnabled || !m_dicePanel) {
+        return;
+    }
+    
+    // 更新每個骰子的顯示
+    for (size_t i = 0; i < 3; i++) {
+        if (i < m_diceRoll.size()) {
+            const DicePiece& dice = m_diceRoll[i];
+            const ChessPiece& piece = m_chessBoard.getPiece(dice.position.y(), dice.position.x());
+            
+            // 更新文字
+            QString symbol = piece.getSymbol();
+            QString name = getPieceChineseName(dice.type);
+            m_diceLabels[i]->setText(symbol + "\n" + name);
+            
+            // 更新邊框顏色
+            QString borderColor;
+            if (dice.used) {
+                borderColor = "#808080";  // 灰色 (已使用)
+            } else if (m_pieceSelected && dice.position == m_selectedSquare) {
+                borderColor = "#00FF00";  // 綠色 (當前選中)
+            } else {
+                borderColor = "#FFA500";  // 橘色 (未使用)
+            }
+            
+            m_diceFrames[i]->setStyleSheet(QString(
+                "QFrame { "
+                "  background-color: %1; "
+                "  border: 3px solid %2; "
+                "  border-radius: 8px; "
+                "  padding: 5px; "
+                "}"
+            ).arg(THEME_BG_DARK, borderColor));
+        } else {
+            // 如果沒有足夠的骰子，顯示空白
+            m_diceLabels[i]->setText("?");
+            m_diceFrames[i]->setStyleSheet(QString(
+                "QFrame { "
+                "  background-color: %1; "
+                "  border: 3px solid #808080; "
+                "  border-radius: 8px; "
+                "  padding: 5px; "
+                "}"
+            ).arg(THEME_BG_DARK));
+        }
+    }
+    
+    m_dicePanel->show();
+}
+
+bool Qt_Chess::isPieceInDice(const QPoint& pos) const {
+    if (!m_diceModeEnabled) {
+        return true;  // 如果未啟用骰子模式，允許所有棋子
+    }
+    
+    // 檢查位置是否在骰子中且未使用
+    for (const DicePiece& dice : m_diceRoll) {
+        if (dice.position == pos && !dice.used) {
+            return true;
+        }
+    }
+    
+    return false;
+}
+
+void Qt_Chess::markDiceAsUsed(const QPoint& pos) {
+    if (!m_diceModeEnabled) {
+        return;
+    }
+    
+    // 標記對應的骰子為已使用
+    for (DicePiece& dice : m_diceRoll) {
+        if (dice.position == pos) {
+            dice.used = true;
+            qDebug() << "[Qt_Chess::markDiceAsUsed] Marked dice at" << pos << "as used";
+            break;
+        }
+    }
+    
+    // 更新顯示
+    updateDiceDisplay();
+}
