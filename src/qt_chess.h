@@ -266,6 +266,14 @@ private:
     QPoint m_teleportPortal1;            // 傳送門位置1
     QPoint m_teleportPortal2;            // 傳送門位置2
     
+    // 骰子模式相關 (Dice Mode)
+    bool m_diceModeEnabled;              // 是否啟用骰子模式
+    std::vector<PieceType> m_diceList;   // 三個骰子的棋子類型
+    int m_currentDiceIndex;              // 當前骰子索引 (0-2)
+    std::vector<bool> m_diceUsed;        // 骰子使用狀態
+    QWidget* m_dicePanel;                // 骰子顯示面板
+    std::vector<QLabel*> m_diceLabels;   // 骰子圖示標籤
+    
     // ========================================
     // 音效系統 (Sound System)
     // ========================================
@@ -485,6 +493,18 @@ private:
     bool performTeleportationMove(const QPoint& from, const QPoint& to);  // 執行傳送動作（不重置傳送門）
     QPoint handleTeleportationAndGetFinalPosition(const QPoint& from, const QPoint& to);  // 處理傳送並返回最終位置
     void applyFinalPosition(const QPoint& to, const QPoint& finalPosition);  // 應用最終位置（用於接收對手的傳送結果）
+    
+    // 骰子模式 (Dice Mode)
+    void initializeDiceMode();           // 初始化骰子模式
+    void resetDiceMode();                // 重置骰子模式
+    void generateDice();                 // 生成三個骰子
+    void updateDiceDisplay();            // 更新骰子顯示
+    bool isValidDiceMove(const QPoint& square) const;  // 檢查移動是否符合當前骰子
+    void advanceDice();                  // 使用當前骰子並前進到下一個
+    bool canUseCurrentDice() const;      // 檢查當前骰子是否可用
+    void skipToNextUsableDice();         // 跳過到下一個可用的骰子
+    bool hasAnyUsableDice() const;       // 檢查是否有任何可用的骰子
+    QString getPieceTypeName(PieceType type) const;  // 獲取棋子類型名稱（中文）
     
     // ========================================
     // 音效系統 (Sound System)
