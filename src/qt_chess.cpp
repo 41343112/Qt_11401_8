@@ -8085,8 +8085,7 @@ void Qt_Chess::applyFinalPosition(const QPoint& to, const QPoint& finalPosition)
             
             qDebug() << "[Qt_Chess::applyFinalPosition] Moved piece from" << to << "to final position" << finalPosition;
             
-            // 重置自己的傳送門（因為對手傳送了）
-            resetTeleportPortals();
+            // 注意：不重置自己的傳送門，因為每個玩家的傳送門是獨立的
             updateBoard();  // 更新顯示
         }
     }
