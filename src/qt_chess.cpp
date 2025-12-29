@@ -6120,6 +6120,19 @@ void Qt_Chess::onOpponentMove(const QPoint& from, const QPoint& to, PieceType pr
         if (m_timeControlEnabled && m_timerStarted) {
             applyIncrement();
         }
+        
+        // 骰子模式：當對手移動後輪到我時，檢查並重新生成骰子
+        if (m_diceModeEnabled && isOnlineTurn()) {
+            // 檢查是否需要生成新骰子
+            if (!hasAnyUsableDice()) {
+                qDebug() << "[Qt_Chess::onOpponentMove] Dice mode: Generating new dice for my turn";
+                generateDice();
+                m_diceUsed = std::vector<bool>(DICE_COUNT, false);
+                m_currentDiceIndex = 0;
+                skipToNextUsableDice();
+                updateDiceDisplay();
+            }
+        }
     } else {
         qDebug() << "[Qt_Chess::onOpponentMove] Move failed!";
     }
