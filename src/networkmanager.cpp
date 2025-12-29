@@ -442,16 +442,7 @@ void NetworkManager::processMessage(const QJsonObject& message)
         }
         
         // 提取地雷位置（如果有）
-        std::vector<QPoint> minePositions;
-        if (message.contains("minePositions")) {
-            QJsonArray mineArray = message["minePositions"].toArray();
-            for (const QJsonValue& val : mineArray) {
-                QJsonObject posObj = val.toObject();
-                int x = posObj["x"].toInt();
-                int y = posObj["y"].toInt();
-                minePositions.push_back(QPoint(x, y));
-            }
-        }
+        std::vector<QPoint> minePositions = parseMinePositions(message);
         
         // 計算伺服器時間偏移（伺服器時間 - 本地時間）
         qint64 localTimestamp = QDateTime::currentMSecsSinceEpoch();
@@ -647,16 +638,7 @@ void NetworkManager::processMessage(const QJsonObject& message)
             }
             
             // 提取地雷位置（如果有）
-            std::vector<QPoint> minePositions;
-            if (message.contains("minePositions")) {
-                QJsonArray mineArray = message["minePositions"].toArray();
-                for (const QJsonValue& val : mineArray) {
-                    QJsonObject posObj = val.toObject();
-                    int x = posObj["x"].toInt();
-                    int y = posObj["y"].toInt();
-                    minePositions.push_back(QPoint(x, y));
-                }
-            }
+            std::vector<QPoint> minePositions = parseMinePositions(message);
             
             // 計算伺服器時間偏移（如果訊息中包含伺服器時間戳）
             qint64 serverTimeOffset = 0;
@@ -793,4 +775,18 @@ QString NetworkManager::messageTypeToString(MessageType type) const
     };
     
     return stringMap.value(type, "Unknown");
+}
+
+std::vector<QPoint> NetworkManager::parseMinePositions(const QJsonObject& message) const {
+    std::vector<QPoint> minePositions;
+    if (message.contains("minePositions")) {
+        QJsonArray mineArray = message["minePositions"].toArray();
+        for (const QJsonValue& val : mineArray) {
+            QJsonObject posObj = val.toObject();
+            int x = posObj["x"].toInt();
+            int y = posObj["y"].toInt();
+            minePositions.push_back(QPoint(x, y));
+        }
+    }
+    return minePositions;
 }

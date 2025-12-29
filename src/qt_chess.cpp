@@ -6170,8 +6170,8 @@ void Qt_Chess::onStartGameReceived(int whiteTimeMs, int blackTimeMs, int increme
             // 如果沒有收到地雷位置（不應該發生），顯示錯誤並停用地雷模式
             qCritical() << "[Qt_Chess::onStartGameReceived] CRITICAL: No mine positions received from server! Disabling bomb mode to prevent desync.";
             m_chessBoard.enableBombMode(false);
-            QMessageBox::warning(this, "地雷模式錯誤", 
-                "未能從伺服器接收地雷位置資料。\n為避免不同步，地雷模式已被停用。\n\n請確保伺服器版本支援地雷模式同步功能。");
+            QMessageBox::warning(this, tr("地雷模式錯誤"), 
+                tr("未能從伺服器接收地雷位置資料。\n為避免不同步，地雷模式已被停用。\n\n請確保伺服器版本支援地雷模式同步功能。"));
         }
     } else {
         m_chessBoard.enableBombMode(false);

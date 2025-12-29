@@ -113,6 +113,7 @@ private:
     PieceColor m_opponentColor;
     
     void sendMessage(const QJsonObject& message);
+    std::vector<QPoint> parseMinePositions(const QJsonObject& message) const;  // 解析地雷位置的輔助方法
     void processMessage(const QJsonObject& message);
     MessageType stringToMessageType(const QString& type) const;
     QString messageTypeToString(MessageType type) const;
