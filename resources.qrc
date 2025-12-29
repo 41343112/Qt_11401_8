@@ -60,7 +60,7 @@
         <file>resources/images/chess.jpg</file>
         
         <!-- Explosion image for bomb mode -->
-        <file>resources/images/boom.jpg</file>
+        <file>resources/images/boom.png</file>
         
     </qresource>
 </RCC>
