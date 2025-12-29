@@ -1764,6 +1764,11 @@ void Qt_Chess::resetGameState() {
     m_teleportPortal1 = QPoint(-1, -1);
     m_teleportPortal2 = QPoint(-1, -1);
     
+    // 停用骰子模式
+    if (m_diceModeEnabled) {
+        resetDiceMode();
+    }
+    
     // 停止計時器
     if (m_gameTimer) {
         if (m_gameTimer->isActive()) {
@@ -2440,22 +2445,33 @@ void Qt_Chess::onSquareClicked(int displayRow, int displayCol) {
 
             updateStatus();
             
-            // 骰子模式：使用當前骰子並前進到下一個
+            // 骰子模式：處理骰子使用和玩家切換
             if (m_diceModeEnabled) {
                 advanceDice();
                 
-                // 檢查是否所有骰子都已使用或不可用
-                if (!hasAnyUsableDice()) {
-                    qDebug() << "[Qt_Chess] All dice used or unavailable for current player";
-                    // 骰子用完，玩家已經切換（在movePiece中），現在為新玩家生成骰子
+                // 檢查是否還有可用的骰子
+                bool hasMoreDice = hasAnyUsableDice();
+                
+                if (hasMoreDice) {
+                    // 還有可用的骰子，切換回當前玩家（撤銷 movePiece 中的自動切換）
+                    // 因為在骰子模式下，玩家可以連續使用多個骰子
+                    qDebug() << "[Qt_Chess] Dice mode: More dice available, keeping same player";
+                    m_chessBoard.setCurrentPlayer(
+                        (m_chessBoard.getCurrentPlayer() == PieceColor::White) 
+                        ? PieceColor::Black : PieceColor::White
+                    );
+                    updateDiceDisplay();
+                } else {
+                    // 所有骰子都已使用或不可用，玩家切換已經發生
+                    qDebug() << "[Qt_Chess] Dice mode: All dice used, player switched, generating new dice";
                     generateDice();
                     m_diceUsed = {false, false, false};
                     m_currentDiceIndex = 0;
                     skipToNextUsableDice();
                     
-                    // 如果新玩家也沒有可用的骰子，繼續遊戲（這種情況很少見）
+                    // 如果新玩家也沒有可用的骰子，遊戲繼續（這種情況很少見）
                     if (!hasAnyUsableDice()) {
-                        qDebug() << "[Qt_Chess] New player also has no usable dice";
+                        qDebug() << "[Qt_Chess] New player has no usable dice";
                     }
                     
                     updateDiceDisplay();
