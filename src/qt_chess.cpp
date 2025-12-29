@@ -2389,14 +2389,6 @@ void Qt_Chess::onSquareClicked(int displayRow, int displayCol) {
             m_lastMoveFrom = m_selectedSquare;
             m_lastMoveTo = clickedSquare;
             
-            // 骰子模式：如果還有未使用的骰子，強制保持當前玩家回合
-            PieceColor playerBeforeMove = m_chessBoard.getCurrentPlayer() == PieceColor::White ? PieceColor::Black : PieceColor::White;
-            if (m_diceModeEnabled && !areAllDiceUsed()) {
-                // 切換回原來的玩家（因為 movePiece 已經切換了）
-                m_chessBoard.setCurrentPlayer(playerBeforeMove);
-                qDebug() << "[Qt_Chess] Dice mode: keeping turn for player" << (int)playerBeforeMove << "(" << (3 - std::count_if(m_diceRoll.begin(), m_diceRoll.end(), [](const DicePiece& d) { return d.used; })) << "dice remaining)";
-            }
-            
             // 檢查是否踩到地雷
             if (m_chessBoard.lastMoveTriggeredMine()) {
                 handleMineExplosion(clickedSquare, false);
@@ -6085,12 +6077,10 @@ void Qt_Chess::onOpponentMove(const QPoint& from, const QPoint& to, PieceType pr
             applyIncrement();
         }
         
-        // 骰子模式：對手完成移動後，如果輪到本地玩家且沒有可用骰子，重新投骰子
-        if (m_diceModeEnabled && isOnlineTurn()) {
-            if (m_diceRoll.empty() || areAllDiceUsed()) {
-                qDebug() << "[Qt_Chess::onOpponentMove] Rolling new dice for local player's turn";
-                rollDice();
-            }
+        // 骰子模式：對手完成移動後，立即重新投骰子
+        if (m_diceModeEnabled) {
+            qDebug() << "[Qt_Chess::onOpponentMove] Rolling new dice after opponent's move";
+            rollDice();
         }
     } else {
         qDebug() << "[Qt_Chess::onOpponentMove] Move failed!";
