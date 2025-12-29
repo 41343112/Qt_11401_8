@@ -2018,14 +2018,17 @@ void Qt_Chess::displayPieceOnSquare(QPushButton* square, const ChessPiece& piece
         
         // 檢查是否為傳送門位置，顯示 send.png 圖片（只在可見且沒有棋子時顯示）
         if (m_teleportModeEnabled && isTeleportPortal(logicalRow, logicalCol) && piece.getType() == PieceType::None) {
-            // 載入並設置傳送門圖片
-            QPixmap sendPixmap(":/resources/images/send.png");
-            if (!sendPixmap.isNull()) {
-                QIcon sendIcon(sendPixmap);
+            // 載入並快取傳送門圖片（只在第一次載入時）
+            if (m_teleportIconCache.isNull()) {
+                m_teleportIconCache = QPixmap(":/resources/images/send.png");
+            }
+            
+            if (!m_teleportIconCache.isNull()) {
+                QIcon sendIcon(m_teleportIconCache);
                 square->setIcon(sendIcon);
-                // 圖片大小為方格大小
-                QSize squareSize = square->size();
-                square->setIconSize(squareSize);
+                // 圖片大小為方格大小的 80% 以保持美觀
+                int iconSize = calculateIconSize(square);
+                square->setIconSize(QSize(iconSize, iconSize));
                 return;  // 傳送門圖片顯示完成，直接返回
             }
         }
