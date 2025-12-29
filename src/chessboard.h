@@ -73,6 +73,14 @@ public:
     const std::vector<ChessPiece>& getCapturedPieces(PieceColor color) const;
     void clearCapturedPieces();
     
+    // 地雷功能 (Bomb Chess Mode)
+    void enableBombMode(bool enable);
+    bool isBombModeEnabled() const { return m_bombModeEnabled; }
+    bool isMineAt(const QPoint& pos) const;
+    const std::vector<QPoint>& getMinePositions() const { return m_minePositions; }
+    void placeMines();
+    bool lastMoveTriggeredMine() const { return m_lastMoveTriggeredMine; }
+    
 private:
     std::vector<std::vector<ChessPiece>> m_board;
     PieceColor m_currentPlayer;
@@ -81,6 +89,12 @@ private:
     GameResult m_gameResult; // 遊戲結果
     std::vector<ChessPiece> m_capturedWhite; // 被吃掉的白色棋子
     std::vector<ChessPiece> m_capturedBlack; // 被吃掉的黑色棋子
+    
+    // 地雷模式相關變量
+    bool m_bombModeEnabled; // 地雷模式是否啟用
+    std::vector<QPoint> m_minePositions; // 地雷位置
+    bool m_lastMoveTriggeredMine; // 上一步移動是否觸發了地雷
+
     
     void switchPlayer();
     bool wouldBeInCheck(const QPoint& from, const QPoint& to, PieceColor color) const;

@@ -1960,6 +1960,15 @@ void Qt_Chess::updateStatus() {
     PieceColor currentPlayer = m_chessBoard.getCurrentPlayer();
     QString playerName = (currentPlayer == PieceColor::White) ? "白方" : "黑方";
 
+    // 檢查是否已經有遊戲結果（例如，由地雷爆炸導致）
+    GameResult result = m_chessBoard.getGameResult();
+    if (result == GameResult::WhiteWins || result == GameResult::BlackWins) {
+        handleGameEnd();
+        QString winner = (result == GameResult::WhiteWins) ? "白方" : "黑方";
+        QMessageBox::information(this, "遊戲結束", QString("%1獲勝！").arg(winner));
+        return;
+    }
+
     if (m_chessBoard.isCheckmate(currentPlayer)) {
         // 記錄將死結果
         if (currentPlayer == PieceColor::White) {
@@ -2020,6 +2029,51 @@ void Qt_Chess::displayPieceOnSquare(QPushButton* square, const ChessPiece& piece
         // 使用 Unicode 符號
         square->setText(piece.getSymbol());
     }
+}
+
+void Qt_Chess::handleMineExplosion(const QPoint& logicalPosition, bool isOpponentMove) {
+    // 顯示爆炸動畫
+    int displayRow = getDisplayRow(logicalPosition.y());
+    int displayCol = getDisplayCol(logicalPosition.x());
+    QPushButton* explodedSquare = m_squares[displayRow][displayCol];
+    
+    // 臨時改變方格背景顯示爆炸效果
+    if (explodedSquare) {
+        explodedSquare->setStyleSheet(
+            "QPushButton { background-color: rgba(255, 100, 0, 0.8); border: 3px solid #FF0000; }"
+        );
+        
+        // 1秒後恢復正常顏色
+        QTimer::singleShot(1000, this, [this, displayRow, displayCol]() {
+            updateSquareColor(displayRow, displayCol);
+        });
+    }
+    
+    // 檢查是否為國王爆炸（遊戲結束）
+    GameResult result = m_chessBoard.getGameResult();
+    bool isKingExplosion = (result == GameResult::WhiteWins || result == GameResult::BlackWins);
+    
+    // 顯示爆炸消息
+    QTimer::singleShot(100, this, [this, isKingExplosion, isOpponentMove]() {
+        QMessageBox msgBox(this);
+        msgBox.setWindowTitle(tr("💥 地雷爆炸！"));
+        
+        QString messageText;
+        if (isKingExplosion) {
+            messageText = isOpponentMove ? 
+                tr("💣 對手的國王踩到地雷被炸毀了！\n\n遊戲結束！") : 
+                tr("💣 國王踩到地雷被炸毀了！\n\n遊戲結束！");
+        } else {
+            messageText = isOpponentMove ? 
+                tr("💣 對手踩到地雷！棋子被炸毀了！") : 
+                tr("💣 踩到地雷！棋子被炸毀了！");
+        }
+        
+        msgBox.setText(messageText);
+        msgBox.setIcon(QMessageBox::Warning);
+        msgBox.setStyleSheet("QMessageBox { background-color: #2a2a2a; color: white; }");
+        msgBox.exec();
+    });
 }
 
 QString Qt_Chess::getPieceTextColor(int logicalRow, int logicalCol) const {
@@ -2300,6 +2354,11 @@ void Qt_Chess::onSquareClicked(int displayRow, int displayCol) {
             // 記錄上一步移動用於高亮顯示
             m_lastMoveFrom = m_selectedSquare;
             m_lastMoveTo = clickedSquare;
+            
+            // 檢查是否踩到地雷
+            if (m_chessBoard.lastMoveTriggeredMine()) {
+                handleMineExplosion(clickedSquare, false);
+            }
             
             m_pieceSelected = false;
             
@@ -2862,6 +2921,13 @@ void Qt_Chess::onStartButtonClicked() {
                 m_requestDrawButton->show();
             }
         } else {
+            // 本地和電腦模式不顯示認輸和請求和棋按鈕
+            if (m_resignButton) {
+                m_resignButton->hide();
+            }
+            if (m_requestDrawButton) {
+                m_requestDrawButton->hide();
+            }
             // 本地遊戲進行中時顯示退出按鈕，讓玩家可以退出當前回合
             if (m_exitButton) {
                 m_exitButton->show();
@@ -2967,6 +3033,13 @@ void Qt_Chess::onStartButtonClicked() {
                 m_requestDrawButton->show();
             }
         } else {
+            // 本地和電腦模式不顯示認輸和請求和棋按鈕
+            if (m_resignButton) {
+                m_resignButton->hide();
+            }
+            if (m_requestDrawButton) {
+                m_requestDrawButton->hide();
+            }
             // 本地遊戲進行中時顯示退出按鈕，讓玩家可以退出當前回合
             if (m_exitButton) {
                 m_exitButton->show();
@@ -3047,6 +3120,13 @@ void Qt_Chess::onStartButtonClicked() {
                 m_requestDrawButton->show();
             }
         } else {
+            // 本地和電腦模式不顯示認輸和請求和棋按鈕
+            if (m_resignButton) {
+                m_resignButton->hide();
+            }
+            if (m_requestDrawButton) {
+                m_requestDrawButton->hide();
+            }
             // 本地遊戲進行中時顯示退出按鈕，讓玩家可以退出當前回合
             if (m_exitButton) {
                 m_exitButton->show();
@@ -3330,6 +3410,11 @@ void Qt_Chess::mouseReleaseEvent(QMouseEvent *event) {
                 // 記錄上一步移動用於高亮顯示
                 m_lastMoveFrom = m_dragStartSquare;
                 m_lastMoveTo = logicalDropSquare;
+                
+                // 檢查是否踩到地雷
+                if (m_chessBoard.lastMoveTriggeredMine()) {
+                    handleMineExplosion(logicalDropSquare, false);
+                }
                 
                 m_pieceSelected = false;
                 
@@ -4988,6 +5073,14 @@ void Qt_Chess::onHumanModeClicked() {
         m_onlineButtonsWidget->hide();
     }
     
+    // 隱藏線上模式的連線狀態標籤
+    if (m_connectionStatusLabel) {
+        m_connectionStatusLabel->hide();
+    }
+    if (m_roomInfoLabel) {
+        m_roomInfoLabel->hide();
+    }
+    
     // 顯示開始按鈕（本地和電腦模式需要）
     if (m_startButton) {
         m_startButton->show();
@@ -5028,6 +5121,14 @@ void Qt_Chess::onComputerModeClicked() {
     // 隱藏線上模式的房間創建UI
     if (m_onlineButtonsWidget) {
         m_onlineButtonsWidget->hide();
+    }
+    
+    // 隱藏線上模式的連線狀態標籤
+    if (m_connectionStatusLabel) {
+        m_connectionStatusLabel->hide();
+    }
+    if (m_roomInfoLabel) {
+        m_roomInfoLabel->hide();
     }
     
     // 顯示開始按鈕（本地和電腦模式需要）
@@ -5505,11 +5606,11 @@ void Qt_Chess::onOnlineModeClicked() {
         m_startButton->hide();
     }
     
-    // 顯示提示訊息
-    if (m_connectionStatusLabel) {
-        m_connectionStatusLabel->setText("🌐 請選擇創建房間或加入房間");
-        m_connectionStatusLabel->show();
-    }
+    // 不再顯示提示訊息「請選擇創建房間或加入房間」
+    // if (m_connectionStatusLabel) {
+    //     m_connectionStatusLabel->setText("🌐 請選擇創建房間或加入房間");
+    //     m_connectionStatusLabel->show();
+    // }
 }
 
 void Qt_Chess::onCreateRoomButtonClicked() {
@@ -5884,6 +5985,11 @@ void Qt_Chess::onOpponentMove(const QPoint& from, const QPoint& to, PieceType pr
     if (m_chessBoard.movePiece(from, to)) {
         qDebug() << "[Qt_Chess::onOpponentMove] Move successful, current player after move:" << (int)m_chessBoard.getCurrentPlayer();
         
+        // 檢查是否踩到地雷
+        if (m_chessBoard.lastMoveTriggeredMine()) {
+            handleMineExplosion(to, true);
+        }
+        
         // 檢查是否需要升變
         if (promotionType != PieceType::None && m_chessBoard.needsPromotion(to)) {
             m_chessBoard.promotePawn(to, promotionType);
@@ -6043,6 +6149,14 @@ void Qt_Chess::onStartGameReceived(int whiteTimeMs, int blackTimeMs, int increme
     m_chessBoard.initializeBoard();
     m_pieceSelected = false;
     m_uciMoveHistory.clear();
+    
+    // 啟用地雷模式（如果選擇了踩地雷遊戲模式）
+    if (m_selectedGameModes.contains("踩地雷") && m_selectedGameModes["踩地雷"]) {
+        m_chessBoard.enableBombMode(true);
+        qDebug() << "[Qt_Chess::onStartGameReceived] Bomb mode enabled with" << m_chessBoard.getMinePositions().size() << "mines";
+    } else {
+        m_chessBoard.enableBombMode(false);
+    }
     
     // 停止背景音樂
     stopBackgroundMusic();
@@ -6784,11 +6898,11 @@ void Qt_Chess::onCancelRoomClicked() {
             m_roomInfoLabel->hide();
         }
         
-        // 顯示提示訊息
-        if (m_connectionStatusLabel) {
-            m_connectionStatusLabel->setText("🌐 請選擇創建房間或加入房間");
-            m_connectionStatusLabel->show();
-        }
+        // 不再顯示提示訊息「請選擇創建房間或加入房間」
+        // if (m_connectionStatusLabel) {
+        //     m_connectionStatusLabel->setText("🌐 請選擇創建房間或加入房間");
+        //     m_connectionStatusLabel->show();
+        // }
     }
 }
 
@@ -6871,11 +6985,11 @@ void Qt_Chess::onExitRoomClicked() {
             onNewGameClicked();
         }
         
-        // 顯示提示訊息
-        if (m_connectionStatusLabel) {
-            m_connectionStatusLabel->setText("🌐 請選擇創建房間或加入房間");
-            m_connectionStatusLabel->show();
-        }
+        // 不再顯示提示訊息「請選擇創建房間或加入房間」
+        // if (m_connectionStatusLabel) {
+        //     m_connectionStatusLabel->setText("🌐 請選擇創建房間或加入房間");
+        //     m_connectionStatusLabel->show();
+        // }
         
         // 移除對話框以減少延遲
         // QMessageBox::information(this, "已退出", "已退出線上對戰，返回雙人模式");
