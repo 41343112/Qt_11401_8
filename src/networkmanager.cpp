@@ -125,12 +125,12 @@ void NetworkManager::closeConnection()
     m_opponentColor = PieceColor::None;
 }
 
-void NetworkManager::sendMove(const QPoint& from, const QPoint& to, PieceType promotionType, QPoint newPortal1, QPoint newPortal2)
+void NetworkManager::sendMove(const QPoint& from, const QPoint& to, PieceType promotionType, QPoint finalPosition)
 {
     qDebug() << "[NetworkManager::sendMove] Sending move from" << from << "to" << to 
              << "| Role:" << (m_role == NetworkRole::Host ? "Host" : "Guest")
              << "| Socket connected:" << (m_webSocket && m_webSocket->state() == QAbstractSocket::ConnectedState)
-             << "| NewPortal1:" << newPortal1 << "NewPortal2:" << newPortal2;
+             << "| FinalPosition:" << finalPosition;
     
     if (m_roomNumber.isEmpty()) {
         qDebug() << "[NetworkManager::sendMove] ERROR: Room number is empty, cannot send move";
@@ -150,19 +150,12 @@ void NetworkManager::sendMove(const QPoint& from, const QPoint& to, PieceType pr
         message["promotion"] = static_cast<int>(promotionType);
     }
     
-    // 添加新的傳送門位置（如果有的話）
-    if (newPortal1.x() >= 0 && newPortal1.y() >= 0) {
-        QJsonObject portal1Json;
-        portal1Json["x"] = newPortal1.x();
-        portal1Json["y"] = newPortal1.y();
-        message["newPortal1"] = portal1Json;
-    }
-    
-    if (newPortal2.x() >= 0 && newPortal2.y() >= 0) {
-        QJsonObject portal2Json;
-        portal2Json["x"] = newPortal2.x();
-        portal2Json["y"] = newPortal2.y();
-        message["newPortal2"] = portal2Json;
+    // 添加最終位置（如果發生傳送）
+    if (finalPosition.x() >= 0 && finalPosition.y() >= 0) {
+        QJsonObject finalPosJson;
+        finalPosJson["x"] = finalPosition.x();
+        finalPosJson["y"] = finalPosition.y();
+        message["finalPosition"] = finalPosJson;
     }
     
     sendMessage(message);
@@ -185,7 +178,7 @@ void NetworkManager::sendGameStart(PieceColor playerColor)
     sendMessage(message);
 }
 
-void NetworkManager::sendStartGame(int whiteTimeMs, int blackTimeMs, int incrementMs, PieceColor hostColor, const QMap<QString, bool>& gameModes, QPoint teleportPortal1, QPoint teleportPortal2)
+void NetworkManager::sendStartGame(int whiteTimeMs, int blackTimeMs, int incrementMs, PieceColor hostColor, const QMap<QString, bool>& gameModes)
 {
     if (m_roomNumber.isEmpty()) {
         qDebug() << "[NetworkManager::sendStartGame] ERROR: Room number is empty";
@@ -206,21 +199,6 @@ void NetworkManager::sendStartGame(int whiteTimeMs, int blackTimeMs, int increme
         gameModesJson[it.key()] = it.value();
     }
     message["gameModes"] = gameModesJson;
-    
-    // 添加傳送門位置
-    if (teleportPortal1.x() >= 0 && teleportPortal1.y() >= 0) {
-        QJsonObject portal1Json;
-        portal1Json["x"] = teleportPortal1.x();
-        portal1Json["y"] = teleportPortal1.y();
-        message["teleportPortal1"] = portal1Json;
-    }
-    
-    if (teleportPortal2.x() >= 0 && teleportPortal2.y() >= 0) {
-        QJsonObject portal2Json;
-        portal2Json["x"] = teleportPortal2.x();
-        portal2Json["y"] = teleportPortal2.y();
-        message["teleportPortal2"] = portal2Json;
-    }
     
     sendMessage(message);
 }
@@ -451,18 +429,6 @@ void NetworkManager::processMessage(const QJsonObject& message)
             }
         }
         
-        // 提取傳送門位置
-        QPoint teleportPortal1(-1, -1);
-        QPoint teleportPortal2(-1, -1);
-        if (message.contains("teleportPortal1")) {
-            QJsonObject portal1Json = message["teleportPortal1"].toObject();
-            teleportPortal1 = QPoint(portal1Json["x"].toInt(), portal1Json["y"].toInt());
-        }
-        if (message.contains("teleportPortal2")) {
-            QJsonObject portal2Json = message["teleportPortal2"].toObject();
-            teleportPortal2 = QPoint(portal2Json["x"].toInt(), portal2Json["y"].toInt());
-        }
-        
         // 計算伺服器時間偏移（伺服器時間 - 本地時間）
         qint64 localTimestamp = QDateTime::currentMSecsSinceEpoch();
         qint64 serverTimeOffset = serverTimestamp - localTimestamp;
@@ -482,10 +448,9 @@ void NetworkManager::processMessage(const QJsonObject& message)
                  << "| Host color:" << hostColorStr
                  << "| My role:" << (m_role == NetworkRole::Host ? "Host" : "Guest")
                  << "| My color:" << (m_playerColor == PieceColor::White ? "White" : "Black")
-                 << "| Game modes count:" << gameModes.size()
-                 << "| Portal1:" << teleportPortal1 << "Portal2:" << teleportPortal2;
+                 << "| Game modes count:" << gameModes.size();
         
-        emit startGameReceived(whiteTimeMs, blackTimeMs, incrementMs, hostColor, serverTimeOffset, gameModes, teleportPortal1, teleportPortal2);
+        emit startGameReceived(whiteTimeMs, blackTimeMs, incrementMs, hostColor, serverTimeOffset, gameModes);
         
         // 如果訊息包含計時器狀態，發送計時器更新
         if (message.contains("timerState")) {
@@ -530,21 +495,16 @@ void NetworkManager::processMessage(const QJsonObject& message)
             promotionType = static_cast<PieceType>(message["promotion"].toInt());
         }
         
-        // 提取新的傳送門位置（如果有的話）
-        QPoint newPortal1(-1, -1);
-        QPoint newPortal2(-1, -1);
-        if (message.contains("newPortal1")) {
-            QJsonObject portal1Json = message["newPortal1"].toObject();
-            newPortal1 = QPoint(portal1Json["x"].toInt(), portal1Json["y"].toInt());
-        }
-        if (message.contains("newPortal2")) {
-            QJsonObject portal2Json = message["newPortal2"].toObject();
-            newPortal2 = QPoint(portal2Json["x"].toInt(), portal2Json["y"].toInt());
+        // 提取最終位置（如果發生傳送）
+        QPoint finalPosition(-1, -1);
+        if (message.contains("finalPosition")) {
+            QJsonObject finalPosJson = message["finalPosition"].toObject();
+            finalPosition = QPoint(finalPosJson["x"].toInt(), finalPosJson["y"].toInt());
         }
         
         qDebug() << "[NetworkManager::processMessage] Emitting opponentMove signal"
-                 << "| NewPortal1:" << newPortal1 << "NewPortal2:" << newPortal2;
-        emit opponentMove(from, to, promotionType, newPortal1, newPortal2);
+                 << "| FinalPosition:" << finalPosition;
+        emit opponentMove(from, to, promotionType, finalPosition);
         
         // 如果訊息包含計時器狀態，發送計時器更新
         if (message.contains("timerState")) {
@@ -661,18 +621,6 @@ void NetworkManager::processMessage(const QJsonObject& message)
                 }
             }
             
-            // 提取傳送門位置
-            QPoint teleportPortal1(-1, -1);
-            QPoint teleportPortal2(-1, -1);
-            if (message.contains("teleportPortal1")) {
-                QJsonObject portal1Json = message["teleportPortal1"].toObject();
-                teleportPortal1 = QPoint(portal1Json["x"].toInt(), portal1Json["y"].toInt());
-            }
-            if (message.contains("teleportPortal2")) {
-                QJsonObject portal2Json = message["teleportPortal2"].toObject();
-                teleportPortal2 = QPoint(portal2Json["x"].toInt(), portal2Json["y"].toInt());
-            }
-            
             // 計算伺服器時間偏移（如果訊息中包含伺服器時間戳）
             qint64 serverTimeOffset = 0;
             if (message.contains("serverTimestamp")) {
@@ -690,7 +638,7 @@ void NetworkManager::processMessage(const QJsonObject& message)
                 m_opponentColor = hostColor;
             }
             
-            emit startGameReceived(whiteTimeMs, blackTimeMs, incrementMs, hostColor, serverTimeOffset, gameModes, teleportPortal1, teleportPortal2);
+            emit startGameReceived(whiteTimeMs, blackTimeMs, incrementMs, hostColor, serverTimeOffset, gameModes);
         }
         break;
     
@@ -726,21 +674,16 @@ void NetworkManager::processMessage(const QJsonObject& message)
             promotionType = static_cast<PieceType>(message["promotion"].toInt());
         }
         
-        // 提取新的傳送門位置（如果有的話）
-        QPoint newPortal1(-1, -1);
-        QPoint newPortal2(-1, -1);
-        if (message.contains("newPortal1")) {
-            QJsonObject portal1Json = message["newPortal1"].toObject();
-            newPortal1 = QPoint(portal1Json["x"].toInt(), portal1Json["y"].toInt());
-        }
-        if (message.contains("newPortal2")) {
-            QJsonObject portal2Json = message["newPortal2"].toObject();
-            newPortal2 = QPoint(portal2Json["x"].toInt(), portal2Json["y"].toInt());
+        // 提取最終位置（如果發生傳送）
+        QPoint finalPosition(-1, -1);
+        if (message.contains("finalPosition")) {
+            QJsonObject finalPosJson = message["finalPosition"].toObject();
+            finalPosition = QPoint(finalPosJson["x"].toInt(), finalPosJson["y"].toInt());
         }
         
         qDebug() << "[NetworkManager::processMessage] Emitting opponentMove signal"
-                 << "| NewPortal1:" << newPortal1 << "NewPortal2:" << newPortal2;
-        emit opponentMove(from, to, promotionType, newPortal1, newPortal2);
+                 << "| FinalPosition:" << finalPosition;
+        emit opponentMove(from, to, promotionType, finalPosition);
         break;
     }
         

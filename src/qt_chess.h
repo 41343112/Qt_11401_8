@@ -452,9 +452,9 @@ private:
     void onOpponentJoined();
     void onPlayerLeft();
     void onPromotedToHost();
-    void onOpponentMove(const QPoint& from, const QPoint& to, PieceType promotionType, QPoint newPortal1, QPoint newPortal2);
+    void onOpponentMove(const QPoint& from, const QPoint& to, PieceType promotionType, QPoint finalPosition);
     void onGameStartReceived(PieceColor playerColor);
-    void onStartGameReceived(int whiteTimeMs, int blackTimeMs, int incrementMs, PieceColor hostColor, qint64 serverTimeOffset, const QMap<QString, bool>& gameModes, QPoint teleportPortal1, QPoint teleportPortal2);
+    void onStartGameReceived(int whiteTimeMs, int blackTimeMs, int incrementMs, PieceColor hostColor, qint64 serverTimeOffset, const QMap<QString, bool>& gameModes);
     void onTimeSettingsReceived(int whiteTimeMs, int blackTimeMs, int incrementMs);
     void onTimerStateReceived(qint64 timeA, qint64 timeB, const QString& currentPlayer, qint64 lastSwitchTime);
     void onSurrenderReceived();
@@ -482,8 +482,8 @@ private:
     bool isTeleportPortal(int row, int col) const;  // 檢查方格是否為傳送門
     void handleTeleportation(const QPoint& from, const QPoint& to);  // 處理傳送
     bool performTeleportationMove(const QPoint& from, const QPoint& to);  // 執行傳送動作（不重置傳送門）
-    QPair<QPoint, QPoint> handleTeleportationAndGetNewPortals(const QPoint& from, const QPoint& to);  // 處理傳送並返回新的傳送門位置
-    void applyReceivedPortalPositions(const QPoint& portal1, const QPoint& portal2);  // 應用接收到的傳送門位置
+    QPoint handleTeleportationAndGetFinalPosition(const QPoint& from, const QPoint& to);  // 處理傳送並返回最終位置
+    void applyFinalPosition(const QPoint& to, const QPoint& finalPosition);  // 應用最終位置（用於接收對手的傳送結果）
     
     // ========================================
     // 音效系統 (Sound System)

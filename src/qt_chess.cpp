@@ -2715,36 +2715,8 @@ void Qt_Chess::onStartButtonClicked() {
             m_networkManager->setPlayerColors(m_onlineHostSelectedColor);
         }
         
-        // 如果啟用傳送陣模式，房主預先生成傳送門位置
-        QPoint portal1(-1, -1), portal2(-1, -1);
-        if (m_selectedGameModes.contains("傳送陣") && m_selectedGameModes["傳送陣"]) {
-            // 收集所有空格子的位置（與resetTeleportPortals()邏輯一致）
-            QVector<QPoint> emptySquares;
-            for (int row = 0; row < 8; ++row) {
-                for (int col = 0; col < 8; ++col) {
-                    const ChessPiece& piece = m_chessBoard.getPiece(row, col);
-                    if (piece.getType() == PieceType::None) {
-                        emptySquares.append(QPoint(col, row));
-                    }
-                }
-            }
-            
-            // 隨機選擇兩個不同的空格子
-            if (emptySquares.size() >= 2) {
-                int index1 = QRandomGenerator::global()->bounded(emptySquares.size());
-                int index2;
-                do {
-                    index2 = QRandomGenerator::global()->bounded(emptySquares.size());
-                } while (index2 == index1);
-                
-                portal1 = emptySquares[index1];
-                portal2 = emptySquares[index2];
-                
-                qDebug() << "[Qt_Chess::onStartButtonClicked] Host generated portals: Portal1" << portal1 << "Portal2" << portal2;
-            }
-        }
-        
-        m_networkManager->sendStartGame(whiteTimeMs, blackTimeMs, incrementMs, m_onlineHostSelectedColor, m_selectedGameModes, portal1, portal2);
+        // 不再預先生成傳送門位置 - 每個玩家將獨立生成自己的傳送門
+        m_networkManager->sendStartGame(whiteTimeMs, blackTimeMs, incrementMs, m_onlineHostSelectedColor, m_selectedGameModes);
         
         qDebug() << "[Qt_Chess::onStartButtonClicked] Host sending StartGame to server"
                  << "| Host color:" << (m_onlineHostSelectedColor == PieceColor::White ? "White" : "Black")
@@ -6030,14 +6002,13 @@ void Qt_Chess::onGameStartReceived(PieceColor playerColor) {
     // 不再自動開始遊戲，改由房主點擊開始按鈕
 }
 
-void Qt_Chess::onStartGameReceived(int whiteTimeMs, int blackTimeMs, int incrementMs, PieceColor hostColor, qint64 serverTimeOffset, const QMap<QString, bool>& gameModes, QPoint teleportPortal1, QPoint teleportPortal2) {
+void Qt_Chess::onStartGameReceived(int whiteTimeMs, int blackTimeMs, int incrementMs, PieceColor hostColor, qint64 serverTimeOffset, const QMap<QString, bool>& gameModes) {
     qDebug() << "[Qt_Chess::onStartGameReceived] Client received StartGame"
              << "| Host color:" << (hostColor == PieceColor::White ? "White" : "Black")
              << "| whiteTimeMs:" << whiteTimeMs
              << "| blackTimeMs:" << blackTimeMs
              << "| serverTimeOffset:" << serverTimeOffset << "ms"
-             << "| gameModes count:" << gameModes.size()
-             << "| Portal1:" << teleportPortal1 << "Portal2:" << teleportPortal2;
+             << "| gameModes count:" << gameModes.size();
     
     // 儲存伺服器時間偏移和遊戲開始時間，用於線上模式的時間同步
     m_serverTimeOffset = serverTimeOffset;
@@ -6243,18 +6214,10 @@ void Qt_Chess::onStartGameReceived(int whiteTimeMs, int blackTimeMs, int increme
     // 檢查是否啟用傳送陣模式
     if (m_selectedGameModes.contains("傳送陣") && m_selectedGameModes["傳送陣"]) {
         m_teleportModeEnabled = true;
-        qDebug() << "[Qt_Chess::onStartGameReceived] Teleportation mode enabled";
+        qDebug() << "[Qt_Chess::onStartGameReceived] Teleportation mode enabled - each player generates their own portals";
         
-        // 使用從伺服器接收的傳送門位置（由房主生成）
-        if (teleportPortal1.x() >= 0 && teleportPortal1.y() >= 0 &&
-            teleportPortal2.x() >= 0 && teleportPortal2.y() >= 0) {
-            m_teleportPortal1 = teleportPortal1;
-            m_teleportPortal2 = teleportPortal2;
-            qDebug() << "[Qt_Chess::onStartGameReceived] Using synchronized portals: Portal1" << m_teleportPortal1 << "Portal2" << m_teleportPortal2;
-        } else {
-            // 如果沒有接收到傳送門位置（向後兼容），則初始化本地傳送門
-            initializeTeleportPortals();
-        }
+        // 每個玩家生成自己的傳送門（不同步）
+        initializeTeleportPortals();
     } else {
         m_teleportModeEnabled = false;
         m_teleportPortal1 = QPoint(-1, -1);
