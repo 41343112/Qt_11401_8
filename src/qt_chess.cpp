@@ -1935,10 +1935,10 @@ void Qt_Chess::updateSquareColor(int displayRow, int displayCol) {
     bool isLight = (logicalRow + logicalCol) % 2 == 0;
     QColor color = isLight ? m_boardColorSettings.lightSquareColor : m_boardColorSettings.darkSquareColor;
     
-    // 檢查是否為傳送門位置，添加銀色塗層（只在可見時顯示）
+    // 檢查是否為傳送門位置，使用 send.png 圖片顯示（只在可見時顯示）
     if (m_teleportModeEnabled && isTeleportPortal(logicalRow, logicalCol)) {
-        // 銀色塗層效果 - 使用半透明的銀色覆蓋
-        color = QColor(192, 192, 192);  // 銀色
+        // 保持原有棋盤顏色作為背景
+        // send.png 圖片將會疊加在棋盤方格上
     }
     
     // 檢查是否啟用霧戰模式且該方格不可見（優先級最高）
@@ -2014,6 +2014,20 @@ void Qt_Chess::displayPieceOnSquare(QPushButton* square, const ChessPiece& piece
         // 如果霧戰模式啟用且該方格不可見，不顯示棋子
         if (m_fogOfWarEnabled && m_isOnlineGame && !isSquareVisible(logicalRow, logicalCol)) {
             return;  // 不顯示任何棋子
+        }
+        
+        // 檢查是否為傳送門位置，顯示 send.png 圖片（只在可見且沒有棋子時顯示）
+        if (m_teleportModeEnabled && isTeleportPortal(logicalRow, logicalCol) && piece.getType() == PieceType::None) {
+            // 載入並設置傳送門圖片
+            QPixmap sendPixmap(":/resources/images/send.png");
+            if (!sendPixmap.isNull()) {
+                QIcon sendIcon(sendPixmap);
+                square->setIcon(sendIcon);
+                // 圖片大小為方格大小
+                QSize squareSize = square->size();
+                square->setIconSize(squareSize);
+                return;  // 傳送門圖片顯示完成，直接返回
+            }
         }
     }
 
