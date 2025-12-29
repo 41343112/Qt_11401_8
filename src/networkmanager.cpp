@@ -595,6 +595,15 @@ void NetworkManager::processMessage(const QJsonObject& message)
             QString hostColorStr = message["hostColor"].toString();
             PieceColor hostColor = (hostColorStr == "White") ? PieceColor::White : PieceColor::Black;
             
+            // 提取遊戲模式
+            QMap<QString, bool> gameModes;
+            if (message.contains("gameModes")) {
+                QJsonObject gameModesJson = message["gameModes"].toObject();
+                for (auto it = gameModesJson.constBegin(); it != gameModesJson.constEnd(); ++it) {
+                    gameModes[it.key()] = it.value().toBool();
+                }
+            }
+            
             // 計算伺服器時間偏移（如果訊息中包含伺服器時間戳）
             qint64 serverTimeOffset = 0;
             if (message.contains("serverTimestamp")) {
@@ -612,7 +621,7 @@ void NetworkManager::processMessage(const QJsonObject& message)
                 m_opponentColor = hostColor;
             }
             
-            emit startGameReceived(whiteTimeMs, blackTimeMs, incrementMs, hostColor, serverTimeOffset);
+            emit startGameReceived(whiteTimeMs, blackTimeMs, incrementMs, hostColor, serverTimeOffset, gameModes);
         }
         break;
     
