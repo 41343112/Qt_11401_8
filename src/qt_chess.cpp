@@ -56,6 +56,7 @@ const int MAX_MINUTES = 30; // 最大時間限制（分鐘）
 const QString GAME_ENDED_TEXT = "遊戲結束"; // 遊戲結束時顯示的文字
 const int UPDATE_CHECK_DELAY_MS = 3000; // 啟動後檢查更新的延遲時間（毫秒）
 const int RELEASE_NOTES_PREVIEW_LENGTH = 200; // 更新說明預覽的字元數
+const int DICE_COUNT = 3; // 骰子模式中每個玩家的骰子數量
 
 // Unicode 棋子文字顏色
 const QString WHITE_PIECE_COLOR = "#FFFFFF"; // 白色棋子顏色
@@ -2343,7 +2344,7 @@ void Qt_Chess::onSquareClicked(int displayRow, int displayCol) {
     if (m_diceModeEnabled && !hasAnyUsableDice()) {
         qDebug() << "[Qt_Chess::onSquareClicked] Dice mode: Generating new dice for player's turn";
         generateDice();
-        m_diceUsed = {false, false, false};
+        m_diceUsed = std::vector<bool>(DICE_COUNT, false);
         m_currentDiceIndex = 0;
         skipToNextUsableDice();
         updateDiceDisplay();
@@ -2484,7 +2485,7 @@ void Qt_Chess::onSquareClicked(int displayRow, int displayCol) {
                     // 所有骰子都已使用或不可用，玩家切換已經發生
                     qDebug() << "[Qt_Chess] Dice mode: All dice used, player switched, generating new dice";
                     generateDice();
-                    m_diceUsed = {false, false, false};
+                    m_diceUsed = std::vector<bool>(DICE_COUNT, false);
                     m_currentDiceIndex = 0;
                     skipToNextUsableDice();
                     
@@ -8308,11 +8309,11 @@ void Qt_Chess::applyFinalPosition(const QPoint& to, const QPoint& finalPosition)
 void Qt_Chess::initializeDiceMode() {
     qDebug() << "[Qt_Chess::initializeDiceMode] Initializing dice mode";
     
-    // 生成三個骰子
+    // 生成骰子
     generateDice();
     
     // 初始化使用狀態
-    m_diceUsed = {false, false, false};
+    m_diceUsed = std::vector<bool>(DICE_COUNT, false);
     m_currentDiceIndex = 0;
     
     // 跳到第一個可用的骰子
@@ -8327,8 +8328,8 @@ void Qt_Chess::initializeDiceMode() {
         diceLayout->setContentsMargins(10, 10, 10, 10);
         diceLayout->setSpacing(15);
         
-        // 創建三個骰子標籤
-        for (int i = 0; i < 3; ++i) {
+        // 創建骰子標籤
+        for (int i = 0; i < DICE_COUNT; ++i) {
             QLabel* diceLabel = new QLabel(m_dicePanel);
             diceLabel->setFixedSize(80, 80);
             diceLabel->setAlignment(Qt::AlignCenter);
@@ -8397,32 +8398,42 @@ void Qt_Chess::generateDice() {
     std::shuffle(availableTypes.begin(), availableTypes.end(), gen);
     
     // 選擇前三個不同的棋子類型
-    for (int i = 0; i < 3 && i < static_cast<int>(availableTypes.size()); ++i) {
+    for (int i = 0; i < DICE_COUNT && i < static_cast<int>(availableTypes.size()); ++i) {
         m_diceList.push_back(availableTypes[i]);
     }
     
-    // 確保生成了 3 個骰子
-    if (m_diceList.size() != 3) {
-        qWarning() << "[Qt_Chess::generateDice] Failed to generate 3 dice, only got" << m_diceList.size();
+    // 確保生成了正確數量的骰子，如果不足則補充
+    while (m_diceList.size() < DICE_COUNT && !availableTypes.empty()) {
+        qWarning() << "[Qt_Chess::generateDice] Insufficient dice, filling remaining slots";
+        // 從已選擇的骰子中隨機選擇一個重複使用
+        std::uniform_int_distribution<> dist(0, m_diceList.size() - 1);
+        m_diceList.push_back(m_diceList[dist(gen)]);
+    }
+    
+    if (m_diceList.size() != DICE_COUNT) {
+        qCritical() << "[Qt_Chess::generateDice] Critical: Failed to generate" << DICE_COUNT 
+                    << "dice, only got" << m_diceList.size();
     }
     
     qDebug() << "[Qt_Chess::generateDice] Generated dice:" 
-             << (int)m_diceList[0] << (int)m_diceList[1] << (int)m_diceList[2];
+             << (m_diceList.size() > 0 ? (int)m_diceList[0] : -1)
+             << (m_diceList.size() > 1 ? (int)m_diceList[1] : -1)
+             << (m_diceList.size() > 2 ? (int)m_diceList[2] : -1);
 }
 
 void Qt_Chess::updateDiceDisplay() {
-    if (!m_dicePanel || m_diceLabels.size() != 3) {
+    if (!m_dicePanel || m_diceLabels.size() != DICE_COUNT) {
         return;
     }
     
-    // 確保骰子列表有 3 個元素
-    if (m_diceList.size() != 3 || m_diceUsed.size() != 3) {
+    // 確保骰子列表有正確數量的元素
+    if (m_diceList.size() != DICE_COUNT || m_diceUsed.size() != DICE_COUNT) {
         qWarning() << "[Qt_Chess::updateDiceDisplay] Invalid dice state: diceList size ="
                    << m_diceList.size() << ", diceUsed size =" << m_diceUsed.size();
         return;
     }
     
-    for (int i = 0; i < 3; ++i) {
+    for (int i = 0; i < DICE_COUNT; ++i) {
         QLabel* diceLabel = m_diceLabels[i];
         PieceType pieceType = m_diceList[i];
         bool isUsed = m_diceUsed[i];
@@ -8531,26 +8542,7 @@ bool Qt_Chess::canUseCurrentDice() const {
     PieceType diceType = m_diceList[m_currentDiceIndex];
     PieceColor currentPlayer = m_chessBoard.getCurrentPlayer();
     
-    // 遍歷棋盤尋找該類型的棋子
-    for (int row = 0; row < 8; ++row) {
-        for (int col = 0; col < 8; ++col) {
-            const ChessPiece& piece = m_chessBoard.getPiece(row, col);
-            if (piece.getType() == diceType && piece.getColor() == currentPlayer) {
-                // 檢查該棋子是否有合法移動
-                QPoint from(col, row);
-                for (int toRow = 0; toRow < 8; ++toRow) {
-                    for (int toCol = 0; toCol < 8; ++toCol) {
-                        QPoint to(toCol, toRow);
-                        if (m_chessBoard.isValidMove(from, to)) {
-                            return true;  // 找到至少一個合法移動
-                        }
-                    }
-                }
-            }
-        }
-    }
-    
-    return false;  // 沒有該類型棋子的合法移動
+    return hasPieceTypeWithValidMoves(diceType, currentPlayer);
 }
 
 void Qt_Chess::skipToNextUsableDice() {
@@ -8584,31 +8576,16 @@ bool Qt_Chess::hasAnyUsableDice() const {
         return true;
     }
     
+    PieceColor currentPlayer = m_chessBoard.getCurrentPlayer();
+    
     // 檢查所有未使用的骰子是否可用
     for (int i = m_currentDiceIndex; i < static_cast<int>(m_diceList.size()); ++i) {
         if (i < static_cast<int>(m_diceUsed.size()) && !m_diceUsed[i]) {
             // 檢查該骰子類型是否有可用的移動
             if (i < static_cast<int>(m_diceList.size())) {
                 PieceType diceType = m_diceList[i];
-                PieceColor currentPlayer = m_chessBoard.getCurrentPlayer();
-                
-                // 遍歷棋盤尋找該類型的棋子
-                for (int row = 0; row < 8; ++row) {
-                    for (int col = 0; col < 8; ++col) {
-                        const ChessPiece& piece = m_chessBoard.getPiece(row, col);
-                        if (piece.getType() == diceType && piece.getColor() == currentPlayer) {
-                            // 檢查該棋子是否有合法移動
-                            QPoint from(col, row);
-                            for (int toRow = 0; toRow < 8; ++toRow) {
-                                for (int toCol = 0; toCol < 8; ++toCol) {
-                                    QPoint to(toCol, toRow);
-                                    if (m_chessBoard.isValidMove(from, to)) {
-                                        return true;  // 找到至少一個合法移動
-                                    }
-                                }
-                            }
-                        }
-                    }
+                if (hasPieceTypeWithValidMoves(diceType, currentPlayer)) {
+                    return true;
                 }
             }
         }
@@ -8627,4 +8604,26 @@ QString Qt_Chess::getPieceTypeName(PieceType type) const {
         case PieceType::King:   return "國王";
         default:                return "未知";
     }
+}
+
+bool Qt_Chess::hasPieceTypeWithValidMoves(PieceType pieceType, PieceColor playerColor) const {
+    // 遍歷棋盤尋找該類型的棋子
+    for (int row = 0; row < 8; ++row) {
+        for (int col = 0; col < 8; ++col) {
+            const ChessPiece& piece = m_chessBoard.getPiece(row, col);
+            if (piece.getType() == pieceType && piece.getColor() == playerColor) {
+                // 檢查該棋子是否有合法移動
+                QPoint from(col, row);
+                for (int toRow = 0; toRow < 8; ++toRow) {
+                    for (int toCol = 0; toCol < 8; ++toCol) {
+                        QPoint to(toCol, toRow);
+                        if (m_chessBoard.isValidMove(from, to)) {
+                            return true;  // 找到至少一個合法移動
+                        }
+                    }
+                }
+            }
+        }
+    }
+    return false;
 }

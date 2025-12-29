@@ -505,6 +505,7 @@ private:
     void skipToNextUsableDice();         // 跳過到下一個可用的骰子
     bool hasAnyUsableDice() const;       // 檢查是否有任何可用的骰子
     QString getPieceTypeName(PieceType type) const;  // 獲取棋子類型名稱（中文）
+    bool hasPieceTypeWithValidMoves(PieceType pieceType, PieceColor playerColor) const;  // 檢查是否有該類型棋子的合法移動
     
     // ========================================
     // 音效系統 (Sound System)
