@@ -2774,7 +2774,7 @@ void Qt_Chess::onStartButtonClicked() {
         
         // 如果啟用了踩地雷模式，房主生成地雷位置並發送給所有玩家
         std::vector<QPoint> minePositions;
-        if (m_selectedGameModes.contains("踩地雷") && m_selectedGameModes["踩地雷"]) {
+        if (m_selectedGameModes.contains(GAME_MODE_BOMB) && m_selectedGameModes[GAME_MODE_BOMB]) {
             // 房主使用共用的地雷生成邏輯
             minePositions = ChessBoard::generateRandomMinePositions();
             qDebug() << "[Qt_Chess::onStartButtonClicked] Host generated" << minePositions.size() << "mine positions for bomb mode";
@@ -6160,7 +6160,7 @@ void Qt_Chess::onStartGameReceived(int whiteTimeMs, int blackTimeMs, int increme
     m_uciMoveHistory.clear();
     
     // 啟用地雷模式（如果選擇了踩地雷遊戲模式）
-    if (m_selectedGameModes.contains("踩地雷") && m_selectedGameModes["踩地雷"]) {
+    if (m_selectedGameModes.contains(GAME_MODE_BOMB) && m_selectedGameModes[GAME_MODE_BOMB]) {
         if (!minePositions.empty()) {
             // 使用從伺服器接收到的地雷位置（正常流程）
             m_chessBoard.enableBombMode(true);
@@ -6314,7 +6314,7 @@ void Qt_Chess::onStartGameReceived(int whiteTimeMs, int blackTimeMs, int increme
     setRightPanelStretch(1);
     
     // 檢查是否啟用霧戰模式
-    if (m_selectedGameModes.contains("霧戰") && m_selectedGameModes["霧戰"]) {
+    if (m_selectedGameModes.contains(GAME_MODE_FOG_OF_WAR) && m_selectedGameModes[GAME_MODE_FOG_OF_WAR]) {
         m_fogOfWarEnabled = true;
         qDebug() << "[Qt_Chess::onStartGameReceived] Fog of War mode enabled";
     } else {
@@ -6322,7 +6322,7 @@ void Qt_Chess::onStartGameReceived(int whiteTimeMs, int blackTimeMs, int increme
     }
     
     // 檢查是否啟用地吸引力模式
-    if (m_selectedGameModes.contains("地吸引力") && m_selectedGameModes["地吸引力"]) {
+    if (m_selectedGameModes.contains(GAME_MODE_GRAVITY) && m_selectedGameModes[GAME_MODE_GRAVITY]) {
         m_gravityModeEnabled = true;
         qDebug() << "[Qt_Chess::onStartGameReceived] Gravity mode enabled";
         
@@ -6339,7 +6339,7 @@ void Qt_Chess::onStartGameReceived(int whiteTimeMs, int blackTimeMs, int increme
     }
     
     // 檢查是否啟用傳送陣模式
-    if (m_selectedGameModes.contains("傳送陣") && m_selectedGameModes["傳送陣"]) {
+    if (m_selectedGameModes.contains(GAME_MODE_TELEPORT) && m_selectedGameModes[GAME_MODE_TELEPORT]) {
         m_teleportModeEnabled = true;
         qDebug() << "[Qt_Chess::onStartGameReceived] Teleportation mode enabled - each player generates their own portals";
         

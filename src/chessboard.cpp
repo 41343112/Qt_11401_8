@@ -689,8 +689,9 @@ void ChessBoard::enableBombMode(bool enable) {
     if (!enable) {
         m_minePositions.clear();
     }
-    // 不再自動生成地雷位置 - 必須透過 setMinePositions() 明確設定（通常從伺服器同步）
-    // 或在單機模式使用 placeMines() 本地生成
+    // 不再自動生成地雷位置
+    // 線上模式: 必須透過 setMinePositions() 設定（從伺服器同步）
+    // 單機模式: 可使用 placeMines() 本地生成（內部使用 generateRandomMinePositions()）
 }
 
 bool ChessBoard::isMineAt(const QPoint& pos) const {

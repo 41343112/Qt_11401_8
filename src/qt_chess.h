@@ -49,6 +49,13 @@ constexpr int ROOM_NUMBER_MIN = 1000;              // Minimum room number
 constexpr int ROOM_NUMBER_MAX = 9999;              // Maximum room number
 constexpr int ROOM_NUMBER_LENGTH = 4;              // Room number length
 
+// Game mode identifiers (used in network messages and UI)
+constexpr const char* GAME_MODE_FOG_OF_WAR = "霧戰";
+constexpr const char* GAME_MODE_GRAVITY = "地吸引力";
+constexpr const char* GAME_MODE_TELEPORT = "傳送陣";
+constexpr const char* GAME_MODE_DICE = "骰子";
+constexpr const char* GAME_MODE_BOMB = "踩地雷";
+
 class Qt_Chess : public QMainWindow
 {
     Q_OBJECT
