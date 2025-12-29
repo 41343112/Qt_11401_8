@@ -7821,8 +7821,10 @@ void Qt_Chess::applyGravity() {
     
     // 確定重力方向：在線上模式中，房主的重力方向為基準
     // 房客的棋盤翻轉與房主相反，因此房客的重力方向也要相反
-    bool isOnlineGuest = m_isOnlineGame && m_networkManager && 
-                         m_networkManager->getRole() == NetworkRole::Guest;
+    bool isOnlineGuest = false;
+    if (m_isOnlineGame && m_networkManager) {
+        isOnlineGuest = (m_networkManager->getRole() == NetworkRole::Guest);
+    }
     
     // 房主：棋子往右掉（col增加）
     // 房客：棋子往左掉（col減少），使視覺效果與房主一致
