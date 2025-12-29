@@ -43,6 +43,7 @@
 #include <QTextEdit>
 #include <algorithm>
 #include <random>
+#include <set>
 #include <cmath>
 
 namespace {
@@ -8383,14 +8384,35 @@ void Qt_Chess::resetDiceMode() {
 void Qt_Chess::generateDice() {
     m_diceList.clear();
     
-    // 可用的棋子類型（不包括國王和空）
-    std::vector<PieceType> availableTypes = {
-        PieceType::Pawn,
-        PieceType::Rook,
-        PieceType::Knight,
-        PieceType::Bishop,
-        PieceType::Queen
-    };
+    // 獲取當前玩家擁有的棋子類型（不包括國王）
+    PieceColor currentPlayer = m_chessBoard.getCurrentPlayer();
+    std::vector<PieceType> availableTypes;
+    
+    // 遍歷棋盤，收集當前玩家擁有的棋子類型
+    std::set<PieceType> playerPieceTypes;
+    for (int row = 0; row < 8; ++row) {
+        for (int col = 0; col < 8; ++col) {
+            const ChessPiece& piece = m_chessBoard.getPiece(row, col);
+            if (piece.getColor() == currentPlayer && piece.getType() != PieceType::None && piece.getType() != PieceType::King) {
+                playerPieceTypes.insert(piece.getType());
+            }
+        }
+    }
+    
+    // 將 set 轉換為 vector 以便隨機選擇
+    availableTypes.assign(playerPieceTypes.begin(), playerPieceTypes.end());
+    
+    // 如果沒有可用的棋子類型（不應該發生），使用所有類型作為後備
+    if (availableTypes.empty()) {
+        qWarning() << "[Qt_Chess::generateDice] No piece types available for current player, using all types";
+        availableTypes = {
+            PieceType::Pawn,
+            PieceType::Rook,
+            PieceType::Knight,
+            PieceType::Bishop,
+            PieceType::Queen
+        };
+    }
     
     // 使用靜態隨機數生成器以提高效能
     static std::random_device rd;
@@ -8407,7 +8429,8 @@ void Qt_Chess::generateDice() {
                     << "dice, only got" << m_diceList.size();
     }
     
-    qDebug() << "[Qt_Chess::generateDice] Generated dice:" 
+    qDebug() << "[Qt_Chess::generateDice] Generated dice from" << availableTypes.size() 
+             << "available piece types:" 
              << (m_diceList.size() > 0 ? (int)m_diceList[0] : -1)
              << (m_diceList.size() > 1 ? (int)m_diceList[1] : -1)
              << (m_diceList.size() > 2 ? (int)m_diceList[2] : -1);
