@@ -6047,11 +6047,10 @@ void Qt_Chess::onStartGameReceived(int whiteTimeMs, int blackTimeMs, int increme
     }
     
     // 根據房主選擇的顏色決定棋盤翻轉和玩家顏色
-    // 如果房主選擇黑色，則房主的棋盤翻轉，房客的棋盤不翻轉
-    // 如果房主選擇白色，則房主的棋盤不翻轉，房客的棋盤翻轉
+    // 地吸引力模式：房主和房客的棋盤方向一致（都根據房主選擇的顏色決定）
     if (m_networkManager && m_networkManager->getRole() == NetworkRole::Guest) {
-        // 房客的棋盤翻轉與房主相反
-        m_isBoardFlipped = (hostColor == PieceColor::White);
+        // 房客的棋盤翻轉與房主一致
+        m_isBoardFlipped = (hostColor == PieceColor::Black);
         saveBoardFlipSettings();
     } else if (m_networkManager && m_networkManager->getRole() == NetworkRole::Host) {
         // 房主根據自己的選擇決定是否翻轉（執黑則翻轉）
@@ -7819,81 +7818,38 @@ void Qt_Chess::applyGravity() {
     
     bool pieceMoved = false;
     
-    // 確定重力方向：在線上模式中，房主的重力方向為基準
-    // 房客的棋盤翻轉與房主相反，因此房客的重力方向也要相反
-    bool isOnlineGuest = false;
-    if (m_isOnlineGame && m_networkManager) {
-        isOnlineGuest = (m_networkManager->getRole() == NetworkRole::Guest);
-    }
-    
-    // 房主：棋子往右掉（col增加）
-    // 房客：棋子往左掉（col減少），使視覺效果與房主一致
-    bool fallRight = !isOnlineGuest;
-    
-    // 棋盤轉90度：讓棋子下落
+    // 棋盤轉90度：讓棋子往右掉（朝向col 7）
+    // 房主和房客的掉落方向一致
     // 重複執行直到沒有棋子移動為止
     do {
         pieceMoved = false;
         
-        if (fallRight) {
-            // 從右往左檢查每一列（最右列不需要檢查）
-            for (int col = 6; col >= 0; --col) {
-                for (int row = 0; row < 8; ++row) {
-                    ChessPiece& piece = m_chessBoard.getPiece(row, col);
+        // 從右往左檢查每一列（最右列不需要檢查）
+        for (int col = 6; col >= 0; --col) {
+            for (int row = 0; row < 8; ++row) {
+                ChessPiece& piece = m_chessBoard.getPiece(row, col);
+                
+                // 如果這個位置有棋子
+                if (piece.getType() != PieceType::None) {
+                    // 檢查右邊的位置是否為空
+                    int targetCol = col + 1;
                     
-                    // 如果這個位置有棋子
-                    if (piece.getType() != PieceType::None) {
-                        // 檢查右邊的位置是否為空
-                        int targetCol = col + 1;
-                        
-                        // 讓棋子一直往右掉，直到碰到右邊界或其他棋子
-                        // 注意：短路求值確保 targetCol < 8 為假時不會訪問 getPiece
-                        while (targetCol < 8 && m_chessBoard.getPiece(row, targetCol).getType() == PieceType::None) {
-                            targetCol++;
-                        }
-                        
-                        // targetCol-1 是棋子應該停止的位置
-                        targetCol--;
-                        
-                        // 如果棋子需要移動
-                        if (targetCol > col) {
-                            // 將棋子移動到新位置，保留棋子的狀態（包括 hasMoved）
-                            ChessPiece movedPiece = piece;
-                            m_chessBoard.setPiece(row, targetCol, movedPiece);
-                            m_chessBoard.setPiece(row, col, ChessPiece(PieceType::None, PieceColor::None));
-                            pieceMoved = true;
-                        }
-                    }
-                }
-            }
-        } else {
-            // 房客：從左往右檢查每一列（最左列不需要檢查）
-            for (int col = 1; col < 8; ++col) {
-                for (int row = 0; row < 8; ++row) {
-                    ChessPiece& piece = m_chessBoard.getPiece(row, col);
-                    
-                    // 如果這個位置有棋子
-                    if (piece.getType() != PieceType::None) {
-                        // 檢查左邊的位置是否為空
-                        int targetCol = col - 1;
-                        
-                        // 讓棋子一直往左掉，直到碰到左邊界或其他棋子
-                        // 注意：短路求值確保 targetCol >= 0 為假時不會訪問 getPiece
-                        while (targetCol >= 0 && m_chessBoard.getPiece(row, targetCol).getType() == PieceType::None) {
-                            targetCol--;
-                        }
-                        
-                        // targetCol+1 是棋子應該停止的位置
+                    // 讓棋子一直往右掉，直到碰到右邊界或其他棋子
+                    // 注意：短路求值確保 targetCol < 8 為假時不會訪問 getPiece
+                    while (targetCol < 8 && m_chessBoard.getPiece(row, targetCol).getType() == PieceType::None) {
                         targetCol++;
-                        
-                        // 如果棋子需要移動
-                        if (targetCol < col) {
-                            // 將棋子移動到新位置，保留棋子的狀態（包括 hasMoved）
-                            ChessPiece movedPiece = piece;
-                            m_chessBoard.setPiece(row, targetCol, movedPiece);
-                            m_chessBoard.setPiece(row, col, ChessPiece(PieceType::None, PieceColor::None));
-                            pieceMoved = true;
-                        }
+                    }
+                    
+                    // targetCol-1 是棋子應該停止的位置
+                    targetCol--;
+                    
+                    // 如果棋子需要移動
+                    if (targetCol > col) {
+                        // 將棋子移動到新位置，保留棋子的狀態（包括 hasMoved）
+                        ChessPiece movedPiece = piece;
+                        m_chessBoard.setPiece(row, targetCol, movedPiece);
+                        m_chessBoard.setPiece(row, col, ChessPiece(PieceType::None, PieceColor::None));
+                        pieceMoved = true;
                     }
                 }
             }
