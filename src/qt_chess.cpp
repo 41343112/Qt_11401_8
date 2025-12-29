@@ -8336,7 +8336,7 @@ void Qt_Chess::initializeDiceMode() {
             diceLabel->setStyleSheet(QString(
                 "QLabel { "
                 "  background-color: #1A3F5C; "
-                "  border: 3px solid #00FFFF; "
+                "  border: 3px solid #FF9955; "
                 "  border-radius: 10px; "
                 "  padding: 5px; "
                 "}"
@@ -8396,20 +8396,10 @@ void Qt_Chess::generateDice() {
     static std::random_device rd;
     static std::mt19937 gen(rd());
     
-    // 隨機打亂順序
-    std::shuffle(availableTypes.begin(), availableTypes.end(), gen);
-    
-    // 選擇前三個不同的棋子類型
-    for (int i = 0; i < DICE_COUNT && i < static_cast<int>(availableTypes.size()); ++i) {
-        m_diceList.push_back(availableTypes[i]);
-    }
-    
-    // 確保生成了正確數量的骰子，如果不足則補充
-    while (static_cast<int>(m_diceList.size()) < DICE_COUNT && !m_diceList.empty()) {
-        qWarning() << "[Qt_Chess::generateDice] Insufficient dice, filling remaining slots";
-        // 從已選擇的骰子中隨機選擇一個重複使用
-        std::uniform_int_distribution<> dist(0, m_diceList.size() - 1);
-        m_diceList.push_back(m_diceList[dist(gen)]);
+    // 獨立隨機選擇每個骰子（允許重複）
+    std::uniform_int_distribution<> dist(0, availableTypes.size() - 1);
+    for (int i = 0; i < DICE_COUNT; ++i) {
+        m_diceList.push_back(availableTypes[dist(gen)]);
     }
     
     if (static_cast<int>(m_diceList.size()) != DICE_COUNT) {
@@ -8471,7 +8461,7 @@ void Qt_Chess::updateDiceDisplay() {
         }
         
         // 更新邊框樣式
-        QString borderColor = isUsed ? "#555555" : (isCurrent ? "#00FF00" : "#00FFFF");
+        QString borderColor = isUsed ? "#555555" : (isCurrent ? "#00FF00" : "#FF9955");
         QString backgroundColor = isUsed ? "#0A0A0A" : "#1A3F5C";
         
         diceLabel->setStyleSheet(QString(
