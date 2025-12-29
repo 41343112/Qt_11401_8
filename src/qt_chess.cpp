@@ -3340,6 +3340,44 @@ void Qt_Chess::mouseReleaseEvent(QMouseEvent *event) {
                 m_lastMoveFrom = m_dragStartSquare;
                 m_lastMoveTo = logicalDropSquare;
                 
+                // 檢查是否踩到地雷
+                if (m_chessBoard.lastMoveTriggeredMine()) {
+                    // 顯示爆炸動畫/消息
+                    int displayRow = getDisplayRow(logicalDropSquare.y());
+                    int displayCol = getDisplayCol(logicalDropSquare.x());
+                    QPushButton* explodedSquare = m_squares[displayRow][displayCol];
+                    
+                    // 臨時改變方格背景顯示爆炸效果
+                    if (explodedSquare) {
+                        explodedSquare->setStyleSheet(
+                            "QPushButton { background-color: rgba(255, 100, 0, 0.8); border: 3px solid #FF0000; }"
+                        );
+                        
+                        // 1秒後恢復正常顏色
+                        QTimer::singleShot(1000, this, [this, displayRow, displayCol]() {
+                            updateSquareColor(displayRow, displayCol);
+                        });
+                    }
+                    
+                    // 檢查是否為國王爆炸（遊戲結束）
+                    GameResult result = m_chessBoard.getGameResult();
+                    bool isKingExplosion = (result == GameResult::WhiteWins || result == GameResult::BlackWins);
+                    
+                    // 顯示爆炸消息
+                    QTimer::singleShot(100, this, [this, isKingExplosion]() {
+                        QMessageBox msgBox(this);
+                        msgBox.setWindowTitle(tr("💥 地雷爆炸！"));
+                        if (isKingExplosion) {
+                            msgBox.setText(tr("💣 國王踩到地雷被炸毀了！\n\n遊戲結束！"));
+                        } else {
+                            msgBox.setText(tr("💣 踩到地雷！棋子被炸毀了！"));
+                        }
+                        msgBox.setIcon(QMessageBox::Warning);
+                        msgBox.setStyleSheet("QMessageBox { background-color: #2a2a2a; color: white; }");
+                        msgBox.exec();
+                    });
+                }
+                
                 m_pieceSelected = false;
                 
                 // 記錄 UCI 格式的移動
@@ -5847,6 +5885,44 @@ void Qt_Chess::onOpponentMove(const QPoint& from, const QPoint& to, PieceType pr
     // 直接移動對手的棋子，movePiece 會驗證並自動切換回合
     if (m_chessBoard.movePiece(from, to)) {
         qDebug() << "[Qt_Chess::onOpponentMove] Move successful, current player after move:" << (int)m_chessBoard.getCurrentPlayer();
+        
+        // 檢查是否踩到地雷
+        if (m_chessBoard.lastMoveTriggeredMine()) {
+            // 顯示爆炸動畫/消息
+            int displayRow = getDisplayRow(to.y());
+            int displayCol = getDisplayCol(to.x());
+            QPushButton* explodedSquare = m_squares[displayRow][displayCol];
+            
+            // 臨時改變方格背景顯示爆炸效果
+            if (explodedSquare) {
+                explodedSquare->setStyleSheet(
+                    "QPushButton { background-color: rgba(255, 100, 0, 0.8); border: 3px solid #FF0000; }"
+                );
+                
+                // 1秒後恢復正常顏色
+                QTimer::singleShot(1000, this, [this, displayRow, displayCol]() {
+                    updateSquareColor(displayRow, displayCol);
+                });
+            }
+            
+            // 檢查是否為國王爆炸（遊戲結束）
+            GameResult result = m_chessBoard.getGameResult();
+            bool isKingExplosion = (result == GameResult::WhiteWins || result == GameResult::BlackWins);
+            
+            // 顯示爆炸消息
+            QTimer::singleShot(100, this, [this, isKingExplosion]() {
+                QMessageBox msgBox(this);
+                msgBox.setWindowTitle(tr("💥 地雷爆炸！"));
+                if (isKingExplosion) {
+                    msgBox.setText(tr("💣 對手的國王踩到地雷被炸毀了！\n\n遊戲結束！"));
+                } else {
+                    msgBox.setText(tr("💣 對手踩到地雷！棋子被炸毀了！"));
+                }
+                msgBox.setIcon(QMessageBox::Warning);
+                msgBox.setStyleSheet("QMessageBox { background-color: #2a2a2a; color: white; }");
+                msgBox.exec();
+            });
+        }
         
         // 檢查是否需要升變
         if (promotionType != PieceType::None && m_chessBoard.needsPromotion(to)) {
