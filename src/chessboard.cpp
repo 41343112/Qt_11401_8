@@ -3,7 +3,7 @@
 #include <algorithm>
 
 ChessBoard::ChessBoard()
-    : m_board(8, std::vector<ChessPiece>(8)), m_currentPlayer(PieceColor::White), m_enPassantTarget(-1, -1), m_gameResult(GameResult::InProgress), m_bombModeEnabled(false), m_lastMoveTriggeredMine(false)
+    : m_board(8, std::vector<ChessPiece>(8)), m_currentPlayer(PieceColor::White), m_enPassantTarget(-1, -1), m_gameResult(GameResult::InProgress), m_bombModeEnabled(false), m_lastMoveTriggeredMine(false), m_diceModeEnabled(false)
 {
     initializeBoard();
 }
@@ -732,4 +732,85 @@ void ChessBoard::placeMines() {
     for (int i = 0; i < numMines && i < static_cast<int>(availablePositions.size()); ++i) {
         m_minePositions.push_back(availablePositions[i]);
     }
+}
+
+// 骰子模式實現 (Dice Chess Mode Implementation)
+void ChessBoard::enableDiceMode(bool enable) {
+    m_diceModeEnabled = enable;
+    if (enable) {
+        rollDice();
+    } else {
+        m_diceRoll.clear();
+    }
+}
+
+void ChessBoard::rollDice() {
+    m_diceRoll.clear();
+    
+    // 可選的棋子類型（排除國王，因為國王通常不應該受限）
+    std::vector<PieceType> availablePieces = {
+        PieceType::Pawn,
+        PieceType::Knight,
+        PieceType::Bishop,
+        PieceType::Rook,
+        PieceType::Queen
+    };
+    
+    QRandomGenerator *rng = QRandomGenerator::global();
+    
+    // 投擲三個骰子，每個骰子選擇一個不同的棋子類型
+    std::vector<PieceType> selectedPieces = availablePieces;
+    std::shuffle(selectedPieces.begin(), selectedPieces.end(), *rng);
+    
+    // 選擇前三個作為骰子結果
+    for (int i = 0; i < 3 && i < static_cast<int>(selectedPieces.size()); ++i) {
+        m_diceRoll.push_back(selectedPieces[i]);
+    }
+}
+
+bool ChessBoard::canMovePieceType(PieceType type) const {
+    if (!m_diceModeEnabled) {
+        return true; // 骰子模式未啟用，所有棋子都可以移動
+    }
+    
+    // 檢查該棋子類型是否在骰子結果中
+    for (const PieceType& diceType : m_diceRoll) {
+        if (diceType == type) {
+            return true;
+        }
+    }
+    
+    return false;
+}
+
+bool ChessBoard::hasAnyValidMovesWithDice(PieceColor color) const {
+    if (!m_diceModeEnabled) {
+        return hasAnyValidMoves(color);
+    }
+    
+    // 檢查是否有任何符合骰子結果的棋子可以移動
+    for (int row = 0; row < 8; ++row) {
+        for (int col = 0; col < 8; ++col) {
+            const ChessPiece& piece = m_board[row][col];
+            if (piece.getColor() == color && piece.getType() != PieceType::None) {
+                // 檢查該棋子是否在骰子結果中
+                if (!canMovePieceType(piece.getType())) {
+                    continue;
+                }
+                
+                // 檢查該棋子是否有任何合法移動
+                QPoint from(col, row);
+                for (int toRow = 0; toRow < 8; ++toRow) {
+                    for (int toCol = 0; toCol < 8; ++toCol) {
+                        QPoint to(toCol, toRow);
+                        if (isValidMove(from, to)) {
+                            return true;
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    return false;
 }

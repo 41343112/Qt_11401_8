@@ -255,6 +255,15 @@ private:
     QMap<QString, bool> m_selectedGameModes;  // 選擇的遊戲模式
     
     // ========================================
+    // 骰子模式 (Dice Mode)
+    // ========================================
+    QWidget* m_diceDisplayWidget;        // 骰子顯示容器
+    QLabel* m_diceLabel;                 // 骰子標題標籤
+    QLabel* m_diceResult1;               // 第一個骰子結果
+    QLabel* m_diceResult2;               // 第二個骰子結果
+    QLabel* m_diceResult3;               // 第三個骰子結果
+    
+    // ========================================
     // 音效系統 (Sound System)
     // ========================================
     QSoundEffect m_moveSound;
@@ -354,6 +363,13 @@ private:
     void resetBoardState();
     PieceType showPromotionDialog(PieceColor color);
     void handleMineExplosion(const QPoint& logicalPosition, bool isOpponentMove = false);
+    
+    // 骰子模式輔助功能
+    void setupDiceDisplay();
+    void updateDiceDisplay();
+    void rollDiceForTurn();
+    QString getPieceTypeSymbol(PieceType type) const;
+    QString getPieceTypeName(PieceType type) const;
     
     // ========================================
     // 時間控制系統 (Time Control System)

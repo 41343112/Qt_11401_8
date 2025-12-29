@@ -81,6 +81,14 @@ public:
     void placeMines();
     bool lastMoveTriggeredMine() const { return m_lastMoveTriggeredMine; }
     
+    // 骰子功能 (Dice Chess Mode)
+    void enableDiceMode(bool enable);
+    bool isDiceModeEnabled() const { return m_diceModeEnabled; }
+    void rollDice();
+    const std::vector<PieceType>& getDiceRoll() const { return m_diceRoll; }
+    bool canMovePieceType(PieceType type) const;
+    bool hasAnyValidMovesWithDice(PieceColor color) const;
+    
 private:
     std::vector<std::vector<ChessPiece>> m_board;
     PieceColor m_currentPlayer;
@@ -94,6 +102,10 @@ private:
     bool m_bombModeEnabled; // 地雷模式是否啟用
     std::vector<QPoint> m_minePositions; // 地雷位置
     bool m_lastMoveTriggeredMine; // 上一步移動是否觸發了地雷
+    
+    // 骰子模式相關變量
+    bool m_diceModeEnabled; // 骰子模式是否啟用
+    std::vector<PieceType> m_diceRoll; // 當前骰子結果（三個棋子類型）
 
     
     void switchPlayer();
