@@ -2032,20 +2032,36 @@ void Qt_Chess::displayPieceOnSquare(QPushButton* square, const ChessPiece& piece
 }
 
 void Qt_Chess::handleMineExplosion(const QPoint& logicalPosition, bool isOpponentMove) {
-    // 顯示爆炸動畫
+    // 播放爆炸音效
+    if (m_soundSettings.allSoundsEnabled) {
+        m_explosionSound.play();
+    }
+    
+    // 顯示爆炸動畫在棋盤方格上
     int displayRow = getDisplayRow(logicalPosition.y());
     int displayCol = getDisplayCol(logicalPosition.x());
     QPushButton* explodedSquare = m_squares[displayRow][displayCol];
     
-    // 臨時改變方格背景顯示爆炸效果
+    // 在爆炸的方格上顯示 boom.jpg 圖片
     if (explodedSquare) {
+        // 載入並設置爆炸圖片作為方格的圖示
+        QPixmap boomPixmap(":/resources/images/boom.jpg");
+        QIcon boomIcon(boomPixmap);
+        explodedSquare->setIcon(boomIcon);
+        explodedSquare->setIconSize(explodedSquare->size() * 0.9);  // 圖片大小為方格的 90%
+        
+        // 設置方格背景為橙紅色
         explodedSquare->setStyleSheet(
             "QPushButton { background-color: rgba(255, 100, 0, 0.8); border: 3px solid #FF0000; }"
         );
         
-        // 1秒後恢復正常顏色
-        QTimer::singleShot(1000, this, [this, displayRow, displayCol]() {
-            updateSquareColor(displayRow, displayCol);
+        // 1.5秒後恢復正常顏色並清除圖示
+        QTimer::singleShot(1500, this, [this, displayRow, displayCol]() {
+            QPushButton* square = m_squares[displayRow][displayCol];
+            if (square) {
+                square->setIcon(QIcon());  // 清除圖示
+                updateSquareColor(displayRow, displayCol);
+            }
         });
     }
     
@@ -2053,27 +2069,12 @@ void Qt_Chess::handleMineExplosion(const QPoint& logicalPosition, bool isOpponen
     GameResult result = m_chessBoard.getGameResult();
     bool isKingExplosion = (result == GameResult::WhiteWins || result == GameResult::BlackWins);
     
-    // 顯示爆炸消息
-    QTimer::singleShot(100, this, [this, isKingExplosion, isOpponentMove]() {
-        QMessageBox msgBox(this);
-        msgBox.setWindowTitle(tr("💥 地雷爆炸！"));
-        
-        QString messageText;
-        if (isKingExplosion) {
-            messageText = isOpponentMove ? 
-                tr("💣 對手的國王踩到地雷被炸毀了！\n\n遊戲結束！") : 
-                tr("💣 國王踩到地雷被炸毀了！\n\n遊戲結束！");
-        } else {
-            messageText = isOpponentMove ? 
-                tr("💣 對手踩到地雷！棋子被炸毀了！") : 
-                tr("💣 踩到地雷！棋子被炸毀了！");
-        }
-        
-        msgBox.setText(messageText);
-        msgBox.setIcon(QMessageBox::Warning);
-        msgBox.setStyleSheet("QMessageBox { background-color: #2a2a2a; color: white; }");
-        msgBox.exec();
-    });
+    // 如果是國王爆炸，更新狀態顯示（不使用對話框）
+    if (isKingExplosion) {
+        QTimer::singleShot(1600, this, [this]() {
+            updateStatus();  // 更新狀態欄顯示遊戲結束
+        });
+    }
 }
 
 QString Qt_Chess::getPieceTextColor(int logicalRow, int logicalCol) const {
@@ -7185,6 +7186,10 @@ void Qt_Chess::applySoundSettings() {
 
     setSoundSource(m_checkmateSound, m_soundSettings.checkmateSound);
     m_checkmateSound.setVolume(m_soundSettings.checkmateVolume);
+    
+    // 初始化地雷爆炸音效（使用預設路徑和音量）
+    setSoundSource(m_explosionSound, "qrc:/resources/sounds/explosion.wav");
+    m_explosionSound.setVolume(0.7);  // 預設音量 70%
 }
 
 void Qt_Chess::setSoundSource(QSoundEffect& sound, const QString& path) {

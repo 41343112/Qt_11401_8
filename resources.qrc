@@ -5,6 +5,7 @@
         <file>resources/sounds/castling.wav</file>
         <file>resources/sounds/check.wav</file>
         <file>resources/sounds/checkmate.wav</file>
+        <file>resources/sounds/explosion.wav</file>
         <!-- Background music files -->
         <file>resources/backgroundsounds/backgroundsound_1.mp3</file>
         <file>resources/backgroundsounds/backgroundsound_2.mp3</file>
@@ -57,6 +58,9 @@
         
         <!-- Background image -->
         <file>resources/images/chess.jpg</file>
+        
+        <!-- Explosion image for bomb mode -->
+        <file>resources/images/boom.jpg</file>
         
     </qresource>
 </RCC>

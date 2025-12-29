@@ -281,6 +281,7 @@ private:
     QSoundEffect m_castlingSound;
     QSoundEffect m_checkSound;
     QSoundEffect m_checkmateSound;
+    QSoundEffect m_explosionSound;  // 地雷爆炸音效
     SoundSettingsDialog::SoundSettings m_soundSettings;
     
     // 背景音樂
