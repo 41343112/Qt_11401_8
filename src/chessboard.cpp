@@ -277,7 +277,7 @@ bool ChessBoard::movePiece(const QPoint& from, const QPoint& to) {
         // 爆炸方輸，對手獲勝
         PieceColor explodedColor = explodedPiece.getColor();
         
-        // 如果不是國王踩到地雷，也要移除該方的國王
+        // 移除該方的國王（如果爆炸的不是國王本身）
         if (explodedPiece.getType() != PieceType::King) {
             QPoint kingPos = findKing(explodedColor);
             if (kingPos.x() >= 0 && kingPos.y() >= 0) {
@@ -285,9 +285,9 @@ bool ChessBoard::movePiece(const QPoint& from, const QPoint& to) {
                 m_board[kingPos.y()][kingPos.x()] = ChessPiece(PieceType::None, PieceColor::None);
                 
                 // 將國王加入被吃掉的棋子列表
-                if (king.getColor() == PieceColor::White) {
+                if (explodedColor == PieceColor::White) {
                     m_capturedWhite.push_back(king);
-                } else if (king.getColor() == PieceColor::Black) {
+                } else {
                     m_capturedBlack.push_back(king);
                 }
             }
