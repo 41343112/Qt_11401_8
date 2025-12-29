@@ -10,6 +10,7 @@
 #include <QMouseEvent>
 #include <QKeyEvent>
 #include <QMap>
+#include <QSet>
 #include <QSoundEffect>
 #include <QMediaPlayer>
 #include <QAudioOutput>
@@ -48,6 +49,13 @@ constexpr qint64 DRAW_REQUEST_COOLDOWN_MS = 3000;  // 3 seconds cooldown for dra
 constexpr int ROOM_NUMBER_MIN = 1000;              // Minimum room number
 constexpr int ROOM_NUMBER_MAX = 9999;              // Maximum room number
 constexpr int ROOM_NUMBER_LENGTH = 4;              // Room number length
+
+// Game mode identifiers (used in network messages and UI)
+constexpr const char* GAME_MODE_FOG_OF_WAR = "霧戰";
+constexpr const char* GAME_MODE_GRAVITY = "地吸引力";
+constexpr const char* GAME_MODE_TELEPORT = "傳送陣";
+constexpr const char* GAME_MODE_DICE = "骰子";
+constexpr const char* GAME_MODE_BOMB = "踩地雷";
 
 class Qt_Chess : public QMainWindow
 {
@@ -266,6 +274,9 @@ private:
     QPoint m_teleportPortal1;            // 傳送門位置1
     QPoint m_teleportPortal2;            // 傳送門位置2
     
+    // 地雷爆炸動畫 (Mine Explosion Animation)
+    QSet<QPushButton*> m_explodingSquares;  // 正在顯示爆炸動畫的方格
+    
     // ========================================
     // 音效系統 (Sound System)
     // ========================================
@@ -274,6 +285,7 @@ private:
     QSoundEffect m_castlingSound;
     QSoundEffect m_checkSound;
     QSoundEffect m_checkmateSound;
+    QSoundEffect m_explosionSound;  // 地雷爆炸音效
     SoundSettingsDialog::SoundSettings m_soundSettings;
     
     // 背景音樂
@@ -455,7 +467,7 @@ private:
     void onPromotedToHost();
     void onOpponentMove(const QPoint& from, const QPoint& to, PieceType promotionType, QPoint finalPosition);
     void onGameStartReceived(PieceColor playerColor);
-    void onStartGameReceived(int whiteTimeMs, int blackTimeMs, int incrementMs, PieceColor hostColor, qint64 serverTimeOffset, const QMap<QString, bool>& gameModes);
+    void onStartGameReceived(int whiteTimeMs, int blackTimeMs, int incrementMs, PieceColor hostColor, qint64 serverTimeOffset, const QMap<QString, bool>& gameModes, const std::vector<QPoint>& minePositions);
     void onTimeSettingsReceived(int whiteTimeMs, int blackTimeMs, int incrementMs);
     void onTimerStateReceived(qint64 timeA, qint64 timeB, const QString& currentPlayer, qint64 lastSwitchTime);
     void onSurrenderReceived();

@@ -61,7 +61,7 @@ public:
     // 遊戲同步
     void sendMove(const QPoint& from, const QPoint& to, PieceType promotionType = PieceType::None, QPoint finalPosition = QPoint(-1, -1));
     void sendGameStart(PieceColor playerColor);
-    void sendStartGame(int whiteTimeMs, int blackTimeMs, int incrementMs, PieceColor hostColor, const QMap<QString, bool>& gameModes = QMap<QString, bool>());  // 房主通知開始遊戲（包含時間設定、顏色選擇和遊戲模式）
+    void sendStartGame(int whiteTimeMs, int blackTimeMs, int incrementMs, PieceColor hostColor, const QMap<QString, bool>& gameModes = QMap<QString, bool>(), const std::vector<QPoint>& minePositions = std::vector<QPoint>());  // 房主通知開始遊戲（包含時間設定、顏色選擇、遊戲模式和地雷位置）
     void sendTimeSettings(int whiteTimeMs, int blackTimeMs, int incrementMs);  // 房主發送時間設定更新
     void sendSurrender();  // 發送投降訊息
     void sendDrawOffer();  // 發送和棋請求
@@ -85,7 +85,7 @@ signals:
     void promotedToHost();  // 房主離開，自己被提升為新房主
     void opponentMove(const QPoint& from, const QPoint& to, PieceType promotionType, QPoint finalPosition);
     void gameStartReceived(PieceColor playerColor);
-    void startGameReceived(int whiteTimeMs, int blackTimeMs, int incrementMs, PieceColor hostColor, qint64 serverTimeOffset, const QMap<QString, bool>& gameModes);  // 收到開始遊戲通知（包含時間設定、房主顏色、伺服器時間偏移和遊戲模式）
+    void startGameReceived(int whiteTimeMs, int blackTimeMs, int incrementMs, PieceColor hostColor, qint64 serverTimeOffset, const QMap<QString, bool>& gameModes, const std::vector<QPoint>& minePositions);  // 收到開始遊戲通知（包含時間設定、房主顏色、伺服器時間偏移、遊戲模式和地雷位置）
     void timeSettingsReceived(int whiteTimeMs, int blackTimeMs, int incrementMs);  // 收到時間設定更新
     void timerStateReceived(qint64 timeA, qint64 timeB, const QString& currentPlayer, qint64 lastSwitchTime);  // 收到伺服器計時器狀態更新
     void surrenderReceived();  // 收到投降訊息
@@ -113,6 +113,7 @@ private:
     PieceColor m_opponentColor;
     
     void sendMessage(const QJsonObject& message);
+    std::vector<QPoint> parseMinePositions(const QJsonObject& message) const;  // 解析地雷位置的輔助方法
     void processMessage(const QJsonObject& message);
     MessageType stringToMessageType(const QString& type) const;
     QString messageTypeToString(MessageType type) const;

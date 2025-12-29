@@ -178,7 +178,7 @@ void NetworkManager::sendGameStart(PieceColor playerColor)
     sendMessage(message);
 }
 
-void NetworkManager::sendStartGame(int whiteTimeMs, int blackTimeMs, int incrementMs, PieceColor hostColor, const QMap<QString, bool>& gameModes)
+void NetworkManager::sendStartGame(int whiteTimeMs, int blackTimeMs, int incrementMs, PieceColor hostColor, const QMap<QString, bool>& gameModes, const std::vector<QPoint>& minePositions)
 {
     if (m_roomNumber.isEmpty()) {
         qDebug() << "[NetworkManager::sendStartGame] ERROR: Room number is empty";
@@ -199,6 +199,18 @@ void NetworkManager::sendStartGame(int whiteTimeMs, int blackTimeMs, int increme
         gameModesJson[it.key()] = it.value();
     }
     message["gameModes"] = gameModesJson;
+    
+    // 添加地雷位置（如果有）
+    if (!minePositions.empty()) {
+        QJsonArray mineArray;
+        for (const QPoint& pos : minePositions) {
+            QJsonObject posObj;
+            posObj["x"] = pos.x();
+            posObj["y"] = pos.y();
+            mineArray.append(posObj);
+        }
+        message["minePositions"] = mineArray;
+    }
     
     sendMessage(message);
 }
@@ -429,6 +441,9 @@ void NetworkManager::processMessage(const QJsonObject& message)
             }
         }
         
+        // 提取地雷位置（如果有）
+        std::vector<QPoint> minePositions = parseMinePositions(message);
+        
         // 計算伺服器時間偏移（伺服器時間 - 本地時間）
         qint64 localTimestamp = QDateTime::currentMSecsSinceEpoch();
         qint64 serverTimeOffset = serverTimestamp - localTimestamp;
@@ -448,9 +463,10 @@ void NetworkManager::processMessage(const QJsonObject& message)
                  << "| Host color:" << hostColorStr
                  << "| My role:" << (m_role == NetworkRole::Host ? "Host" : "Guest")
                  << "| My color:" << (m_playerColor == PieceColor::White ? "White" : "Black")
-                 << "| Game modes count:" << gameModes.size();
+                 << "| Game modes count:" << gameModes.size()
+                 << "| Mine positions count:" << minePositions.size();
         
-        emit startGameReceived(whiteTimeMs, blackTimeMs, incrementMs, hostColor, serverTimeOffset, gameModes);
+        emit startGameReceived(whiteTimeMs, blackTimeMs, incrementMs, hostColor, serverTimeOffset, gameModes, minePositions);
         
         // 如果訊息包含計時器狀態，發送計時器更新
         if (message.contains("timerState")) {
@@ -621,6 +637,9 @@ void NetworkManager::processMessage(const QJsonObject& message)
                 }
             }
             
+            // 提取地雷位置（如果有）
+            std::vector<QPoint> minePositions = parseMinePositions(message);
+            
             // 計算伺服器時間偏移（如果訊息中包含伺服器時間戳）
             qint64 serverTimeOffset = 0;
             if (message.contains("serverTimestamp")) {
@@ -638,7 +657,7 @@ void NetworkManager::processMessage(const QJsonObject& message)
                 m_opponentColor = hostColor;
             }
             
-            emit startGameReceived(whiteTimeMs, blackTimeMs, incrementMs, hostColor, serverTimeOffset, gameModes);
+            emit startGameReceived(whiteTimeMs, blackTimeMs, incrementMs, hostColor, serverTimeOffset, gameModes, minePositions);
         }
         break;
     
@@ -756,4 +775,18 @@ QString NetworkManager::messageTypeToString(MessageType type) const
     };
     
     return stringMap.value(type, "Unknown");
+}
+
+std::vector<QPoint> NetworkManager::parseMinePositions(const QJsonObject& message) const {
+    std::vector<QPoint> minePositions;
+    if (message.contains("minePositions")) {
+        QJsonArray mineArray = message["minePositions"].toArray();
+        for (const QJsonValue& val : mineArray) {
+            QJsonObject posObj = val.toObject();
+            int x = posObj["x"].toInt();
+            int y = posObj["y"].toInt();
+            minePositions.push_back(QPoint(x, y));
+        }
+    }
+    return minePositions;
 }

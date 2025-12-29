@@ -1993,6 +1993,11 @@ void Qt_Chess::updateStatus() {
 void Qt_Chess::displayPieceOnSquare(QPushButton* square, const ChessPiece& piece) {
     if (!square) return;
 
+    // 如果方格正在顯示爆炸動畫，不要清除或更新它
+    if (m_explodingSquares.contains(square)) {
+        return;
+    }
+
     // 清除 previous content
     square->setText("");
     square->setIcon(QIcon());
@@ -2032,20 +2037,52 @@ void Qt_Chess::displayPieceOnSquare(QPushButton* square, const ChessPiece& piece
 }
 
 void Qt_Chess::handleMineExplosion(const QPoint& logicalPosition, bool isOpponentMove) {
-    // 顯示爆炸動畫
+    // 播放爆炸音效
+    if (m_soundSettings.allSoundsEnabled) {
+        m_explosionSound.play();
+    }
+    
+    // 顯示爆炸動畫在棋盤方格上
     int displayRow = getDisplayRow(logicalPosition.y());
     int displayCol = getDisplayCol(logicalPosition.x());
     QPushButton* explodedSquare = m_squares[displayRow][displayCol];
     
-    // 臨時改變方格背景顯示爆炸效果
+    // 在爆炸的方格上顯示 boom.jpg 圖片
     if (explodedSquare) {
+        // 標記此方格正在顯示爆炸動畫
+        m_explodingSquares.insert(explodedSquare);
+        
+        // 清除方格上的文字（棋子符號）
+        explodedSquare->setText("");
+        
+        // 載入並設置爆炸圖片作為方格的圖示
+        QPixmap boomPixmap(":/resources/images/boom.png");
+        if (!boomPixmap.isNull()) {
+            QIcon boomIcon(boomPixmap);
+            explodedSquare->setIcon(boomIcon);
+            // 圖片大小為方格大小
+            QSize squareSize = explodedSquare->size();
+            explodedSquare->setIconSize(squareSize);
+        }
+        
+        // 設置方格背景為橙紅色
         explodedSquare->setStyleSheet(
             "QPushButton { background-color: rgba(255, 100, 0, 0.8); border: 3px solid #FF0000; }"
         );
         
-        // 1秒後恢復正常顏色
-        QTimer::singleShot(1000, this, [this, displayRow, displayCol]() {
-            updateSquareColor(displayRow, displayCol);
+        // 1.5秒後恢復正常顏色並清除圖示
+        QTimer::singleShot(1500, this, [this, explodedSquare, displayRow, displayCol]() {
+            if (explodedSquare) {
+                // 從爆炸方格集合中移除
+                m_explodingSquares.remove(explodedSquare);
+                
+                // 清除圖示
+                explodedSquare->setIcon(QIcon());
+                explodedSquare->setText("");
+                
+                // 恢復方格顏色
+                updateSquareColor(displayRow, displayCol);
+            }
         });
     }
     
@@ -2053,27 +2090,12 @@ void Qt_Chess::handleMineExplosion(const QPoint& logicalPosition, bool isOpponen
     GameResult result = m_chessBoard.getGameResult();
     bool isKingExplosion = (result == GameResult::WhiteWins || result == GameResult::BlackWins);
     
-    // 顯示爆炸消息
-    QTimer::singleShot(100, this, [this, isKingExplosion, isOpponentMove]() {
-        QMessageBox msgBox(this);
-        msgBox.setWindowTitle(tr("💥 地雷爆炸！"));
-        
-        QString messageText;
-        if (isKingExplosion) {
-            messageText = isOpponentMove ? 
-                tr("💣 對手的國王踩到地雷被炸毀了！\n\n遊戲結束！") : 
-                tr("💣 國王踩到地雷被炸毀了！\n\n遊戲結束！");
-        } else {
-            messageText = isOpponentMove ? 
-                tr("💣 對手踩到地雷！棋子被炸毀了！") : 
-                tr("💣 踩到地雷！棋子被炸毀了！");
-        }
-        
-        msgBox.setText(messageText);
-        msgBox.setIcon(QMessageBox::Warning);
-        msgBox.setStyleSheet("QMessageBox { background-color: #2a2a2a; color: white; }");
-        msgBox.exec();
-    });
+    // 如果是國王爆炸，更新狀態顯示（不使用對話框）
+    if (isKingExplosion) {
+        QTimer::singleShot(1600, this, [this]() {
+            updateStatus();  // 更新狀態欄顯示遊戲結束
+        });
+    }
 }
 
 QString Qt_Chess::getPieceTextColor(int logicalRow, int logicalCol) const {
@@ -2772,8 +2794,16 @@ void Qt_Chess::onStartButtonClicked() {
             m_networkManager->setPlayerColors(m_onlineHostSelectedColor);
         }
         
+        // 如果啟用了踩地雷模式，房主生成地雷位置並發送給所有玩家
+        std::vector<QPoint> minePositions;
+        if (m_selectedGameModes.contains(GAME_MODE_BOMB) && m_selectedGameModes[GAME_MODE_BOMB]) {
+            // 房主使用共用的地雷生成邏輯
+            minePositions = ChessBoard::generateRandomMinePositions();
+            qDebug() << "[Qt_Chess::onStartButtonClicked] Host generated" << minePositions.size() << "mine positions for bomb mode";
+        }
+        
         // 不再預先生成傳送門位置 - 每個玩家將獨立生成自己的傳送門
-        m_networkManager->sendStartGame(whiteTimeMs, blackTimeMs, incrementMs, m_onlineHostSelectedColor, m_selectedGameModes);
+        m_networkManager->sendStartGame(whiteTimeMs, blackTimeMs, incrementMs, m_onlineHostSelectedColor, m_selectedGameModes, minePositions);
         
         qDebug() << "[Qt_Chess::onStartButtonClicked] Host sending StartGame to server"
                  << "| Host color:" << (m_onlineHostSelectedColor == PieceColor::White ? "White" : "Black")
@@ -6102,13 +6132,14 @@ void Qt_Chess::onGameStartReceived(PieceColor playerColor) {
     // 不再自動開始遊戲，改由房主點擊開始按鈕
 }
 
-void Qt_Chess::onStartGameReceived(int whiteTimeMs, int blackTimeMs, int incrementMs, PieceColor hostColor, qint64 serverTimeOffset, const QMap<QString, bool>& gameModes) {
+void Qt_Chess::onStartGameReceived(int whiteTimeMs, int blackTimeMs, int incrementMs, PieceColor hostColor, qint64 serverTimeOffset, const QMap<QString, bool>& gameModes, const std::vector<QPoint>& minePositions) {
     qDebug() << "[Qt_Chess::onStartGameReceived] Client received StartGame"
              << "| Host color:" << (hostColor == PieceColor::White ? "White" : "Black")
              << "| whiteTimeMs:" << whiteTimeMs
              << "| blackTimeMs:" << blackTimeMs
              << "| serverTimeOffset:" << serverTimeOffset << "ms"
-             << "| gameModes count:" << gameModes.size();
+             << "| gameModes count:" << gameModes.size()
+             << "| minePositions count:" << minePositions.size();
     
     // 儲存伺服器時間偏移和遊戲開始時間，用於線上模式的時間同步
     m_serverTimeOffset = serverTimeOffset;
@@ -6151,9 +6182,19 @@ void Qt_Chess::onStartGameReceived(int whiteTimeMs, int blackTimeMs, int increme
     m_uciMoveHistory.clear();
     
     // 啟用地雷模式（如果選擇了踩地雷遊戲模式）
-    if (m_selectedGameModes.contains("踩地雷") && m_selectedGameModes["踩地雷"]) {
-        m_chessBoard.enableBombMode(true);
-        qDebug() << "[Qt_Chess::onStartGameReceived] Bomb mode enabled with" << m_chessBoard.getMinePositions().size() << "mines";
+    if (m_selectedGameModes.contains(GAME_MODE_BOMB) && m_selectedGameModes[GAME_MODE_BOMB]) {
+        if (!minePositions.empty()) {
+            // 使用從伺服器接收到的地雷位置（正常流程）
+            m_chessBoard.enableBombMode(true);
+            m_chessBoard.setMinePositions(minePositions);
+            qDebug() << "[Qt_Chess::onStartGameReceived] Bomb mode enabled with" << minePositions.size() << "mines from server";
+        } else {
+            // 如果沒有收到地雷位置（不應該發生），顯示錯誤並停用地雷模式
+            qCritical() << "[Qt_Chess::onStartGameReceived] CRITICAL: No mine positions received from server! Disabling bomb mode to prevent desync.";
+            m_chessBoard.enableBombMode(false);
+            QMessageBox::warning(this, tr("地雷模式錯誤"), 
+                tr("未能從伺服器接收地雷位置資料。\n為避免不同步，地雷模式已被停用。\n\n請確保伺服器版本支援地雷模式同步功能。"));
+        }
     } else {
         m_chessBoard.enableBombMode(false);
     }
@@ -6295,7 +6336,7 @@ void Qt_Chess::onStartGameReceived(int whiteTimeMs, int blackTimeMs, int increme
     setRightPanelStretch(1);
     
     // 檢查是否啟用霧戰模式
-    if (m_selectedGameModes.contains("霧戰") && m_selectedGameModes["霧戰"]) {
+    if (m_selectedGameModes.contains(GAME_MODE_FOG_OF_WAR) && m_selectedGameModes[GAME_MODE_FOG_OF_WAR]) {
         m_fogOfWarEnabled = true;
         qDebug() << "[Qt_Chess::onStartGameReceived] Fog of War mode enabled";
     } else {
@@ -6303,7 +6344,7 @@ void Qt_Chess::onStartGameReceived(int whiteTimeMs, int blackTimeMs, int increme
     }
     
     // 檢查是否啟用地吸引力模式
-    if (m_selectedGameModes.contains("地吸引力") && m_selectedGameModes["地吸引力"]) {
+    if (m_selectedGameModes.contains(GAME_MODE_GRAVITY) && m_selectedGameModes[GAME_MODE_GRAVITY]) {
         m_gravityModeEnabled = true;
         qDebug() << "[Qt_Chess::onStartGameReceived] Gravity mode enabled";
         
@@ -6320,7 +6361,7 @@ void Qt_Chess::onStartGameReceived(int whiteTimeMs, int blackTimeMs, int increme
     }
     
     // 檢查是否啟用傳送陣模式
-    if (m_selectedGameModes.contains("傳送陣") && m_selectedGameModes["傳送陣"]) {
+    if (m_selectedGameModes.contains(GAME_MODE_TELEPORT) && m_selectedGameModes[GAME_MODE_TELEPORT]) {
         m_teleportModeEnabled = true;
         qDebug() << "[Qt_Chess::onStartGameReceived] Teleportation mode enabled - each player generates their own portals";
         
@@ -7166,6 +7207,10 @@ void Qt_Chess::applySoundSettings() {
 
     setSoundSource(m_checkmateSound, m_soundSettings.checkmateSound);
     m_checkmateSound.setVolume(m_soundSettings.checkmateVolume);
+    
+    // 初始化地雷爆炸音效（使用預設路徑和音量）
+    setSoundSource(m_explosionSound, "qrc:/resources/sounds/explosion.wav");
+    m_explosionSound.setVolume(0.7);  // 預設音量 70%
 }
 
 void Qt_Chess::setSoundSource(QSoundEffect& sound, const QString& path) {
