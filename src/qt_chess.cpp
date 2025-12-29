@@ -2336,6 +2336,23 @@ void Qt_Chess::onSquareClicked(int displayRow, int displayCol) {
                  << "| Network player color:" << (m_networkManager ? (int)m_networkManager->getPlayerColor() : -1);
         return;
     }
+    
+    // 骰子模式：檢查是否需要生成新骰子（輪到玩家時且所有骰子已用完）
+    if (m_diceModeEnabled && !hasAnyUsableDice()) {
+        qDebug() << "[Qt_Chess::onSquareClicked] Dice mode: Generating new dice for player's turn";
+        generateDice();
+        m_diceUsed = {false, false, false};
+        m_currentDiceIndex = 0;
+        skipToNextUsableDice();
+        updateDiceDisplay();
+        
+        // 如果生成後還是沒有可用的骰子（極少見情況），通知玩家
+        if (!hasAnyUsableDice()) {
+            qDebug() << "[Qt_Chess::onSquareClicked] No usable dice after generation, turn will be skipped";
+            QMessageBox::information(this, "骰子模式", "當前沒有可用的骰子，您的回合將被跳過。");
+            return;
+        }
+    }
 
     // 將顯示坐標轉換為邏輯坐標
     int logicalRow = getLogicalRow(displayRow);
