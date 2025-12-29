@@ -5928,8 +5928,9 @@ void Qt_Chess::onOpponentMove(const QPoint& from, const QPoint& to, PieceType pr
         
         // 處理傳送陣模式（如果啟用）
         if (m_teleportModeEnabled) {
-            handleTeleportation(from, to);
-            // 如果收到新的傳送門位置，使用它們（而不是本地生成的）
+            // 執行傳送動作（不重置傳送門）
+            performTeleportationMove(from, to);
+            // 使用從對手接收到的傳送門位置
             applyReceivedPortalPositions(newPortal1, newPortal2);
         }
         
@@ -8024,17 +8025,18 @@ bool Qt_Chess::isTeleportPortal(int row, int col) const {
     return (pos == m_teleportPortal1 || pos == m_teleportPortal2);
 }
 
-void Qt_Chess::handleTeleportation(const QPoint& from, const QPoint& to) {
+// 輔助函數：執行傳送動作（不重置傳送門）
+bool Qt_Chess::performTeleportationMove(const QPoint& from, const QPoint& to) {
     if (!m_teleportModeEnabled) {
-        return;
+        return false;
     }
     
     // 檢查目標位置是否為傳送門
     if (!isTeleportPortal(to.y(), to.x())) {
-        return;
+        return false;
     }
     
-    qDebug() << "[Qt_Chess::handleTeleportation] Piece landed on portal at" << to;
+    qDebug() << "[Qt_Chess::performTeleportationMove] Piece landed on portal at" << to;
     
     // 確定另一個傳送門的位置
     QPoint targetPortal;
@@ -8047,8 +8049,8 @@ void Qt_Chess::handleTeleportation(const QPoint& from, const QPoint& to) {
     // 檢查目標傳送門是否為空
     const ChessPiece& targetPiece = m_chessBoard.getPiece(targetPortal.y(), targetPortal.x());
     if (targetPiece.getType() != PieceType::None) {
-        qDebug() << "[Qt_Chess::handleTeleportation] Target portal is not empty, teleportation failed";
-        return;
+        qDebug() << "[Qt_Chess::performTeleportationMove] Target portal is not empty, teleportation failed";
+        return false;
     }
     
     // 移動棋子到另一個傳送門
@@ -8056,55 +8058,30 @@ void Qt_Chess::handleTeleportation(const QPoint& from, const QPoint& to) {
     m_chessBoard.setPiece(targetPortal.y(), targetPortal.x(), piece);
     m_chessBoard.setPiece(to.y(), to.x(), ChessPiece(PieceType::None, PieceColor::None));
     
-    qDebug() << "[Qt_Chess::handleTeleportation] Teleported piece to" << targetPortal;
-    
-    // 重置傳送門到新的隨機位置
-    resetTeleportPortals();
+    qDebug() << "[Qt_Chess::performTeleportationMove] Teleported piece to" << targetPortal;
+    return true;
+}
+
+void Qt_Chess::handleTeleportation(const QPoint& from, const QPoint& to) {
+    if (performTeleportationMove(from, to)) {
+        // 重置傳送門到新的隨機位置
+        resetTeleportPortals();
+    }
 }
 
 QPair<QPoint, QPoint> Qt_Chess::handleTeleportationAndGetNewPortals(const QPoint& from, const QPoint& to) {
     QPoint newPortal1(-1, -1);
     QPoint newPortal2(-1, -1);
     
-    if (!m_teleportModeEnabled) {
-        return qMakePair(newPortal1, newPortal2);
+    // 執行傳送動作（如果適用）
+    if (performTeleportationMove(from, to)) {
+        // 重置傳送門並返回新位置
+        resetTeleportPortals();
+        newPortal1 = m_teleportPortal1;
+        newPortal2 = m_teleportPortal2;
+        
+        qDebug() << "[Qt_Chess::handleTeleportationAndGetNewPortals] New portals: Portal1" << newPortal1 << "Portal2" << newPortal2;
     }
-    
-    // 檢查目標位置是否為傳送門
-    if (!isTeleportPortal(to.y(), to.x())) {
-        return qMakePair(newPortal1, newPortal2);
-    }
-    
-    qDebug() << "[Qt_Chess::handleTeleportationAndGetNewPortals] Piece landed on portal at" << to;
-    
-    // 確定另一個傳送門的位置
-    QPoint targetPortal;
-    if (to == m_teleportPortal1) {
-        targetPortal = m_teleportPortal2;
-    } else {
-        targetPortal = m_teleportPortal1;
-    }
-    
-    // 檢查目標傳送門是否為空
-    const ChessPiece& targetPiece = m_chessBoard.getPiece(targetPortal.y(), targetPortal.x());
-    if (targetPiece.getType() != PieceType::None) {
-        qDebug() << "[Qt_Chess::handleTeleportationAndGetNewPortals] Target portal is not empty, teleportation failed";
-        return qMakePair(newPortal1, newPortal2);
-    }
-    
-    // 移動棋子到另一個傳送門
-    ChessPiece piece = m_chessBoard.getPiece(to.y(), to.x());
-    m_chessBoard.setPiece(targetPortal.y(), targetPortal.x(), piece);
-    m_chessBoard.setPiece(to.y(), to.x(), ChessPiece(PieceType::None, PieceColor::None));
-    
-    qDebug() << "[Qt_Chess::handleTeleportationAndGetNewPortals] Teleported piece to" << targetPortal;
-    
-    // 重置傳送門並返回新位置
-    resetTeleportPortals();
-    newPortal1 = m_teleportPortal1;
-    newPortal2 = m_teleportPortal2;
-    
-    qDebug() << "[Qt_Chess::handleTeleportationAndGetNewPortals] New portals: Portal1" << newPortal1 << "Portal2" << newPortal2;
     
     return qMakePair(newPortal1, newPortal2);
 }
