@@ -3349,6 +3349,23 @@ void Qt_Chess::mousePressEvent(QMouseEvent *event) {
             piece.getColor() == m_chessBoard.getCurrentPlayer() &&
             isPlayerPiece(piece.getColor())) {  // 檢查是否為玩家的棋子
 
+            // 骰子模式：檢查棋子是否在骰子中
+            if (m_diceModeEnabled && !isPieceInDice(logicalSquare)) {
+                // 顯示錯誤訊息，僅列出當前骰子的棋子符號
+                QStringList diceSymbols;
+                for (const DicePiece& dice : m_diceRoll) {
+                    if (!dice.used) {
+                        const ChessPiece& dicePiece = m_chessBoard.getPiece(dice.position.y(), dice.position.x());
+                        QString symbol = dicePiece.getSymbol();
+                        diceSymbols.append(symbol);
+                    }
+                }
+                
+                QString message = "當前骰子為：" + diceSymbols.join(" ");
+                QMessageBox::information(this, "無法移動", message);
+                return;
+            }
+
             // 追蹤這個棋子在拖動前是否已被選中
             m_wasSelectedBeforeDrag = (m_pieceSelected && m_selectedSquare == logicalSquare);
 
