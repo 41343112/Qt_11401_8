@@ -96,8 +96,6 @@ wss.on('connection', ws => {
                 const blackTimeMs = msg.blackTimeMs || 0;
                 const hostColor = msg.hostColor; // "White" or "Black"
                 const gameModes = msg.gameModes || {}; // 遊戲模式設定
-                const teleportPortal1 = msg.teleportPortal1; // 傳送門1位置
-                const teleportPortal2 = msg.teleportPortal2; // 傳送門2位置
                 
                 // 確定哪個玩家是 A (房主) 和 B (房客)
                 const whiteIsA = (hostColor === "White");
@@ -131,14 +129,6 @@ wss.on('connection', ws => {
                         lastSwitchTime: gameTimers[roomId].lastSwitchTime
                     }
                 };
-                
-                // 添加傳送門位置（如果存在）
-                if (teleportPortal1) {
-                    startMessage.teleportPortal1 = teleportPortal1;
-                }
-                if (teleportPortal2) {
-                    startMessage.teleportPortal2 = teleportPortal2;
-                }
                 
                 // 廣播給房間內所有玩家
                 rooms[roomId].forEach(client => {
