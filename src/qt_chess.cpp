@@ -8434,33 +8434,66 @@ void Qt_Chess::updateDiceDisplay() {
         // 獲取當前玩家顏色
         PieceColor currentColor = m_chessBoard.getCurrentPlayer();
         
-        // 獲取棋子圖示
-        QPixmap pieceIcon = getCachedPieceIcon(pieceType, currentColor);
-        if (!pieceIcon.isNull()) {
-            // 縮放圖示
-            pieceIcon = pieceIcon.scaled(60, 60, Qt::KeepAspectRatio, Qt::SmoothTransformation);
-            
-            // 如果骰子已使用，將圖示變灰 (使用 Qt 的高效方法)
-            if (isUsed) {
-                QImage image = pieceIcon.toImage();
-                // 使用 Qt 的 convertToFormat 配合灰度格式
-                image = image.convertToFormat(QImage::Format_Grayscale8);
-                pieceIcon = QPixmap::fromImage(image);
+        // 嘗試使用圖示，如果不可用則使用 Unicode 符號
+        bool iconDisplayed = false;
+        if (m_pieceIconSettings.useCustomIcons) {
+            QPixmap pieceIcon = getCachedPieceIcon(pieceType, currentColor);
+            if (!pieceIcon.isNull()) {
+                // 縮放圖示
+                pieceIcon = pieceIcon.scaled(60, 60, Qt::KeepAspectRatio, Qt::SmoothTransformation);
                 
-                // 降低不透明度以增強灰色效果
-                QPixmap tempPixmap(pieceIcon.size());
-                tempPixmap.fill(Qt::transparent);
-                QPainter painter(&tempPixmap);
-                painter.setOpacity(0.5);
-                painter.drawPixmap(0, 0, pieceIcon);
-                painter.end();
-                pieceIcon = tempPixmap;
+                // 如果骰子已使用，將圖示變灰 (使用 Qt 的高效方法)
+                if (isUsed) {
+                    QImage image = pieceIcon.toImage();
+                    // 使用 Qt 的 convertToFormat 配合灰度格式
+                    image = image.convertToFormat(QImage::Format_Grayscale8);
+                    pieceIcon = QPixmap::fromImage(image);
+                    
+                    // 降低不透明度以增強灰色效果
+                    QPixmap tempPixmap(pieceIcon.size());
+                    tempPixmap.fill(Qt::transparent);
+                    QPainter painter(&tempPixmap);
+                    painter.setOpacity(0.5);
+                    painter.drawPixmap(0, 0, pieceIcon);
+                    painter.end();
+                    pieceIcon = tempPixmap;
+                }
+                
+                diceLabel->setPixmap(pieceIcon);
+                diceLabel->setText("");  // 清除文字
+                iconDisplayed = true;
             }
-            
-            diceLabel->setPixmap(pieceIcon);
         }
         
-        // 更新邊框樣式
+        // 如果圖示不可用，使用 Unicode 符號
+        if (!iconDisplayed) {
+            diceLabel->setPixmap(QPixmap());  // 清除圖示
+            
+            // 創建臨時棋子以獲取符號
+            ChessPiece tempPiece(pieceType, currentColor);
+            QString symbol = tempPiece.getSymbol();
+            
+            diceLabel->setText(symbol);
+            diceLabel->setAlignment(Qt::AlignCenter);
+            
+            // 設置字體大小和顏色
+            QString textColor = isUsed ? "#808080" : (currentColor == PieceColor::White ? "#FFFFFF" : "#000000");
+            diceLabel->setStyleSheet(QString(
+                "QLabel { "
+                "  background-color: %1; "
+                "  border: 3px solid %2; "
+                "  border-radius: 10px; "
+                "  padding: 5px; "
+                "  font-size: 40px; "
+                "  color: %3; "
+                "}"
+            ).arg(isUsed ? "#0A0A0A" : "#1A3F5C",
+                  isUsed ? "#555555" : (isCurrent ? "#00FF00" : "#FF9955"),
+                  textColor));
+            continue;  // 跳過下面的樣式設置
+        }
+        
+        // 更新邊框樣式（僅用於圖示模式）
         QString borderColor = isUsed ? "#555555" : (isCurrent ? "#00FF00" : "#FF9955");
         QString backgroundColor = isUsed ? "#0A0A0A" : "#1A3F5C";
         
