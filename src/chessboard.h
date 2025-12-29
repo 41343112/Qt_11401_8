@@ -79,6 +79,7 @@ public:
     bool isMineAt(const QPoint& pos) const;
     const std::vector<QPoint>& getMinePositions() const { return m_minePositions; }
     void placeMines();
+    void setMinePositions(const std::vector<QPoint>& positions);
     bool lastMoveTriggeredMine() const { return m_lastMoveTriggeredMine; }
     
 private:

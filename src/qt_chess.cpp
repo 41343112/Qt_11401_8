@@ -2772,8 +2772,20 @@ void Qt_Chess::onStartButtonClicked() {
             m_networkManager->setPlayerColors(m_onlineHostSelectedColor);
         }
         
+        // 如果啟用了踩地雷模式，房主生成地雷位置並發送給所有玩家
+        std::vector<QPoint> minePositions;
+        if (m_selectedGameModes.contains("踩地雷") && m_selectedGameModes["踩地雷"]) {
+            // 臨時啟用地雷模式並生成地雷位置
+            m_chessBoard.enableBombMode(true);
+            m_chessBoard.placeMines();
+            minePositions = m_chessBoard.getMinePositions();
+            // 暫時停用，等待伺服器廣播後再啟用
+            m_chessBoard.enableBombMode(false);
+            qDebug() << "[Qt_Chess::onStartButtonClicked] Host generated" << minePositions.size() << "mine positions for bomb mode";
+        }
+        
         // 不再預先生成傳送門位置 - 每個玩家將獨立生成自己的傳送門
-        m_networkManager->sendStartGame(whiteTimeMs, blackTimeMs, incrementMs, m_onlineHostSelectedColor, m_selectedGameModes);
+        m_networkManager->sendStartGame(whiteTimeMs, blackTimeMs, incrementMs, m_onlineHostSelectedColor, m_selectedGameModes, minePositions);
         
         qDebug() << "[Qt_Chess::onStartButtonClicked] Host sending StartGame to server"
                  << "| Host color:" << (m_onlineHostSelectedColor == PieceColor::White ? "White" : "Black")
@@ -6102,13 +6114,14 @@ void Qt_Chess::onGameStartReceived(PieceColor playerColor) {
     // 不再自動開始遊戲，改由房主點擊開始按鈕
 }
 
-void Qt_Chess::onStartGameReceived(int whiteTimeMs, int blackTimeMs, int incrementMs, PieceColor hostColor, qint64 serverTimeOffset, const QMap<QString, bool>& gameModes) {
+void Qt_Chess::onStartGameReceived(int whiteTimeMs, int blackTimeMs, int incrementMs, PieceColor hostColor, qint64 serverTimeOffset, const QMap<QString, bool>& gameModes, const std::vector<QPoint>& minePositions) {
     qDebug() << "[Qt_Chess::onStartGameReceived] Client received StartGame"
              << "| Host color:" << (hostColor == PieceColor::White ? "White" : "Black")
              << "| whiteTimeMs:" << whiteTimeMs
              << "| blackTimeMs:" << blackTimeMs
              << "| serverTimeOffset:" << serverTimeOffset << "ms"
-             << "| gameModes count:" << gameModes.size();
+             << "| gameModes count:" << gameModes.size()
+             << "| minePositions count:" << minePositions.size();
     
     // 儲存伺服器時間偏移和遊戲開始時間，用於線上模式的時間同步
     m_serverTimeOffset = serverTimeOffset;
@@ -6153,7 +6166,15 @@ void Qt_Chess::onStartGameReceived(int whiteTimeMs, int blackTimeMs, int increme
     // 啟用地雷模式（如果選擇了踩地雷遊戲模式）
     if (m_selectedGameModes.contains("踩地雷") && m_selectedGameModes["踩地雷"]) {
         m_chessBoard.enableBombMode(true);
-        qDebug() << "[Qt_Chess::onStartGameReceived] Bomb mode enabled with" << m_chessBoard.getMinePositions().size() << "mines";
+        if (!minePositions.empty()) {
+            // 使用從伺服器接收到的地雷位置
+            m_chessBoard.setMinePositions(minePositions);
+            qDebug() << "[Qt_Chess::onStartGameReceived] Bomb mode enabled with" << minePositions.size() << "mines from server";
+        } else {
+            // 如果沒有收到地雷位置（舊版伺服器），則本地生成（不建議）
+            m_chessBoard.placeMines();
+            qDebug() << "[Qt_Chess::onStartGameReceived] Bomb mode enabled with" << m_chessBoard.getMinePositions().size() << "mines (locally generated)";
+        }
     } else {
         m_chessBoard.enableBombMode(false);
     }

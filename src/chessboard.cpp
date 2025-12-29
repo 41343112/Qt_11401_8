@@ -686,11 +686,10 @@ void ChessBoard::clearCapturedPieces() {
 // 地雷模式實現 (Bomb Chess Mode Implementation)
 void ChessBoard::enableBombMode(bool enable) {
     m_bombModeEnabled = enable;
-    if (enable && m_minePositions.empty()) {
-        placeMines();
-    } else if (!enable) {
+    if (!enable) {
         m_minePositions.clear();
     }
+    // 不再自動生成地雷位置 - 必須透過 placeMines() 或 setMinePositions() 明確設定
 }
 
 bool ChessBoard::isMineAt(const QPoint& pos) const {
@@ -732,4 +731,8 @@ void ChessBoard::placeMines() {
     for (int i = 0; i < numMines && i < static_cast<int>(availablePositions.size()); ++i) {
         m_minePositions.push_back(availablePositions[i]);
     }
+}
+
+void ChessBoard::setMinePositions(const std::vector<QPoint>& positions) {
+    m_minePositions = positions;
 }
