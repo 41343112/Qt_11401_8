@@ -2125,8 +2125,19 @@ void Qt_Chess::rollDiceForTurn() {
                 m_networkManager->sendDiceRoll(m_chessBoard.getDiceRoll());
             }
             
-            // 檢查是否有任何可移動的棋子
+            // 檢查是否有任何可移動的棋子（最多嘗試3次避免無限循環）
+            static int skipCount = 0;
             if (!m_chessBoard.hasAnyValidMovesWithDice(m_chessBoard.getCurrentPlayer())) {
+                skipCount++;
+                
+                // 如果雙方連續3次都無法移動，可能是僵局
+                if (skipCount >= 6) {
+                    QMessageBox::warning(this, tr("🎲 遊戲僵局"),
+                        tr("連續多次投擲都無法移動，遊戲可能處於僵局。"));
+                    skipCount = 0;
+                    return;
+                }
+                
                 // 沒有任何棋子可以移動，自動跳過回合
                 QMessageBox::information(this, tr("🎲 骰子結果"),
                     tr("投擲結果：沒有可移動的棋子，自動跳過回合。"));
@@ -2139,6 +2150,9 @@ void Qt_Chess::rollDiceForTurn() {
                 
                 // 為下一個玩家投骰子
                 rollDiceForTurn();
+            } else {
+                // 有可移動的棋子，重置跳過計數
+                skipCount = 0;
             }
         }
     }

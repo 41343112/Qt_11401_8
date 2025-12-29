@@ -777,6 +777,11 @@ bool ChessBoard::canMovePieceType(PieceType type) const {
         return true; // 骰子模式未啟用，所有棋子都可以移動
     }
     
+    // 國王不受骰子限制（安全特性）
+    if (type == PieceType::King) {
+        return true;
+    }
+    
     // 檢查該棋子類型是否在骰子結果中
     for (const PieceType& diceType : m_diceRoll) {
         if (diceType == type) {
