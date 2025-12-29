@@ -2714,11 +2714,14 @@ void Qt_Chess::onStartButtonClicked() {
         // 如果啟用傳送陣模式，房主預先生成傳送門位置
         QPoint portal1(-1, -1), portal2(-1, -1);
         if (m_selectedGameModes.contains("傳送陣") && m_selectedGameModes["傳送陣"]) {
-            // 收集所有空格子的位置（初始棋盤狀態）
+            // 收集所有空格子的位置（與resetTeleportPortals()邏輯一致）
             QVector<QPoint> emptySquares;
-            for (int row = 2; row < 6; ++row) {  // 只在中間4行生成傳送門
+            for (int row = 0; row < 8; ++row) {
                 for (int col = 0; col < 8; ++col) {
-                    emptySquares.append(QPoint(col, row));
+                    const ChessPiece& piece = m_chessBoard.getPiece(row, col);
+                    if (piece.getType() == PieceType::None) {
+                        emptySquares.append(QPoint(col, row));
+                    }
                 }
             }
             
