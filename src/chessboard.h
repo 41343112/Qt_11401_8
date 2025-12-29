@@ -87,6 +87,9 @@ public:
     void rollDice();
     void setDiceRoll(const std::vector<PieceType>& diceResult);  // 設置骰子結果（用於網路同步）
     const std::vector<PieceType>& getDiceRoll() const { return m_diceRoll; }
+    int getCurrentDiceIndex() const { return m_currentDiceIndex; }  // 獲取當前骰子索引（0-2）
+    void markDiceAsUsed();  // 標記當前骰子為已使用
+    void resetDiceUsage();  // 重置骰子使用狀態
     bool canMovePieceType(PieceType type) const;
     bool hasAnyValidMovesWithDice(PieceColor color) const;
     
@@ -107,6 +110,7 @@ private:
     // 骰子模式相關變量
     bool m_diceModeEnabled; // 骰子模式是否啟用
     std::vector<PieceType> m_diceRoll; // 當前骰子結果（三個棋子類型）
+    int m_currentDiceIndex; // 當前應使用的骰子索引（0-2），-1表示全部使用完畢
 
     
     void switchPlayer();

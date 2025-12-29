@@ -3,7 +3,7 @@
 #include <algorithm>
 
 ChessBoard::ChessBoard()
-    : m_board(8, std::vector<ChessPiece>(8)), m_currentPlayer(PieceColor::White), m_enPassantTarget(-1, -1), m_gameResult(GameResult::InProgress), m_bombModeEnabled(false), m_lastMoveTriggeredMine(false), m_diceModeEnabled(false)
+    : m_board(8, std::vector<ChessPiece>(8)), m_currentPlayer(PieceColor::White), m_enPassantTarget(-1, -1), m_gameResult(GameResult::InProgress), m_bombModeEnabled(false), m_lastMoveTriggeredMine(false), m_diceModeEnabled(false), m_currentDiceIndex(0)
 {
     initializeBoard();
 }
@@ -286,7 +286,12 @@ bool ChessBoard::movePiece(const QPoint& from, const QPoint& to) {
     // 記錄移動（在切換玩家之前，因為 recordMove 需要檢查對手是否被將軍）
     recordMove(from, to, isCapture, isCastling, isEnPassant);
     
-    switchPlayer();
+    // 骰子模式：只有當所有骰子都用完時才切換玩家
+    if (m_diceModeEnabled) {
+        // 不自動切換玩家，由上層控制
+    } else {
+        switchPlayer();
+    }
     return true;
 }
 
@@ -746,6 +751,7 @@ void ChessBoard::enableDiceMode(bool enable) {
 
 void ChessBoard::rollDice() {
     m_diceRoll.clear();
+    m_currentDiceIndex = 0;  // 重置骰子索引
     
     // 可選的棋子類型（排除國王，因為國王通常不應該受限）
     std::vector<PieceType> availablePieces = {
@@ -758,18 +764,26 @@ void ChessBoard::rollDice() {
     
     QRandomGenerator *rng = QRandomGenerator::global();
     
-    // 投擲三個骰子，每個骰子選擇一個不同的棋子類型
-    std::vector<PieceType> selectedPieces = availablePieces;
-    std::shuffle(selectedPieces.begin(), selectedPieces.end(), *rng);
-    
-    // 選擇前三個作為骰子結果
-    for (int i = 0; i < 3 && i < static_cast<int>(selectedPieces.size()); ++i) {
-        m_diceRoll.push_back(selectedPieces[i]);
+    // 投擲三個骰子，每個骰子可以是任何棋子類型（可以重複）
+    for (int i = 0; i < 3; ++i) {
+        int randomIndex = rng->bounded(availablePieces.size());
+        m_diceRoll.push_back(availablePieces[randomIndex]);
     }
 }
 
 void ChessBoard::setDiceRoll(const std::vector<PieceType>& diceResult) {
     m_diceRoll = diceResult;
+    m_currentDiceIndex = 0;  // 重置骰子索引
+}
+
+void ChessBoard::markDiceAsUsed() {
+    if (m_currentDiceIndex < static_cast<int>(m_diceRoll.size())) {
+        m_currentDiceIndex++;
+    }
+}
+
+void ChessBoard::resetDiceUsage() {
+    m_currentDiceIndex = 0;
 }
 
 bool ChessBoard::canMovePieceType(PieceType type) const {
@@ -782,13 +796,12 @@ bool ChessBoard::canMovePieceType(PieceType type) const {
         return true;
     }
     
-    // 檢查該棋子類型是否在骰子結果中
-    for (const PieceType& diceType : m_diceRoll) {
-        if (diceType == type) {
-            return true;
-        }
+    // 檢查當前骰子（從左到右順序）是否匹配該棋子類型
+    if (m_currentDiceIndex >= 0 && m_currentDiceIndex < static_cast<int>(m_diceRoll.size())) {
+        return m_diceRoll[m_currentDiceIndex] == type;
     }
     
+    // 所有骰子都已使用完畢
     return false;
 }
 

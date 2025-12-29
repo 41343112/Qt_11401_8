@@ -2096,11 +2096,57 @@ void Qt_Chess::updateDiceDisplay() {
     }
     
     const std::vector<PieceType>& diceRoll = m_chessBoard.getDiceRoll();
+    int currentDiceIndex = m_chessBoard.getCurrentDiceIndex();
     
     if (diceRoll.size() >= 3) {
+        // 更新第一個骰子
         m_diceResult1->setText(getPieceTypeSymbol(diceRoll[0]) + "\n" + getPieceTypeName(diceRoll[0]));
+        if (currentDiceIndex > 0) {
+            // 已使用，變灰
+            m_diceResult1->setStyleSheet(QString(
+                "QLabel { background-color: %1; border: 2px solid %2; border-radius: 5px; "
+                "padding: 10px; color: %3; min-width: 80px; }"
+            ).arg("#505050", "#808080", "#A0A0A0"));  // 灰色
+        } else {
+            // 未使用，橘色
+            m_diceResult1->setStyleSheet(QString(
+                "QLabel { background-color: %1; border: 2px solid %2; border-radius: 5px; "
+                "padding: 10px; color: %3; min-width: 80px; }"
+            ).arg("#FF8C00", "#FFA500", THEME_TEXT_PRIMARY));  // 橘色
+        }
+        
+        // 更新第二個骰子
         m_diceResult2->setText(getPieceTypeSymbol(diceRoll[1]) + "\n" + getPieceTypeName(diceRoll[1]));
+        if (currentDiceIndex > 1) {
+            // 已使用，變灰
+            m_diceResult2->setStyleSheet(QString(
+                "QLabel { background-color: %1; border: 2px solid %2; border-radius: 5px; "
+                "padding: 10px; color: %3; min-width: 80px; }"
+            ).arg("#505050", "#808080", "#A0A0A0"));  // 灰色
+        } else {
+            // 未使用，橘色
+            m_diceResult2->setStyleSheet(QString(
+                "QLabel { background-color: %1; border: 2px solid %2; border-radius: 5px; "
+                "padding: 10px; color: %3; min-width: 80px; }"
+            ).arg("#FF8C00", "#FFA500", THEME_TEXT_PRIMARY));  // 橘色
+        }
+        
+        // 更新第三個骰子
         m_diceResult3->setText(getPieceTypeSymbol(diceRoll[2]) + "\n" + getPieceTypeName(diceRoll[2]));
+        if (currentDiceIndex > 2) {
+            // 已使用，變灰
+            m_diceResult3->setStyleSheet(QString(
+                "QLabel { background-color: %1; border: 2px solid %2; border-radius: 5px; "
+                "padding: 10px; color: %3; min-width: 80px; }"
+            ).arg("#505050", "#808080", "#A0A0A0"));  // 灰色
+        } else {
+            // 未使用，橘色
+            m_diceResult3->setStyleSheet(QString(
+                "QLabel { background-color: %1; border: 2px solid %2; border-radius: 5px; "
+                "padding: 10px; color: %3; min-width: 80px; }"
+            ).arg("#FF8C00", "#FFA500", THEME_TEXT_PRIMARY));  // 橘色
+        }
+        
         m_diceDisplayWidget->show();
     } else {
         m_diceDisplayWidget->hide();
@@ -2449,8 +2495,15 @@ void Qt_Chess::onSquareClicked(int displayRow, int displayCol) {
             
             // 檢查骰子模式：該棋子是否可以移動
             if (m_chessBoard.isDiceModeEnabled() && !m_chessBoard.canMovePieceType(piece.getType())) {
-                QMessageBox::information(this, tr("🎲 骰子限制"),
-                    tr("此棋子不在本回合的骰子結果中，無法移動！"));
+                int currentDiceIndex = m_chessBoard.getCurrentDiceIndex();
+                if (currentDiceIndex >= 3) {
+                    QMessageBox::information(this, tr("🎲 骰子限制"),
+                        tr("所有骰子都已使用完畢，回合結束！"));
+                } else {
+                    QString currentDiceName = getPieceTypeName(m_chessBoard.getDiceRoll()[currentDiceIndex]);
+                    QMessageBox::information(this, tr("🎲 骰子限制"),
+                        tr("請按順序使用骰子！當前骰子為：%1").arg(currentDiceName));
+                }
                 return;
             }
             
@@ -2465,6 +2518,12 @@ void Qt_Chess::onSquareClicked(int displayRow, int displayCol) {
 
         // 嘗試移動選中的棋子
         if (m_chessBoard.movePiece(m_selectedSquare, clickedSquare)) {
+            // 骰子模式：標記當前骰子為已使用
+            if (m_chessBoard.isDiceModeEnabled()) {
+                m_chessBoard.markDiceAsUsed();
+                updateDiceDisplay();  // 更新骰子顯示（變灰）
+            }
+            
             // 記錄上一步移動用於高亮顯示
             m_lastMoveFrom = m_selectedSquare;
             m_lastMoveTo = clickedSquare;
@@ -2520,9 +2579,18 @@ void Qt_Chess::onSquareClicked(int displayRow, int displayCol) {
 
             updateStatus();
             
-            // 骰子模式：為下一個玩家投骰子
+            // 骰子模式：檢查是否所有骰子都已使用
             if (m_chessBoard.isDiceModeEnabled()) {
-                rollDiceForTurn();
+                int currentDiceIndex = m_chessBoard.getCurrentDiceIndex();
+                if (currentDiceIndex >= 3) {
+                    // 所有骰子都已使用，切換玩家並為下一個玩家投骰子
+                    m_chessBoard.setCurrentPlayer(
+                        m_chessBoard.getCurrentPlayer() == PieceColor::White ? 
+                        PieceColor::Black : PieceColor::White
+                    );
+                    rollDiceForTurn();
+                }
+                // 如果還有骰子未使用，繼續當前玩家的回合
             }
             
             // 如果是線上模式，發送移動給對手
@@ -6023,6 +6091,12 @@ void Qt_Chess::onOpponentMove(const QPoint& from, const QPoint& to, PieceType pr
     if (m_chessBoard.movePiece(from, to)) {
         qDebug() << "[Qt_Chess::onOpponentMove] Move successful, current player after move:" << (int)m_chessBoard.getCurrentPlayer();
         
+        // 骰子模式：標記當前骰子為已使用
+        if (m_chessBoard.isDiceModeEnabled()) {
+            m_chessBoard.markDiceAsUsed();
+            updateDiceDisplay();  // 更新骰子顯示（變灰）
+        }
+        
         // 檢查是否踩到地雷
         if (m_chessBoard.lastMoveTriggeredMine()) {
             handleMineExplosion(to, true);
@@ -6062,9 +6136,18 @@ void Qt_Chess::onOpponentMove(const QPoint& from, const QPoint& to, PieceType pr
             applyIncrement();
         }
         
-        // 骰子模式：為下一個玩家投骰子
+        // 骰子模式：檢查是否所有骰子都已使用
         if (m_chessBoard.isDiceModeEnabled()) {
-            rollDiceForTurn();
+            int currentDiceIndex = m_chessBoard.getCurrentDiceIndex();
+            if (currentDiceIndex >= 3) {
+                // 所有骰子都已使用，切換玩家並為下一個玩家投骰子
+                m_chessBoard.setCurrentPlayer(
+                    m_chessBoard.getCurrentPlayer() == PieceColor::White ? 
+                    PieceColor::Black : PieceColor::White
+                );
+                rollDiceForTurn();
+            }
+            // 如果還有骰子未使用，繼續對手的回合
         }
     } else {
         qDebug() << "[Qt_Chess::onOpponentMove] Move failed!";
