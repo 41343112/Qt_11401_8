@@ -273,6 +273,15 @@ bool ChessBoard::movePiece(const QPoint& from, const QPoint& to) {
                 break;
             }
         }
+        
+        // 如果國王被炸毀，遊戲立即結束，爆炸方輸
+        if (explodedPiece.getType() == PieceType::King) {
+            if (explodedPiece.getColor() == PieceColor::White) {
+                m_gameResult = GameResult::BlackWins;
+            } else {
+                m_gameResult = GameResult::WhiteWins;
+            }
+        }
     }
     
     // 記錄移動（在切換玩家之前，因為 recordMove 需要檢查對手是否被將軍）
