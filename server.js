@@ -95,6 +95,7 @@ wss.on('connection', ws => {
                 const whiteTimeMs = msg.whiteTimeMs || 0;
                 const blackTimeMs = msg.blackTimeMs || 0;
                 const hostColor = msg.hostColor; // "White" or "Black"
+                const gameModes = msg.gameModes || {}; // 遊戲模式設定
                 
                 // 確定哪個玩家是 A (房主) 和 B (房客)
                 const whiteIsA = (hostColor === "White");
@@ -118,6 +119,7 @@ wss.on('connection', ws => {
                     blackTimeMs: blackTimeMs,
                     incrementMs: msg.incrementMs,
                     hostColor: msg.hostColor,
+                    gameModes: gameModes,  // 傳遞遊戲模式給所有玩家
                     serverTimestamp: Date.now() + 500,  // 添加 500ms 緩衝以補償網路延遲
                     // 發送初始計時器狀態
                     timerState: {

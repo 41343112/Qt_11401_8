@@ -169,7 +169,7 @@ void NetworkManager::sendGameStart(PieceColor playerColor)
     sendMessage(message);
 }
 
-void NetworkManager::sendStartGame(int whiteTimeMs, int blackTimeMs, int incrementMs, PieceColor hostColor)
+void NetworkManager::sendStartGame(int whiteTimeMs, int blackTimeMs, int incrementMs, PieceColor hostColor, const QMap<QString, bool>& gameModes)
 {
     if (m_roomNumber.isEmpty()) {
         qDebug() << "[NetworkManager::sendStartGame] ERROR: Room number is empty";
@@ -183,6 +183,14 @@ void NetworkManager::sendStartGame(int whiteTimeMs, int blackTimeMs, int increme
     message["blackTimeMs"] = blackTimeMs;
     message["incrementMs"] = incrementMs;
     message["hostColor"] = (hostColor == PieceColor::White) ? "White" : "Black";
+    
+    // 添加遊戲模式
+    QJsonObject gameModesJson;
+    for (auto it = gameModes.constBegin(); it != gameModes.constEnd(); ++it) {
+        gameModesJson[it.key()] = it.value();
+    }
+    message["gameModes"] = gameModesJson;
+    
     sendMessage(message);
 }
 
@@ -403,6 +411,15 @@ void NetworkManager::processMessage(const QJsonObject& message)
         PieceColor hostColor = (hostColorStr == "White") ? PieceColor::White : PieceColor::Black;
         qint64 serverTimestamp = message["serverTimestamp"].toVariant().toLongLong();
         
+        // 提取遊戲模式
+        QMap<QString, bool> gameModes;
+        if (message.contains("gameModes")) {
+            QJsonObject gameModesJson = message["gameModes"].toObject();
+            for (auto it = gameModesJson.constBegin(); it != gameModesJson.constEnd(); ++it) {
+                gameModes[it.key()] = it.value().toBool();
+            }
+        }
+        
         // 計算伺服器時間偏移（伺服器時間 - 本地時間）
         qint64 localTimestamp = QDateTime::currentMSecsSinceEpoch();
         qint64 serverTimeOffset = serverTimestamp - localTimestamp;
@@ -421,9 +438,10 @@ void NetworkManager::processMessage(const QJsonObject& message)
                  << "| Server time offset:" << serverTimeOffset << "ms"
                  << "| Host color:" << hostColorStr
                  << "| My role:" << (m_role == NetworkRole::Host ? "Host" : "Guest")
-                 << "| My color:" << (m_playerColor == PieceColor::White ? "White" : "Black");
+                 << "| My color:" << (m_playerColor == PieceColor::White ? "White" : "Black")
+                 << "| Game modes count:" << gameModes.size();
         
-        emit startGameReceived(whiteTimeMs, blackTimeMs, incrementMs, hostColor, serverTimeOffset);
+        emit startGameReceived(whiteTimeMs, blackTimeMs, incrementMs, hostColor, serverTimeOffset, gameModes);
         
         // 如果訊息包含計時器狀態，發送計時器更新
         if (message.contains("timerState")) {
