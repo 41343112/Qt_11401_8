@@ -1,5 +1,6 @@
 #include "chessboard.h"
 #include <QRandomGenerator>
+#include <algorithm>
 
 ChessBoard::ChessBoard()
     : m_board(8, std::vector<ChessPiece>(8)), m_currentPlayer(PieceColor::White), m_enPassantTarget(-1, -1), m_gameResult(GameResult::InProgress), m_bombModeEnabled(false), m_lastMoveTriggeredMine(false)
@@ -267,11 +268,9 @@ bool ChessBoard::movePiece(const QPoint& from, const QPoint& to) {
         m_lastMoveTriggeredMine = true;
         
         // 地雷爆炸後移除該地雷
-        for (auto it = m_minePositions.begin(); it != m_minePositions.end(); ++it) {
-            if (*it == to) {
-                m_minePositions.erase(it);
-                break;
-            }
+        auto it = std::find(m_minePositions.begin(), m_minePositions.end(), to);
+        if (it != m_minePositions.end()) {
+            m_minePositions.erase(it);
         }
         
         // 如果國王被炸毀，遊戲立即結束，爆炸方輸

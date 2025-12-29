@@ -1962,14 +1962,6 @@ void Qt_Chess::displayPieceOnSquare(QPushButton* square, const ChessPiece& piece
     square->setText("");
     square->setIcon(QIcon());
 
-    // 檢查是否有地雷（僅在地雷模式啟用且該位置有地雷時顯示）
-    // 從按鈕獲取邏輯坐標
-    QPoint logicalPos = m_buttonCoordinates.value(square, QPoint(-1, -1));
-    bool hasMine = false;
-    if (logicalPos.x() >= 0 && m_chessBoard.isBombModeEnabled()) {
-        hasMine = m_chessBoard.isMineAt(logicalPos);
-    }
-
     // 使用圖示或符號顯示棋子
     if (m_pieceIconSettings.useCustomIcons) {
         QPixmap pixmap = getCachedPieceIcon(piece.getType(), piece.getColor());
@@ -1987,10 +1979,51 @@ void Qt_Chess::displayPieceOnSquare(QPushButton* square, const ChessPiece& piece
         // 使用 Unicode 符號
         square->setText(piece.getSymbol());
     }
+}
+
+void Qt_Chess::handleMineExplosion(const QPoint& logicalPosition, bool isOpponentMove) {
+    // 顯示爆炸動畫
+    int displayRow = getDisplayRow(logicalPosition.y());
+    int displayCol = getDisplayCol(logicalPosition.x());
+    QPushButton* explodedSquare = m_squares[displayRow][displayCol];
     
-    // 如果有地雷且沒有棋子，顯示地雷符號
-    // 在實際遊戲中，地雷是隱藏的，所以我們不顯示它們
-    // 地雷只有在踩到時才會觸發爆炸效果
+    // 臨時改變方格背景顯示爆炸效果
+    if (explodedSquare) {
+        explodedSquare->setStyleSheet(
+            "QPushButton { background-color: rgba(255, 100, 0, 0.8); border: 3px solid #FF0000; }"
+        );
+        
+        // 1秒後恢復正常顏色
+        QTimer::singleShot(1000, this, [this, displayRow, displayCol]() {
+            updateSquareColor(displayRow, displayCol);
+        });
+    }
+    
+    // 檢查是否為國王爆炸（遊戲結束）
+    GameResult result = m_chessBoard.getGameResult();
+    bool isKingExplosion = (result == GameResult::WhiteWins || result == GameResult::BlackWins);
+    
+    // 顯示爆炸消息
+    QTimer::singleShot(100, this, [this, isKingExplosion, isOpponentMove]() {
+        QMessageBox msgBox(this);
+        msgBox.setWindowTitle(tr("💥 地雷爆炸！"));
+        
+        QString messageText;
+        if (isKingExplosion) {
+            messageText = isOpponentMove ? 
+                tr("💣 對手的國王踩到地雷被炸毀了！\n\n遊戲結束！") : 
+                tr("💣 國王踩到地雷被炸毀了！\n\n遊戲結束！");
+        } else {
+            messageText = isOpponentMove ? 
+                tr("💣 對手踩到地雷！棋子被炸毀了！") : 
+                tr("💣 踩到地雷！棋子被炸毀了！");
+        }
+        
+        msgBox.setText(messageText);
+        msgBox.setIcon(QMessageBox::Warning);
+        msgBox.setStyleSheet("QMessageBox { background-color: #2a2a2a; color: white; }");
+        msgBox.exec();
+    });
 }
 
 QString Qt_Chess::getPieceTextColor(int logicalRow, int logicalCol) const {
@@ -2274,40 +2307,7 @@ void Qt_Chess::onSquareClicked(int displayRow, int displayCol) {
             
             // 檢查是否踩到地雷
             if (m_chessBoard.lastMoveTriggeredMine()) {
-                // 顯示爆炸動畫/消息
-                int displayRow = getDisplayRow(clickedSquare.y());
-                int displayCol = getDisplayCol(clickedSquare.x());
-                QPushButton* explodedSquare = m_squares[displayRow][displayCol];
-                
-                // 臨時改變方格背景顯示爆炸效果
-                if (explodedSquare) {
-                    explodedSquare->setStyleSheet(
-                        "QPushButton { background-color: rgba(255, 100, 0, 0.8); border: 3px solid #FF0000; }"
-                    );
-                    
-                    // 1秒後恢復正常顏色
-                    QTimer::singleShot(1000, this, [this, displayRow, displayCol]() {
-                        updateSquareColor(displayRow, displayCol);
-                    });
-                }
-                
-                // 檢查是否為國王爆炸（遊戲結束）
-                GameResult result = m_chessBoard.getGameResult();
-                bool isKingExplosion = (result == GameResult::WhiteWins || result == GameResult::BlackWins);
-                
-                // 顯示爆炸消息
-                QTimer::singleShot(100, this, [this, isKingExplosion]() {
-                    QMessageBox msgBox(this);
-                    msgBox.setWindowTitle(tr("💥 地雷爆炸！"));
-                    if (isKingExplosion) {
-                        msgBox.setText(tr("💣 國王踩到地雷被炸毀了！\n\n遊戲結束！"));
-                    } else {
-                        msgBox.setText(tr("💣 踩到地雷！棋子被炸毀了！"));
-                    }
-                    msgBox.setIcon(QMessageBox::Warning);
-                    msgBox.setStyleSheet("QMessageBox { background-color: #2a2a2a; color: white; }");
-                    msgBox.exec();
-                });
+                handleMineExplosion(clickedSquare, false);
             }
             
             m_pieceSelected = false;
@@ -3342,40 +3342,7 @@ void Qt_Chess::mouseReleaseEvent(QMouseEvent *event) {
                 
                 // 檢查是否踩到地雷
                 if (m_chessBoard.lastMoveTriggeredMine()) {
-                    // 顯示爆炸動畫/消息
-                    int displayRow = getDisplayRow(logicalDropSquare.y());
-                    int displayCol = getDisplayCol(logicalDropSquare.x());
-                    QPushButton* explodedSquare = m_squares[displayRow][displayCol];
-                    
-                    // 臨時改變方格背景顯示爆炸效果
-                    if (explodedSquare) {
-                        explodedSquare->setStyleSheet(
-                            "QPushButton { background-color: rgba(255, 100, 0, 0.8); border: 3px solid #FF0000; }"
-                        );
-                        
-                        // 1秒後恢復正常顏色
-                        QTimer::singleShot(1000, this, [this, displayRow, displayCol]() {
-                            updateSquareColor(displayRow, displayCol);
-                        });
-                    }
-                    
-                    // 檢查是否為國王爆炸（遊戲結束）
-                    GameResult result = m_chessBoard.getGameResult();
-                    bool isKingExplosion = (result == GameResult::WhiteWins || result == GameResult::BlackWins);
-                    
-                    // 顯示爆炸消息
-                    QTimer::singleShot(100, this, [this, isKingExplosion]() {
-                        QMessageBox msgBox(this);
-                        msgBox.setWindowTitle(tr("💥 地雷爆炸！"));
-                        if (isKingExplosion) {
-                            msgBox.setText(tr("💣 國王踩到地雷被炸毀了！\n\n遊戲結束！"));
-                        } else {
-                            msgBox.setText(tr("💣 踩到地雷！棋子被炸毀了！"));
-                        }
-                        msgBox.setIcon(QMessageBox::Warning);
-                        msgBox.setStyleSheet("QMessageBox { background-color: #2a2a2a; color: white; }");
-                        msgBox.exec();
-                    });
+                    handleMineExplosion(logicalDropSquare, false);
                 }
                 
                 m_pieceSelected = false;
@@ -5888,40 +5855,7 @@ void Qt_Chess::onOpponentMove(const QPoint& from, const QPoint& to, PieceType pr
         
         // 檢查是否踩到地雷
         if (m_chessBoard.lastMoveTriggeredMine()) {
-            // 顯示爆炸動畫/消息
-            int displayRow = getDisplayRow(to.y());
-            int displayCol = getDisplayCol(to.x());
-            QPushButton* explodedSquare = m_squares[displayRow][displayCol];
-            
-            // 臨時改變方格背景顯示爆炸效果
-            if (explodedSquare) {
-                explodedSquare->setStyleSheet(
-                    "QPushButton { background-color: rgba(255, 100, 0, 0.8); border: 3px solid #FF0000; }"
-                );
-                
-                // 1秒後恢復正常顏色
-                QTimer::singleShot(1000, this, [this, displayRow, displayCol]() {
-                    updateSquareColor(displayRow, displayCol);
-                });
-            }
-            
-            // 檢查是否為國王爆炸（遊戲結束）
-            GameResult result = m_chessBoard.getGameResult();
-            bool isKingExplosion = (result == GameResult::WhiteWins || result == GameResult::BlackWins);
-            
-            // 顯示爆炸消息
-            QTimer::singleShot(100, this, [this, isKingExplosion]() {
-                QMessageBox msgBox(this);
-                msgBox.setWindowTitle(tr("💥 地雷爆炸！"));
-                if (isKingExplosion) {
-                    msgBox.setText(tr("💣 對手的國王踩到地雷被炸毀了！\n\n遊戲結束！"));
-                } else {
-                    msgBox.setText(tr("💣 對手踩到地雷！棋子被炸毀了！"));
-                }
-                msgBox.setIcon(QMessageBox::Warning);
-                msgBox.setStyleSheet("QMessageBox { background-color: #2a2a2a; color: white; }");
-                msgBox.exec();
-            });
+            handleMineExplosion(to, true);
         }
         
         // 檢查是否需要升變
