@@ -8176,14 +8176,19 @@ bool Qt_Chess::performTeleportationMove(const QPoint& from, const QPoint& to) {
         targetPortal = m_teleportPortal1;
     }
     
-    // 檢查目標傳送門上是否有棋子（如果有，將被吃掉）
+    // 檢查目標傳送門上是否有棋子
+    ChessPiece piece = m_chessBoard.getPiece(to.y(), to.x());
     const ChessPiece& targetPiece = m_chessBoard.getPiece(targetPortal.y(), targetPortal.x());
     if (targetPiece.getType() != PieceType::None) {
+        // 檢查是否為對方棋子
+        if (targetPiece.getColor() == piece.getColor()) {
+            qDebug() << "[Qt_Chess::performTeleportationMove] Target portal occupied by friendly piece, teleportation failed";
+            return false;
+        }
         qDebug() << "[Qt_Chess::performTeleportationMove] Target portal occupied, will capture opponent piece at" << targetPortal;
     }
     
-    // 移動棋子到另一個傳送門（如果目標有棋子，會被吃掉）
-    ChessPiece piece = m_chessBoard.getPiece(to.y(), to.x());
+    // 移動棋子到另一個傳送門（如果目標有對方棋子，會被吃掉）
     m_chessBoard.setPiece(targetPortal.y(), targetPortal.x(), piece);
     m_chessBoard.setPiece(to.y(), to.x(), ChessPiece(PieceType::None, PieceColor::None));
     
@@ -8220,14 +8225,19 @@ QPoint Qt_Chess::handleTeleportationAndGetFinalPosition(const QPoint& from, cons
         targetPortal = m_teleportPortal1;
     }
     
-    // 檢查目標傳送門上是否有棋子（如果有，將被吃掉）
+    // 檢查目標傳送門上是否有棋子
+    ChessPiece piece = m_chessBoard.getPiece(to.y(), to.x());
     const ChessPiece& targetPiece = m_chessBoard.getPiece(targetPortal.y(), targetPortal.x());
     if (targetPiece.getType() != PieceType::None) {
+        // 檢查是否為對方棋子
+        if (targetPiece.getColor() == piece.getColor()) {
+            qDebug() << "[Qt_Chess::handleTeleportationAndGetFinalPosition] Target portal occupied by friendly piece, teleportation failed";
+            return finalPosition;  // 傳送失敗，返回原始位置
+        }
         qDebug() << "[Qt_Chess::handleTeleportationAndGetFinalPosition] Target portal occupied, will capture opponent piece at" << targetPortal;
     }
     
-    // 移動棋子到另一個傳送門（如果目標有棋子，會被吃掉）
-    ChessPiece piece = m_chessBoard.getPiece(to.y(), to.x());
+    // 移動棋子到另一個傳送門（如果目標有對方棋子，會被吃掉）
     m_chessBoard.setPiece(targetPortal.y(), targetPortal.x(), piece);
     m_chessBoard.setPiece(to.y(), to.x(), ChessPiece(PieceType::None, PieceColor::None));
     
