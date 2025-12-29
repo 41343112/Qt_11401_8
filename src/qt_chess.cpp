@@ -2389,6 +2389,14 @@ void Qt_Chess::onSquareClicked(int displayRow, int displayCol) {
             m_lastMoveFrom = m_selectedSquare;
             m_lastMoveTo = clickedSquare;
             
+            // 骰子模式：如果還有未使用的骰子，強制保持當前玩家回合
+            PieceColor playerBeforeMove = m_chessBoard.getCurrentPlayer() == PieceColor::White ? PieceColor::Black : PieceColor::White;
+            if (m_diceModeEnabled && !areAllDiceUsed()) {
+                // 切換回原來的玩家（因為 movePiece 已經切換了）
+                m_chessBoard.setCurrentPlayer(playerBeforeMove);
+                qDebug() << "[Qt_Chess] Dice mode: keeping turn for player" << (int)playerBeforeMove << "(" << (3 - std::count_if(m_diceRoll.begin(), m_diceRoll.end(), [](const DicePiece& d) { return d.used; })) << "dice remaining)";
+            }
+            
             // 檢查是否踩到地雷
             if (m_chessBoard.lastMoveTriggeredMine()) {
                 handleMineExplosion(clickedSquare, false);
@@ -6094,10 +6102,12 @@ void Qt_Chess::onOpponentMove(const QPoint& from, const QPoint& to, PieceType pr
             applyIncrement();
         }
         
-        // 骰子模式：對手完成移動後，立即重新投骰子
-        if (m_diceModeEnabled) {
-            qDebug() << "[Qt_Chess::onOpponentMove] Rolling new dice after opponent's move";
-            rollDice();
+        // 骰子模式：對手完成移動後，如果輪到本地玩家且沒有可用骰子，重新投骰子
+        if (m_diceModeEnabled && isOnlineTurn()) {
+            if (m_diceRoll.empty() || areAllDiceUsed()) {
+                qDebug() << "[Qt_Chess::onOpponentMove] Rolling new dice for local player's turn";
+                rollDice();
+            }
         }
     } else {
         qDebug() << "[Qt_Chess::onOpponentMove] Move failed!";
@@ -8429,40 +8439,26 @@ void Qt_Chess::rollDice() {
     
     qDebug() << "[Qt_Chess::rollDice] Found" << movablePieces.size() << "movable pieces";
     
-    // 如果可移動棋子少於3個，全部加入骰子
-    if (movablePieces.size() <= 3) {
-        for (const QPoint& pos : movablePieces) {
-            DicePiece dice;
-            dice.position = pos;
-            dice.type = m_chessBoard.getPiece(pos.y(), pos.x()).getType();
-            dice.used = false;
-            m_diceRoll.push_back(dice);
-        }
-    } else {
-        // 隨機選擇3個不同的棋子
-        std::vector<int> indices;
-        for (size_t i = 0; i < movablePieces.size(); i++) {
-            indices.push_back(i);
-        }
-        
-        // 使用 Fisher-Yates shuffle 隨機打亂
-        for (size_t i = indices.size() - 1; i > 0; i--) {
-            int j = QRandomGenerator::global()->bounded(i + 1);
-            std::swap(indices[i], indices[j]);
-        }
-        
-        // 選擇前3個
-        for (int i = 0; i < 3; i++) {
-            QPoint pos = movablePieces[indices[i]];
-            DicePiece dice;
-            dice.position = pos;
-            dice.type = m_chessBoard.getPiece(pos.y(), pos.x()).getType();
-            dice.used = false;
-            m_diceRoll.push_back(dice);
-        }
+    // 如果沒有可移動的棋子，返回
+    if (movablePieces.empty()) {
+        qDebug() << "[Qt_Chess::rollDice] No movable pieces!";
+        return;
     }
     
-    qDebug() << "[Qt_Chess::rollDice] Rolled" << m_diceRoll.size() << "dice";
+    // 隨機選擇3個棋子（允許重複）
+    for (int i = 0; i < 3; i++) {
+        // 從所有可移動棋子中隨機選擇一個（允許重複）
+        int randomIndex = QRandomGenerator::global()->bounded(static_cast<int>(movablePieces.size()));
+        QPoint pos = movablePieces[randomIndex];
+        
+        DicePiece dice;
+        dice.position = pos;
+        dice.type = m_chessBoard.getPiece(pos.y(), pos.x()).getType();
+        dice.used = false;
+        m_diceRoll.push_back(dice);
+    }
+    
+    qDebug() << "[Qt_Chess::rollDice] Rolled" << m_diceRoll.size() << "dice (same piece allowed)";
     
     // 更新顯示
     updateDiceDisplay();
