@@ -505,6 +505,7 @@ private:
     void updateDiceDisplay();            // 更新骰子顯示
     bool isPieceInDice(const QPoint& pos) const;  // 檢查棋子是否在骰子中
     void markDiceAsUsed(const QPoint& pos);  // 標記骰子為已使用
+    bool areAllDiceUsed() const;         // 檢查所有骰子是否都已使用
     std::vector<QPoint> getLegalMovablePieces(PieceColor color) const;  // 獲取所有有合法移動的棋子位置
     QString getPieceChineseName(PieceType type) const;  // 獲取棋子的中文名稱
     

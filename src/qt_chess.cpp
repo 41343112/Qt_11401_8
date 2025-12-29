@@ -2354,18 +2354,17 @@ void Qt_Chess::onSquareClicked(int displayRow, int displayCol) {
             
             // 骰子模式：檢查棋子是否在骰子中
             if (m_diceModeEnabled && !isPieceInDice(clickedSquare)) {
-                // 顯示錯誤訊息，列出當前骰子的棋子
-                QStringList diceNames;
+                // 顯示錯誤訊息，僅列出當前骰子的棋子符號
+                QStringList diceSymbols;
                 for (const DicePiece& dice : m_diceRoll) {
                     if (!dice.used) {
-                        QString name = getPieceChineseName(dice.type);
                         const ChessPiece& dicePiece = m_chessBoard.getPiece(dice.position.y(), dice.position.x());
                         QString symbol = dicePiece.getSymbol();
-                        diceNames.append(symbol + " " + name);
+                        diceSymbols.append(symbol);
                     }
                 }
                 
-                QString message = "當前骰子為：" + diceNames.join("、");
+                QString message = "當前骰子為：" + diceSymbols.join(" ");
                 QMessageBox::information(this, "無法移動", message);
                 return;
             }
@@ -2389,6 +2388,14 @@ void Qt_Chess::onSquareClicked(int displayRow, int displayCol) {
             // 記錄上一步移動用於高亮顯示
             m_lastMoveFrom = m_selectedSquare;
             m_lastMoveTo = clickedSquare;
+            
+            // 骰子模式：如果還有未使用的骰子，強制保持當前玩家回合
+            PieceColor playerBeforeMove = m_chessBoard.getCurrentPlayer() == PieceColor::White ? PieceColor::Black : PieceColor::White;
+            if (m_diceModeEnabled && !areAllDiceUsed()) {
+                // 切換回原來的玩家（因為 movePiece 已經切換了）
+                m_chessBoard.setCurrentPlayer(playerBeforeMove);
+                qDebug() << "[Qt_Chess] Dice mode: keeping turn for player" << (int)playerBeforeMove << "(" << (3 - std::count_if(m_diceRoll.begin(), m_diceRoll.end(), [](const DicePiece& d) { return d.used; })) << "dice remaining)";
+            }
             
             // 檢查是否踩到地雷
             if (m_chessBoard.lastMoveTriggeredMine()) {
@@ -2463,6 +2470,9 @@ void Qt_Chess::onSquareClicked(int displayRow, int displayCol) {
             // 骰子模式：標記使用的骰子
             if (m_diceModeEnabled) {
                 markDiceAsUsed(m_lastMoveFrom);
+                
+                // 如果所有骰子都已使用，這是該玩家回合的最後一步
+                // 不需要在這裡做任何事，因為對手會在他們的回合開始時投骰子
             }
             
             // 如果是線上模式，發送移動給對手（包含最終位置）
@@ -6075,9 +6085,12 @@ void Qt_Chess::onOpponentMove(const QPoint& from, const QPoint& to, PieceType pr
             applyIncrement();
         }
         
-        // 骰子模式：對手完成移動後，重新投骰子
-        if (m_diceModeEnabled) {
-            rollDice();
+        // 骰子模式：對手完成移動後，如果輪到本地玩家且沒有可用骰子，重新投骰子
+        if (m_diceModeEnabled && isOnlineTurn()) {
+            if (m_diceRoll.empty() || areAllDiceUsed()) {
+                qDebug() << "[Qt_Chess::onOpponentMove] Rolling new dice for local player's turn";
+                rollDice();
+            }
         }
     } else {
         qDebug() << "[Qt_Chess::onOpponentMove] Move failed!";
@@ -8471,10 +8484,9 @@ void Qt_Chess::updateDiceDisplay() {
             const DicePiece& dice = m_diceRoll[i];
             const ChessPiece& piece = m_chessBoard.getPiece(dice.position.y(), dice.position.x());
             
-            // 更新文字
+            // 只顯示棋子符號，不顯示文字
             QString symbol = piece.getSymbol();
-            QString name = getPieceChineseName(dice.type);
-            m_diceLabels[i]->setText(symbol + "\n" + name);
+            m_diceLabels[i]->setText(symbol);
             
             // 更新邊框顏色
             QString borderColor;
@@ -8542,4 +8554,19 @@ void Qt_Chess::markDiceAsUsed(const QPoint& pos) {
     
     // 更新顯示
     updateDiceDisplay();
+}
+
+bool Qt_Chess::areAllDiceUsed() const {
+    if (!m_diceModeEnabled || m_diceRoll.empty()) {
+        return false;
+    }
+    
+    // 檢查所有骰子是否都已使用
+    for (const DicePiece& dice : m_diceRoll) {
+        if (!dice.used) {
+            return false;
+        }
+    }
+    
+    return true;
 }
