@@ -1935,16 +1935,16 @@ void Qt_Chess::updateSquareColor(int displayRow, int displayCol) {
     bool isLight = (logicalRow + logicalCol) % 2 == 0;
     QColor color = isLight ? m_boardColorSettings.lightSquareColor : m_boardColorSettings.darkSquareColor;
     
-    // 檢查是否啟用霧戰模式且該方格不可見
-    if (m_fogOfWarEnabled && m_isOnlineGame && !isSquareVisible(logicalRow, logicalCol)) {
-        // 用黑色覆蓋不可見的方格
-        color = QColor(0, 0, 0);  // 純黑色
-    }
-    
-    // 檢查是否為傳送門位置，添加銀色塗層
+    // 檢查是否為傳送門位置，添加銀色塗層（只在可見時顯示）
     if (m_teleportModeEnabled && isTeleportPortal(logicalRow, logicalCol)) {
         // 銀色塗層效果 - 使用半透明的銀色覆蓋
         color = QColor(192, 192, 192);  // 銀色
+    }
+    
+    // 檢查是否啟用霧戰模式且該方格不可見（優先級最高）
+    if (m_fogOfWarEnabled && m_isOnlineGame && !isSquareVisible(logicalRow, logicalCol)) {
+        // 用黑色覆蓋不可見的方格，覆蓋所有其他視覺效果（包括傳送門）
+        color = QColor(0, 0, 0);  // 純黑色
     }
     
     // 使用輔助函數獲取文字顏色
