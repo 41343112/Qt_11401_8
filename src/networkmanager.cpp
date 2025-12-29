@@ -169,7 +169,7 @@ void NetworkManager::sendGameStart(PieceColor playerColor)
     sendMessage(message);
 }
 
-void NetworkManager::sendStartGame(int whiteTimeMs, int blackTimeMs, int incrementMs, PieceColor hostColor, const QMap<QString, bool>& gameModes)
+void NetworkManager::sendStartGame(int whiteTimeMs, int blackTimeMs, int incrementMs, PieceColor hostColor, const QMap<QString, bool>& gameModes, QPoint teleportPortal1, QPoint teleportPortal2)
 {
     if (m_roomNumber.isEmpty()) {
         qDebug() << "[NetworkManager::sendStartGame] ERROR: Room number is empty";
@@ -190,6 +190,21 @@ void NetworkManager::sendStartGame(int whiteTimeMs, int blackTimeMs, int increme
         gameModesJson[it.key()] = it.value();
     }
     message["gameModes"] = gameModesJson;
+    
+    // 添加傳送門位置
+    if (teleportPortal1.x() >= 0 && teleportPortal1.y() >= 0) {
+        QJsonObject portal1Json;
+        portal1Json["x"] = teleportPortal1.x();
+        portal1Json["y"] = teleportPortal1.y();
+        message["teleportPortal1"] = portal1Json;
+    }
+    
+    if (teleportPortal2.x() >= 0 && teleportPortal2.y() >= 0) {
+        QJsonObject portal2Json;
+        portal2Json["x"] = teleportPortal2.x();
+        portal2Json["y"] = teleportPortal2.y();
+        message["teleportPortal2"] = portal2Json;
+    }
     
     sendMessage(message);
 }
@@ -420,6 +435,18 @@ void NetworkManager::processMessage(const QJsonObject& message)
             }
         }
         
+        // 提取傳送門位置
+        QPoint teleportPortal1(-1, -1);
+        QPoint teleportPortal2(-1, -1);
+        if (message.contains("teleportPortal1")) {
+            QJsonObject portal1Json = message["teleportPortal1"].toObject();
+            teleportPortal1 = QPoint(portal1Json["x"].toInt(), portal1Json["y"].toInt());
+        }
+        if (message.contains("teleportPortal2")) {
+            QJsonObject portal2Json = message["teleportPortal2"].toObject();
+            teleportPortal2 = QPoint(portal2Json["x"].toInt(), portal2Json["y"].toInt());
+        }
+        
         // 計算伺服器時間偏移（伺服器時間 - 本地時間）
         qint64 localTimestamp = QDateTime::currentMSecsSinceEpoch();
         qint64 serverTimeOffset = serverTimestamp - localTimestamp;
@@ -439,9 +466,10 @@ void NetworkManager::processMessage(const QJsonObject& message)
                  << "| Host color:" << hostColorStr
                  << "| My role:" << (m_role == NetworkRole::Host ? "Host" : "Guest")
                  << "| My color:" << (m_playerColor == PieceColor::White ? "White" : "Black")
-                 << "| Game modes count:" << gameModes.size();
+                 << "| Game modes count:" << gameModes.size()
+                 << "| Portal1:" << teleportPortal1 << "Portal2:" << teleportPortal2;
         
-        emit startGameReceived(whiteTimeMs, blackTimeMs, incrementMs, hostColor, serverTimeOffset, gameModes);
+        emit startGameReceived(whiteTimeMs, blackTimeMs, incrementMs, hostColor, serverTimeOffset, gameModes, teleportPortal1, teleportPortal2);
         
         // 如果訊息包含計時器狀態，發送計時器更新
         if (message.contains("timerState")) {
@@ -604,6 +632,18 @@ void NetworkManager::processMessage(const QJsonObject& message)
                 }
             }
             
+            // 提取傳送門位置
+            QPoint teleportPortal1(-1, -1);
+            QPoint teleportPortal2(-1, -1);
+            if (message.contains("teleportPortal1")) {
+                QJsonObject portal1Json = message["teleportPortal1"].toObject();
+                teleportPortal1 = QPoint(portal1Json["x"].toInt(), portal1Json["y"].toInt());
+            }
+            if (message.contains("teleportPortal2")) {
+                QJsonObject portal2Json = message["teleportPortal2"].toObject();
+                teleportPortal2 = QPoint(portal2Json["x"].toInt(), portal2Json["y"].toInt());
+            }
+            
             // 計算伺服器時間偏移（如果訊息中包含伺服器時間戳）
             qint64 serverTimeOffset = 0;
             if (message.contains("serverTimestamp")) {
@@ -621,7 +661,7 @@ void NetworkManager::processMessage(const QJsonObject& message)
                 m_opponentColor = hostColor;
             }
             
-            emit startGameReceived(whiteTimeMs, blackTimeMs, incrementMs, hostColor, serverTimeOffset, gameModes);
+            emit startGameReceived(whiteTimeMs, blackTimeMs, incrementMs, hostColor, serverTimeOffset, gameModes, teleportPortal1, teleportPortal2);
         }
         break;
     
