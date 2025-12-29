@@ -303,6 +303,10 @@ Qt_Chess::Qt_Chess(QWidget *parent)
     loadBoardColorSettings();
     loadBoardFlipSettings();
     loadPieceIconsToCache(); // 載入設定後將圖示載入快取
+    
+    // 預載傳送門圖示以避免首次渲染時的 UI 卡頓
+    m_teleportIconCache = QPixmap(":/resources/images/send.png");
+    
     // setupMenuBar();  // 已移除選單欄功能
     setupUI();
     setupMainMenu();  // 在 setupUI() 之後設置主選單
@@ -2018,7 +2022,7 @@ void Qt_Chess::displayPieceOnSquare(QPushButton* square, const ChessPiece& piece
         
         // 檢查是否為傳送門位置，顯示 send.png 圖片（只在可見且沒有棋子時顯示）
         if (m_teleportModeEnabled && isTeleportPortal(logicalRow, logicalCol) && piece.getType() == PieceType::None) {
-            // 載入並快取傳送門圖片（只在第一次載入時）
+            // 使用預載的傳送門圖示（已在建構函式中載入）
             if (m_teleportIconCache.isNull()) {
                 m_teleportIconCache = QPixmap(":/resources/images/send.png");
             }
@@ -2026,7 +2030,7 @@ void Qt_Chess::displayPieceOnSquare(QPushButton* square, const ChessPiece& piece
             if (!m_teleportIconCache.isNull()) {
                 QIcon sendIcon(m_teleportIconCache);
                 square->setIcon(sendIcon);
-                // 圖片大小為方格大小的 80% 以保持美觀
+                // 使用與棋子圖示相同的大小計算方式以保持一致性
                 int iconSize = calculateIconSize(square);
                 square->setIconSize(QSize(iconSize, iconSize));
                 return;  // 傳送門圖片顯示完成，直接返回
