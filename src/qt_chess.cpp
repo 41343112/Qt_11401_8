@@ -7144,12 +7144,11 @@ void Qt_Chess::showRoomInfoDialog(const QString& roomNumber) {
     // 複製按鈕
     QPushButton* copyButton = new QPushButton(tr("📋 複製房號"), &dialog);
     copyButton->setStyleSheet("QPushButton { background-color: #4CAF50; color: white; padding: 10px; font-size: 12pt; font-weight: bold; border-radius: 5px; }");
-    connect(copyButton, &QPushButton::clicked, [roomNumber]() {
+    connect(copyButton, &QPushButton::clicked, [&dialog, roomNumber]() {
         QClipboard* clipboard = QApplication::clipboard();
         clipboard->setText(roomNumber);
-        // 移除對話框以減少延遲，直接複製
-        // QMessageBox::information(nullptr, tr("已複製"), 
-        //     tr("房號已複製到剪貼簿！\n\n請用通訊軟體（如LINE、WeChat）傳給朋友"));
+        // 複製後關閉對話框
+        dialog.accept();
     });
     layout->addWidget(copyButton);
     
@@ -7167,12 +7166,6 @@ void Qt_Chess::showRoomInfoDialog(const QString& roomNumber) {
     layout->addWidget(detailLabel);
     
     layout->addSpacing(10);
-    
-    // 關閉按鈕
-    QPushButton* closeButton = new QPushButton(tr("知道了"), &dialog);
-    closeButton->setStyleSheet("QPushButton { padding: 8px; font-size: 11pt; }");
-    connect(closeButton, &QPushButton::clicked, &dialog, &QDialog::accept);
-    layout->addWidget(closeButton);
     
     // 更新房間資訊標籤顯示房號
     m_roomInfoLabel->setText(QString("🎮 房號: %1").arg(roomNumber));
