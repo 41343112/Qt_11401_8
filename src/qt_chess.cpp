@@ -6160,7 +6160,14 @@ void Qt_Chess::onStartGameReceived(int whiteTimeMs, int blackTimeMs, int increme
              << "| blackTimeMs:" << blackTimeMs
              << "| serverTimeOffset:" << serverTimeOffset << "ms"
              << "| gameModes count:" << gameModes.size()
-             << "| minePositions count:" << minePositions.size();
+             << "| minePositions count:" << minePositions.size()
+             << "| m_gameStarted:" << m_gameStarted;
+    
+    // 防止重複啟動遊戲（例如伺服器重複發送開始訊息或其他異常情況）
+    if (m_gameStarted) {
+        qDebug() << "[Qt_Chess::onStartGameReceived] Game already started, ignoring duplicate start game message";
+        return;
+    }
     
     // 儲存伺服器時間偏移和遊戲開始時間，用於線上模式的時間同步
     m_serverTimeOffset = serverTimeOffset;
