@@ -2775,30 +2775,8 @@ void Qt_Chess::onStartButtonClicked() {
         // 如果啟用了踩地雷模式，房主生成地雷位置並發送給所有玩家
         std::vector<QPoint> minePositions;
         if (m_selectedGameModes.contains("踩地雷") && m_selectedGameModes["踩地雷"]) {
-            // 房主直接生成地雷位置（不需要啟用 bomb mode）
-            // 地雷區域：第3-6行（索引2-5），第a-h列（索引0-7）
-            std::vector<QPoint> availablePositions;
-            for (int row = 2; row <= 5; ++row) {
-                for (int col = 0; col < 8; ++col) {
-                    availablePositions.push_back(QPoint(col, row));
-                }
-            }
-            
-            // 使用Qt的隨機數生成器隨機選擇4-5個地雷位置
-            QRandomGenerator *rng = QRandomGenerator::global();
-            int numMines = 4 + (rng->bounded(2)); // 4或5個地雷
-            
-            // Fisher-Yates 洗牌算法
-            for (int i = availablePositions.size() - 1; i > 0; --i) {
-                int j = rng->bounded(i + 1);
-                std::swap(availablePositions[i], availablePositions[j]);
-            }
-            
-            // 選取前numMines個位置作為地雷
-            for (int i = 0; i < numMines && i < static_cast<int>(availablePositions.size()); ++i) {
-                minePositions.push_back(availablePositions[i]);
-            }
-            
+            // 房主使用共用的地雷生成邏輯
+            minePositions = ChessBoard::generateRandomMinePositions();
             qDebug() << "[Qt_Chess::onStartButtonClicked] Host generated" << minePositions.size() << "mine positions for bomb mode";
         }
         
@@ -6183,16 +6161,17 @@ void Qt_Chess::onStartGameReceived(int whiteTimeMs, int blackTimeMs, int increme
     
     // 啟用地雷模式（如果選擇了踩地雷遊戲模式）
     if (m_selectedGameModes.contains("踩地雷") && m_selectedGameModes["踩地雷"]) {
-        m_chessBoard.enableBombMode(true);
         if (!minePositions.empty()) {
             // 使用從伺服器接收到的地雷位置（正常流程）
+            m_chessBoard.enableBombMode(true);
             m_chessBoard.setMinePositions(minePositions);
             qDebug() << "[Qt_Chess::onStartGameReceived] Bomb mode enabled with" << minePositions.size() << "mines from server";
         } else {
-            // 如果沒有收到地雷位置（不應該發生），記錄警告並本地生成
-            qWarning() << "[Qt_Chess::onStartGameReceived] WARNING: No mine positions received from server! Falling back to local generation (may cause desync)";
-            m_chessBoard.placeMines();
-            qDebug() << "[Qt_Chess::onStartGameReceived] Bomb mode enabled with" << m_chessBoard.getMinePositions().size() << "mines (locally generated - DESYNC RISK!)";
+            // 如果沒有收到地雷位置（不應該發生），顯示錯誤並停用地雷模式
+            qCritical() << "[Qt_Chess::onStartGameReceived] CRITICAL: No mine positions received from server! Disabling bomb mode to prevent desync.";
+            m_chessBoard.enableBombMode(false);
+            QMessageBox::warning(this, "地雷模式錯誤", 
+                "未能從伺服器接收地雷位置資料。\n為避免不同步，地雷模式已被停用。\n\n請確保伺服器版本支援地雷模式同步功能。");
         }
     } else {
         m_chessBoard.enableBombMode(false);

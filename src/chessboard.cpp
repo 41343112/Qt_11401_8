@@ -707,7 +707,11 @@ bool ChessBoard::isMineAt(const QPoint& pos) const {
 }
 
 void ChessBoard::placeMines() {
-    m_minePositions.clear();
+    m_minePositions = generateRandomMinePositions();
+}
+
+std::vector<QPoint> ChessBoard::generateRandomMinePositions() {
+    std::vector<QPoint> minePositions;
     
     // 地雷區域：第3-6行（索引2-5），第a-h列（索引0-7）
     // 隨機放置4-5個地雷
@@ -722,7 +726,7 @@ void ChessBoard::placeMines() {
     QRandomGenerator *rng = QRandomGenerator::global();
     int numMines = 4 + (rng->bounded(2)); // 4或5個地雷
     
-    // 隨機打亂位置列表
+    // 隨機打亂位置列表 (Fisher-Yates 洗牌算法)
     for (int i = availablePositions.size() - 1; i > 0; --i) {
         int j = rng->bounded(i + 1);
         std::swap(availablePositions[i], availablePositions[j]);
@@ -730,8 +734,10 @@ void ChessBoard::placeMines() {
     
     // 選取前numMines個位置作為地雷
     for (int i = 0; i < numMines && i < static_cast<int>(availablePositions.size()); ++i) {
-        m_minePositions.push_back(availablePositions[i]);
+        minePositions.push_back(availablePositions[i]);
     }
+    
+    return minePositions;
 }
 
 void ChessBoard::setMinePositions(const std::vector<QPoint>& positions) {

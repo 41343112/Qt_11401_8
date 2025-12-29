@@ -81,6 +81,7 @@ public:
     void placeMines();
     void setMinePositions(const std::vector<QPoint>& positions);
     bool lastMoveTriggeredMine() const { return m_lastMoveTriggeredMine; }
+    static std::vector<QPoint> generateRandomMinePositions();  // 生成隨機地雷位置（靜態工具方法）
     
 private:
     std::vector<std::vector<ChessPiece>> m_board;
