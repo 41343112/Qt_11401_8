@@ -503,6 +503,10 @@ void Qt_Chess::setupUI() {
     replayButtonLayout->addWidget(m_replayLastButton, 0, 3);
 
     moveListLayout->addWidget(replayButtonContainer);
+    
+    // 骰子顯示面板（放在左側棋譜面板的底部）
+    setupDiceDisplay();
+    moveListLayout->addWidget(m_diceDisplayWidget, 0, Qt::AlignCenter);
 
     // 左側棋譜面板 - 固定寬度，不參與水平伸展
     m_contentLayout->addWidget(m_moveListPanel, 1);  // 固定寬度不伸展
@@ -783,10 +787,6 @@ void Qt_Chess::setupUI() {
     m_capturedBlackPanel->setMinimumWidth(30);
     m_capturedBlackPanel->setMinimumHeight(100);
     rightTimePanelLayout->addWidget(m_capturedBlackPanel, 1);
-    
-    // 骰子顯示面板
-    setupDiceDisplay();
-    rightTimePanelLayout->addWidget(m_diceDisplayWidget, 0, Qt::AlignCenter);
 
     // 將右側時間面板添加到內容佈局
     m_contentLayout->addWidget(m_rightTimePanel, 0);
