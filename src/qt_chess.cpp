@@ -252,6 +252,11 @@ Qt_Chess::Qt_Chess(QWidget *parent)
     , m_waitingForOpponent(false)
     , m_onlineHostSelectedColor(PieceColor::White)
     , m_lastDrawRequestTime(0)
+    , m_fogOfWarEnabled(false)
+    , m_gravityModeEnabled(false)
+    , m_teleportModeEnabled(false)
+    , m_teleportPortal1(-1, -1)
+    , m_teleportPortal2(-1, -1)
     , m_bgmPlayer(nullptr)
     , m_bgmEnabled(true)
     , m_bgmVolume(30)
@@ -305,6 +310,10 @@ Qt_Chess::Qt_Chess(QWidget *parent)
     loadEngineSettings();  // 載入引擎設定
     initializeEngine();  // 初始化棋局引擎
     initializeNetwork(); // 初始化網路管理器
+    
+    // 初始化霧戰模式的可見方格陣列（8x8）
+    m_visibleSquares.resize(8, std::vector<bool>(8, true));
+    
     updateBoard();
     updateStatus();
     updateTimeDisplays();
@@ -1741,6 +1750,17 @@ void Qt_Chess::resetGameState() {
     // 清除線上模式的遊戲模式選擇
     m_selectedGameModes.clear();
     
+    // 停用霧戰模式
+    m_fogOfWarEnabled = false;
+    
+    // 停用地吸引力模式
+    m_gravityModeEnabled = false;
+    
+    // 停用傳送陣模式
+    m_teleportModeEnabled = false;
+    m_teleportPortal1 = QPoint(-1, -1);
+    m_teleportPortal2 = QPoint(-1, -1);
+    
     // 停止計時器
     if (m_gameTimer) {
         if (m_gameTimer->isActive()) {
@@ -1882,6 +1902,9 @@ void Qt_Chess::onBackToMainMenuClicked() {
 // ============================================================================
 
 void Qt_Chess::updateBoard() {
+    // 更新霧戰模式的可見方格
+    updateVisibleSquares();
+    
     for (int logicalRow = 0; logicalRow < 8; ++logicalRow) {
         for (int logicalCol = 0; logicalCol < 8; ++logicalCol) {
             int displayRow = getDisplayRow(logicalRow);
@@ -1911,6 +1934,18 @@ void Qt_Chess::updateSquareColor(int displayRow, int displayCol) {
     int logicalCol = getLogicalCol(displayCol);
     bool isLight = (logicalRow + logicalCol) % 2 == 0;
     QColor color = isLight ? m_boardColorSettings.lightSquareColor : m_boardColorSettings.darkSquareColor;
+    
+    // 檢查是否為傳送門位置，添加銀色塗層（只在可見時顯示）
+    if (m_teleportModeEnabled && isTeleportPortal(logicalRow, logicalCol)) {
+        // 銀色塗層效果 - 使用半透明的銀色覆蓋
+        color = QColor(192, 192, 192);  // 銀色
+    }
+    
+    // 檢查是否啟用霧戰模式且該方格不可見（優先級最高）
+    if (m_fogOfWarEnabled && m_isOnlineGame && !isSquareVisible(logicalRow, logicalCol)) {
+        // 用黑色覆蓋不可見的方格，覆蓋所有其他視覺效果（包括傳送門）
+        color = QColor(0, 0, 0);  // 純黑色
+    }
     
     // 使用輔助函數獲取文字顏色
     QString textColor = getPieceTextColor(logicalRow, logicalCol);
@@ -1961,6 +1996,21 @@ void Qt_Chess::displayPieceOnSquare(QPushButton* square, const ChessPiece& piece
     // 清除 previous content
     square->setText("");
     square->setIcon(QIcon());
+    
+    // 檢查該方格是否在霧戰模式下可見
+    // 首先需要找到該方格的坐標
+    QPoint coords = m_buttonCoordinates.value(square, QPoint(-1, -1));
+    if (coords.x() >= 0 && coords.y() >= 0) {
+        int displayRow = coords.y();
+        int displayCol = coords.x();
+        int logicalRow = getLogicalRow(displayRow);
+        int logicalCol = getLogicalCol(displayCol);
+        
+        // 如果霧戰模式啟用且該方格不可見，不顯示棋子
+        if (m_fogOfWarEnabled && m_isOnlineGame && !isSquareVisible(logicalRow, logicalCol)) {
+            return;  // 不顯示任何棋子
+        }
+    }
 
     // 使用圖示或符號顯示棋子
     if (m_pieceIconSettings.useCustomIcons) {
@@ -2333,11 +2383,30 @@ void Qt_Chess::onSquareClicked(int displayRow, int displayCol) {
             updateBoard();
 
             // 檢查是否需要兵升變
+            bool needsUpdate = false;
             if (m_chessBoard.needsPromotion(clickedSquare)) {
                 const ChessPiece& piece = m_chessBoard.getPiece(clickedSquare.y(), clickedSquare.x());
                 PieceType promotionType = showPromotionDialog(piece.getColor());
                 m_chessBoard.promotePawn(clickedSquare, promotionType);
                 promType = promotionType;
+                needsUpdate = true;
+            }
+            
+            // 應用地吸引力模式（如果啟用）
+            if (m_gravityModeEnabled) {
+                applyGravity();
+                needsUpdate = true;
+            }
+            
+            // 處理傳送陣模式（如果啟用）並獲取最終位置
+            QPoint finalPosition = clickedSquare;  // 默認就是點擊的位置
+            if (m_teleportModeEnabled) {
+                finalPosition = handleTeleportationAndGetFinalPosition(m_selectedSquare, clickedSquare);
+                needsUpdate = true;
+            }
+            
+            // 更新棋盤顯示（在升變和地吸引力之後統一更新）
+            if (needsUpdate) {
                 updateBoard();
             }
             
@@ -2356,10 +2425,11 @@ void Qt_Chess::onSquareClicked(int displayRow, int displayCol) {
 
             updateStatus();
             
-            // 如果是線上模式，發送移動給對手
+            // 如果是線上模式，發送移動給對手（包含最終位置）
             if (m_isOnlineGame && m_networkManager) {
-                qDebug() << "[Qt_Chess] Sending move to opponent: from" << m_lastMoveFrom << "to" << m_lastMoveTo;
-                m_networkManager->sendMove(m_lastMoveFrom, m_lastMoveTo, promType);
+                qDebug() << "[Qt_Chess] Sending move to opponent: from" << m_lastMoveFrom << "to" << m_lastMoveTo
+                         << "| FinalPosition:" << finalPosition;
+                m_networkManager->sendMove(m_lastMoveFrom, m_lastMoveTo, promType, finalPosition);
             }
             
             // 如果現在是電腦的回合，請求引擎走棋
@@ -2702,7 +2772,8 @@ void Qt_Chess::onStartButtonClicked() {
             m_networkManager->setPlayerColors(m_onlineHostSelectedColor);
         }
         
-        m_networkManager->sendStartGame(whiteTimeMs, blackTimeMs, incrementMs, m_onlineHostSelectedColor);
+        // 不再預先生成傳送門位置 - 每個玩家將獨立生成自己的傳送門
+        m_networkManager->sendStartGame(whiteTimeMs, blackTimeMs, incrementMs, m_onlineHostSelectedColor, m_selectedGameModes);
         
         qDebug() << "[Qt_Chess::onStartButtonClicked] Host sending StartGame to server"
                  << "| Host color:" << (m_onlineHostSelectedColor == PieceColor::White ? "White" : "Black")
@@ -3368,11 +3439,30 @@ void Qt_Chess::mouseReleaseEvent(QMouseEvent *event) {
                 updateBoard();
 
                 // 檢查 pawn promotion is needed
+                bool needsUpdate = false;
                 if (m_chessBoard.needsPromotion(logicalDropSquare)) {
                     const ChessPiece& piece = m_chessBoard.getPiece(logicalDropSquare.y(), logicalDropSquare.x());
                     PieceType promotionType = showPromotionDialog(piece.getColor());
                     m_chessBoard.promotePawn(logicalDropSquare, promotionType);
                     promType = promotionType;
+                    needsUpdate = true;
+                }
+                
+                // 應用地吸引力模式（如果啟用）
+                if (m_gravityModeEnabled) {
+                    applyGravity();
+                    needsUpdate = true;
+                }
+                
+                // 處理傳送陣模式（如果啟用）並獲取最終位置
+                QPoint finalPosition = logicalDropSquare;  // 默認就是拖放的位置
+                if (m_teleportModeEnabled) {
+                    finalPosition = handleTeleportationAndGetFinalPosition(m_dragStartSquare, logicalDropSquare);
+                    needsUpdate = true;
+                }
+                
+                // 更新棋盤顯示（在升變和地吸引力之後統一更新）
+                if (needsUpdate) {
                     updateBoard();
                 }
                 
@@ -3392,10 +3482,11 @@ void Qt_Chess::mouseReleaseEvent(QMouseEvent *event) {
                 updateStatus();
                 clearHighlights();
                 
-                // 如果是線上模式，發送移動給對手
+                // 如果是線上模式，發送移動給對手（包含最終位置）
                 if (m_isOnlineGame && m_networkManager) {
-                    qDebug() << "[Qt_Chess] Sending move to opponent (drag): from" << m_lastMoveFrom << "to" << m_lastMoveTo;
-                    m_networkManager->sendMove(m_lastMoveFrom, m_lastMoveTo, promType);
+                    qDebug() << "[Qt_Chess] Sending move to opponent (drag): from" << m_lastMoveFrom << "to" << m_lastMoveTo
+                             << "| FinalPosition:" << finalPosition;
+                    m_networkManager->sendMove(m_lastMoveFrom, m_lastMoveTo, promType, finalPosition);
                 }
                 
                 // 如果現在是電腦的回合，請求引擎走棋
@@ -4966,6 +5057,17 @@ void Qt_Chess::onHumanModeClicked() {
     // 清除線上模式的遊戲模式選擇
     m_selectedGameModes.clear();
     
+    // 停用霧戰模式
+    m_fogOfWarEnabled = false;
+    
+    // 停用地吸引力模式
+    m_gravityModeEnabled = false;
+    
+    // 停用傳送陣模式
+    m_teleportModeEnabled = false;
+    m_teleportPortal1 = QPoint(-1, -1);
+    m_teleportPortal2 = QPoint(-1, -1);
+    
     // 隱藏線上模式的房間創建UI
     if (m_onlineButtonsWidget) {
         m_onlineButtonsWidget->hide();
@@ -5004,6 +5106,17 @@ void Qt_Chess::onComputerModeClicked() {
     
     // 清除線上模式的遊戲模式選擇
     m_selectedGameModes.clear();
+    
+    // 停用霧戰模式
+    m_fogOfWarEnabled = false;
+    
+    // 停用地吸引力模式
+    m_gravityModeEnabled = false;
+    
+    // 停用傳送陣模式
+    m_teleportModeEnabled = false;
+    m_teleportPortal1 = QPoint(-1, -1);
+    m_teleportPortal2 = QPoint(-1, -1);
     
     // 隱藏線上模式的房間創建UI
     if (m_onlineButtonsWidget) {
@@ -5184,6 +5297,7 @@ void Qt_Chess::onEngineBestMove(const QString& move) {
         updateBoard();
         
         // 處理升變
+        bool needsUpdate = false;
         if (m_chessBoard.needsPromotion(to)) {
             // 引擎的升變類型已經包含在移動中
             if (promotionType != PieceType::None) {
@@ -5192,6 +5306,23 @@ void Qt_Chess::onEngineBestMove(const QString& move) {
                 // 預設升變為后
                 m_chessBoard.promotePawn(to, PieceType::Queen);
             }
+            needsUpdate = true;
+        }
+        
+        // 應用地吸引力模式（如果啟用）
+        if (m_gravityModeEnabled) {
+            applyGravity();
+            needsUpdate = true;
+        }
+        
+        // 處理傳送陣模式（如果啟用）
+        if (m_teleportModeEnabled) {
+            handleTeleportation(from, to);
+            needsUpdate = true;
+        }
+        
+        // 更新棋盤顯示（在升變和地吸引力之後統一更新）
+        if (needsUpdate) {
             updateBoard();
         }
         
@@ -5841,8 +5972,9 @@ void Qt_Chess::onPromotedToHost() {
     }
 }
 
-void Qt_Chess::onOpponentMove(const QPoint& from, const QPoint& to, PieceType promotionType) {
-    qDebug() << "[Qt_Chess::onOpponentMove] Received opponent move: from" << from << "to" << to;
+void Qt_Chess::onOpponentMove(const QPoint& from, const QPoint& to, PieceType promotionType, QPoint finalPosition) {
+    qDebug() << "[Qt_Chess::onOpponentMove] Received opponent move: from" << from << "to" << to
+             << "| FinalPosition:" << finalPosition;
     
     // 對手的移動 - 直接執行移動，movePiece 會自動切換回合
     PieceColor currentPlayer = m_chessBoard.getCurrentPlayer();
@@ -5861,6 +5993,17 @@ void Qt_Chess::onOpponentMove(const QPoint& from, const QPoint& to, PieceType pr
         // 檢查是否需要升變
         if (promotionType != PieceType::None && m_chessBoard.needsPromotion(to)) {
             m_chessBoard.promotePawn(to, promotionType);
+        }
+        
+        // 應用地吸引力模式（如果啟用）
+        if (m_gravityModeEnabled) {
+            applyGravity();
+        }
+        
+        // 處理傳送陣模式（如果啟用）
+        if (m_teleportModeEnabled) {
+            // 應用對手傳送後的最終位置
+            applyFinalPosition(to, finalPosition);
         }
         
         updateBoard();
@@ -5959,17 +6102,21 @@ void Qt_Chess::onGameStartReceived(PieceColor playerColor) {
     // 不再自動開始遊戲，改由房主點擊開始按鈕
 }
 
-void Qt_Chess::onStartGameReceived(int whiteTimeMs, int blackTimeMs, int incrementMs, PieceColor hostColor, qint64 serverTimeOffset) {
+void Qt_Chess::onStartGameReceived(int whiteTimeMs, int blackTimeMs, int incrementMs, PieceColor hostColor, qint64 serverTimeOffset, const QMap<QString, bool>& gameModes) {
     qDebug() << "[Qt_Chess::onStartGameReceived] Client received StartGame"
              << "| Host color:" << (hostColor == PieceColor::White ? "White" : "Black")
              << "| whiteTimeMs:" << whiteTimeMs
              << "| blackTimeMs:" << blackTimeMs
-             << "| serverTimeOffset:" << serverTimeOffset << "ms";
+             << "| serverTimeOffset:" << serverTimeOffset << "ms"
+             << "| gameModes count:" << gameModes.size();
     
     // 儲存伺服器時間偏移和遊戲開始時間，用於線上模式的時間同步
     m_serverTimeOffset = serverTimeOffset;
     m_gameStartLocalTime = QDateTime::currentMSecsSinceEpoch();
     m_currentTurnStartTime = m_gameStartLocalTime + m_serverTimeOffset;  // 初始化當前回合開始時間（使用同步時間）
+    
+    // 儲存從伺服器接收的遊戲模式設定
+    m_selectedGameModes = gameModes;
     
     // 收到房主的開始遊戲通知，設定時間後客戶端自動開始遊戲
     
@@ -6146,6 +6293,44 @@ void Qt_Chess::onStartGameReceived(int whiteTimeMs, int blackTimeMs, int increme
     
     // 當遊戲開始時，將右側伸展設為 1
     setRightPanelStretch(1);
+    
+    // 檢查是否啟用霧戰模式
+    if (m_selectedGameModes.contains("霧戰") && m_selectedGameModes["霧戰"]) {
+        m_fogOfWarEnabled = true;
+        qDebug() << "[Qt_Chess::onStartGameReceived] Fog of War mode enabled";
+    } else {
+        m_fogOfWarEnabled = false;
+    }
+    
+    // 檢查是否啟用地吸引力模式
+    if (m_selectedGameModes.contains("地吸引力") && m_selectedGameModes["地吸引力"]) {
+        m_gravityModeEnabled = true;
+        qDebug() << "[Qt_Chess::onStartGameReceived] Gravity mode enabled";
+        
+        // UI顯示旋轉：將棋盤順時針旋轉90度
+        rotateBoardDisplay(true);
+        
+        // 開始時應用重力，讓所有棋子往右掉（棋盤轉90度效果）
+        applyGravity();
+    } else {
+        m_gravityModeEnabled = false;
+        
+        // 恢復正常顯示
+        rotateBoardDisplay(false);
+    }
+    
+    // 檢查是否啟用傳送陣模式
+    if (m_selectedGameModes.contains("傳送陣") && m_selectedGameModes["傳送陣"]) {
+        m_teleportModeEnabled = true;
+        qDebug() << "[Qt_Chess::onStartGameReceived] Teleportation mode enabled - each player generates their own portals";
+        
+        // 每個玩家生成自己的傳送門（不同步）
+        initializeTeleportPortals();
+    } else {
+        m_teleportModeEnabled = false;
+        m_teleportPortal1 = QPoint(-1, -1);
+        m_teleportPortal2 = QPoint(-1, -1);
+    }
     
     // 更新棋盤和狀態
     updateBoard();
@@ -6672,6 +6857,17 @@ void Qt_Chess::onCancelRoomClicked() {
         // 清除線上模式的遊戲模式選擇
         m_selectedGameModes.clear();
         
+        // 停用霧戰模式
+        m_fogOfWarEnabled = false;
+        
+        // 停用地吸引力模式
+        m_gravityModeEnabled = false;
+        
+        // 停用傳送陣模式
+        m_teleportModeEnabled = false;
+        m_teleportPortal1 = QPoint(-1, -1);
+        m_teleportPortal2 = QPoint(-1, -1);
+        
         // 隱藏開始按鈕，直到重新創建或加入房間
         if (m_startButton) {
             m_startButton->hide();
@@ -6772,6 +6968,17 @@ void Qt_Chess::onExitRoomClicked() {
         
         // 清除線上模式的遊戲模式選擇
         m_selectedGameModes.clear();
+        
+        // 停用霧戰模式
+        m_fogOfWarEnabled = false;
+        
+        // 停用地吸引力模式
+        m_gravityModeEnabled = false;
+        
+        // 停用傳送陣模式
+        m_teleportModeEnabled = false;
+        m_teleportPortal1 = QPoint(-1, -1);
+        m_teleportPortal2 = QPoint(-1, -1);
         
         // 只有在確實是線上遊戲時才重置棋盤
         if (wasOnlineGame) {
@@ -7649,4 +7856,353 @@ void Qt_Chess::onUpdateCheckFailed(const QString& error) {
     // 重設手動檢查標記
     m_manualUpdateCheck = false;
 }
+
+// ========================================
+// 霧戰模式實現 (Fog of War Mode Implementation)
+// ========================================
+
+void Qt_Chess::calculateVisibleSquares(PieceColor playerColor) {
+    // 重置所有方格為不可見
+    for (int row = 0; row < 8; ++row) {
+        for (int col = 0; col < 8; ++col) {
+            m_visibleSquares[row][col] = false;
+        }
+    }
+    
+    // 遍歷所有玩家的棋子
+    for (int row = 0; row < 8; ++row) {
+        for (int col = 0; col < 8; ++col) {
+            const ChessPiece& piece = m_chessBoard.getPiece(row, col);
+            
+            // 如果是玩家的棋子
+            if (piece.getColor() == playerColor && piece.getType() != PieceType::None) {
+                // 該棋子所在的方格可見
+                m_visibleSquares[row][col] = true;
+                
+                // 計算該棋子可以移動到的所有合法位置
+                QPoint from(col, row);
+                
+                // 注意：這裡使用 const_cast 暫時改變當前玩家以檢查該顏色的合法移動。
+                // 這是安全的，因為：
+                // 1. isValidMove() 是 const 方法，不會修改棋盤狀態
+                // 2. 我們立即恢復原來的玩家顏色
+                // 3. 這只用於可見性計算，不影響實際遊戲狀態
+                PieceColor savedPlayer = m_chessBoard.getCurrentPlayer();
+                const_cast<ChessBoard&>(m_chessBoard).setCurrentPlayer(playerColor);
+                
+                for (int targetRow = 0; targetRow < 8; ++targetRow) {
+                    for (int targetCol = 0; targetCol < 8; ++targetCol) {
+                        QPoint to(targetCol, targetRow);
+                        
+                        // 使用 ChessBoard 的 isValidMove 檢查
+                        if (m_chessBoard.isValidMove(from, to)) {
+                            m_visibleSquares[targetRow][targetCol] = true;
+                        }
+                    }
+                }
+                
+                // 恢復原來的玩家
+                const_cast<ChessBoard&>(m_chessBoard).setCurrentPlayer(savedPlayer);
+            }
+        }
+    }
+}
+
+void Qt_Chess::updateVisibleSquares() {
+    if (!m_fogOfWarEnabled || !m_isOnlineGame) {
+        // 如果霧戰模式未啟用或不是線上遊戲，所有方格都可見
+        for (int row = 0; row < 8; ++row) {
+            for (int col = 0; col < 8; ++col) {
+                m_visibleSquares[row][col] = true;
+            }
+        }
+        return;
+    }
+    
+    // 確定當前玩家的顏色
+    PieceColor playerColor = m_networkManager->getPlayerColor();
+    
+    // 計算可見方格
+    calculateVisibleSquares(playerColor);
+}
+
+bool Qt_Chess::isSquareVisible(int row, int col) const {
+    if (row < 0 || row >= 8 || col < 0 || col >= 8) {
+        return false;
+    }
+    return m_visibleSquares[row][col];
+}
+
+// ========================================
+// 地吸引力模式實現 (Gravity Mode Implementation)
+// ========================================
+
+void Qt_Chess::applyGravity() {
+    if (!m_gravityModeEnabled || m_isReplayMode) {
+        return;
+    }
+    
+    bool pieceMoved = false;
+    
+    // 棋盤轉90度：讓棋子往右掉（朝向col 7）
+    // 重複執行直到沒有棋子移動為止
+    do {
+        pieceMoved = false;
+        
+        // 從右往左檢查每一列（最右列不需要檢查）
+        for (int col = 6; col >= 0; --col) {
+            for (int row = 0; row < 8; ++row) {
+                ChessPiece& piece = m_chessBoard.getPiece(row, col);
+                
+                // 如果這個位置有棋子
+                if (piece.getType() != PieceType::None) {
+                    // 檢查右邊的位置是否為空
+                    int targetCol = col + 1;
+                    
+                    // 讓棋子一直往右掉，直到碰到右邊界或其他棋子
+                    // 注意：短路求值確保 targetCol < 8 為假時不會訪問 getPiece
+                    while (targetCol < 8 && m_chessBoard.getPiece(row, targetCol).getType() == PieceType::None) {
+                        targetCol++;
+                    }
+                    
+                    // targetCol-1 是棋子應該停止的位置
+                    targetCol--;
+                    
+                    // 如果棋子需要移動
+                    if (targetCol > col) {
+                        // 將棋子移動到新位置，保留棋子的狀態（包括 hasMoved）
+                        ChessPiece movedPiece = piece;
+                        m_chessBoard.setPiece(row, targetCol, movedPiece);
+                        m_chessBoard.setPiece(row, col, ChessPiece(PieceType::None, PieceColor::None));
+                        pieceMoved = true;
+                    }
+                }
+            }
+        }
+    } while (pieceMoved);
+}
+
+// 旋轉棋盤UI顯示（90度順時針）
+void Qt_Chess::rotateBoardDisplay(bool rotate) {
+    if (!m_boardWidget) return;
+    
+    QGridLayout* gridLayout = qobject_cast<QGridLayout*>(m_boardWidget->layout());
+    if (!gridLayout) return;
+    
+    if (rotate) {
+        // 順時針旋轉90度：重新排列格子
+        // 旋轉後的位置：新行 = 舊列，新列 = 7 - 舊行
+        qDebug() << "[Qt_Chess] Rotating board display 90 degrees clockwise";
+        
+        // 創建臨時數組保存當前佈局
+        std::vector<std::vector<QPushButton*>> tempSquares(8, std::vector<QPushButton*>(8));
+        
+        for (int row = 0; row < 8; ++row) {
+            for (int col = 0; col < 8; ++col) {
+                tempSquares[row][col] = m_squares[row][col];
+                gridLayout->removeWidget(m_squares[row][col]);
+            }
+        }
+        
+        // 重新添加格子到旋轉後的位置
+        for (int oldRow = 0; oldRow < 8; ++oldRow) {
+            for (int oldCol = 0; oldCol < 8; ++oldCol) {
+                int newRow = oldCol;
+                int newCol = 7 - oldRow;
+                gridLayout->addWidget(tempSquares[oldRow][oldCol], newRow, newCol);
+            }
+        }
+        
+    } else {
+        // 恢復正常佈局
+        qDebug() << "[Qt_Chess] Restoring normal board display";
+        
+        // 移除所有widget
+        for (int row = 0; row < 8; ++row) {
+            for (int col = 0; col < 8; ++col) {
+                gridLayout->removeWidget(m_squares[row][col]);
+            }
+        }
+        
+        // 重新添加到原始位置
+        for (int row = 0; row < 8; ++row) {
+            for (int col = 0; col < 8; ++col) {
+                gridLayout->addWidget(m_squares[row][col], row, col);
+            }
+        }
+    }
+    
+    // 強制更新佈局
+    gridLayout->update();
+    m_boardWidget->update();
+}
+
+// ============================================================================
+// 傳送陣模式 (Teleportation Mode)
+// ============================================================================
+
+void Qt_Chess::initializeTeleportPortals() {
+    resetTeleportPortals();
+}
+
+void Qt_Chess::resetTeleportPortals() {
+    if (!m_teleportModeEnabled) {
+        m_teleportPortal1 = QPoint(-1, -1);
+        m_teleportPortal2 = QPoint(-1, -1);
+        return;
+    }
+    
+    // 收集所有空格子的位置
+    QVector<QPoint> emptySquares;
+    for (int row = 0; row < 8; ++row) {
+        for (int col = 0; col < 8; ++col) {
+            const ChessPiece& piece = m_chessBoard.getPiece(row, col);
+            if (piece.getType() == PieceType::None) {
+                emptySquares.append(QPoint(col, row));
+            }
+        }
+    }
+    
+    // 需要至少兩個空格子
+    if (emptySquares.size() < 2) {
+        qDebug() << "[Qt_Chess::resetTeleportPortals] Not enough empty squares";
+        m_teleportPortal1 = QPoint(-1, -1);
+        m_teleportPortal2 = QPoint(-1, -1);
+        return;
+    }
+    
+    // 隨機選擇兩個不同的空格子
+    int index1 = QRandomGenerator::global()->bounded(emptySquares.size());
+    int index2;
+    do {
+        index2 = QRandomGenerator::global()->bounded(emptySquares.size());
+    } while (index2 == index1);
+    
+    m_teleportPortal1 = emptySquares[index1];
+    m_teleportPortal2 = emptySquares[index2];
+    
+    qDebug() << "[Qt_Chess::resetTeleportPortals] Portal 1:" << m_teleportPortal1 << "Portal 2:" << m_teleportPortal2;
+    
+    // 強制更新棋盤顯示以顯示銀色塗層
+    updateBoard();
+}
+
+bool Qt_Chess::isTeleportPortal(int row, int col) const {
+    if (!m_teleportModeEnabled) {
+        return false;
+    }
+    
+    QPoint pos(col, row);
+    return (pos == m_teleportPortal1 || pos == m_teleportPortal2);
+}
+
+// 輔助函數：執行傳送動作（不重置傳送門）
+bool Qt_Chess::performTeleportationMove(const QPoint& from, const QPoint& to) {
+    if (!m_teleportModeEnabled) {
+        return false;
+    }
+    
+    // 檢查目標位置是否為傳送門
+    if (!isTeleportPortal(to.y(), to.x())) {
+        return false;
+    }
+    
+    qDebug() << "[Qt_Chess::performTeleportationMove] Piece landed on portal at" << to;
+    
+    // 確定另一個傳送門的位置
+    QPoint targetPortal;
+    if (to == m_teleportPortal1) {
+        targetPortal = m_teleportPortal2;
+    } else {
+        targetPortal = m_teleportPortal1;
+    }
+    
+    // 檢查目標傳送門是否為空
+    const ChessPiece& targetPiece = m_chessBoard.getPiece(targetPortal.y(), targetPortal.x());
+    if (targetPiece.getType() != PieceType::None) {
+        qDebug() << "[Qt_Chess::performTeleportationMove] Target portal is not empty, teleportation failed";
+        return false;
+    }
+    
+    // 移動棋子到另一個傳送門
+    ChessPiece piece = m_chessBoard.getPiece(to.y(), to.x());
+    m_chessBoard.setPiece(targetPortal.y(), targetPortal.x(), piece);
+    m_chessBoard.setPiece(to.y(), to.x(), ChessPiece(PieceType::None, PieceColor::None));
+    
+    qDebug() << "[Qt_Chess::performTeleportationMove] Teleported piece to" << targetPortal;
+    return true;
+}
+
+void Qt_Chess::handleTeleportation(const QPoint& from, const QPoint& to) {
+    if (performTeleportationMove(from, to)) {
+        // 重置傳送門到新的隨機位置
+        resetTeleportPortals();
+    }
+}
+
+QPoint Qt_Chess::handleTeleportationAndGetFinalPosition(const QPoint& from, const QPoint& to) {
+    QPoint finalPosition = to;  // 默認最終位置就是移動目標位置
+    
+    if (!m_teleportModeEnabled) {
+        return finalPosition;
+    }
+    
+    // 檢查目標位置是否為傳送門
+    if (!isTeleportPortal(to.y(), to.x())) {
+        return finalPosition;
+    }
+    
+    qDebug() << "[Qt_Chess::handleTeleportationAndGetFinalPosition] Piece landed on portal at" << to;
+    
+    // 確定另一個傳送門的位置（在重置之前）
+    QPoint targetPortal;
+    if (to == m_teleportPortal1) {
+        targetPortal = m_teleportPortal2;
+    } else {
+        targetPortal = m_teleportPortal1;
+    }
+    
+    // 檢查目標傳送門是否為空
+    const ChessPiece& targetPiece = m_chessBoard.getPiece(targetPortal.y(), targetPortal.x());
+    if (targetPiece.getType() != PieceType::None) {
+        qDebug() << "[Qt_Chess::handleTeleportationAndGetFinalPosition] Target portal is not empty, teleportation failed";
+        return finalPosition;  // 傳送失敗，返回原始位置
+    }
+    
+    // 移動棋子到另一個傳送門
+    ChessPiece piece = m_chessBoard.getPiece(to.y(), to.x());
+    m_chessBoard.setPiece(targetPortal.y(), targetPortal.x(), piece);
+    m_chessBoard.setPiece(to.y(), to.x(), ChessPiece(PieceType::None, PieceColor::None));
+    
+    finalPosition = targetPortal;  // 最終位置是目標傳送門
+    
+    qDebug() << "[Qt_Chess::handleTeleportationAndGetFinalPosition] Teleported piece to" << targetPortal;
+    
+    // 重置傳送門到新位置
+    resetTeleportPortals();
+    
+    return finalPosition;
+}
+
+void Qt_Chess::applyFinalPosition(const QPoint& to, const QPoint& finalPosition) {
+    if (!m_teleportModeEnabled) {
+        return;
+    }
+    
+    // 如果接收到有效的最終位置，表示對手發生了傳送
+    if (finalPosition.x() >= 0 && finalPosition.y() >= 0 && finalPosition != to) {
+        // 將棋子從to位置移動到finalPosition
+        ChessPiece piece = m_chessBoard.getPiece(to.y(), to.x());
+        if (piece.getType() != PieceType::None) {
+            m_chessBoard.setPiece(finalPosition.y(), finalPosition.x(), piece);
+            m_chessBoard.setPiece(to.y(), to.x(), ChessPiece(PieceType::None, PieceColor::None));
+            
+            qDebug() << "[Qt_Chess::applyFinalPosition] Moved piece from" << to << "to final position" << finalPosition;
+            
+            // 注意：不重置自己的傳送門，因為每個玩家的傳送門是獨立的
+            updateBoard();  // 更新顯示
+        }
+    }
+}
+
 

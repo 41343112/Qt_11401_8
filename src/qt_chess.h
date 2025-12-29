@@ -254,6 +254,18 @@ private:
     qint64 m_lastDrawRequestTime;        // 上次請求和棋的時間（毫秒）
     QMap<QString, bool> m_selectedGameModes;  // 選擇的遊戲模式
     
+    // 霧戰模式相關 (Fog of War Mode)
+    bool m_fogOfWarEnabled;              // 是否啟用霧戰模式
+    std::vector<std::vector<bool>> m_visibleSquares;  // 可見方格（8x8）
+    
+    // 地吸引力模式相關 (Gravity Mode)
+    bool m_gravityModeEnabled;           // 是否啟用地吸引力模式
+    
+    // 傳送陣模式相關 (Teleportation Mode)
+    bool m_teleportModeEnabled;          // 是否啟用傳送陣模式
+    QPoint m_teleportPortal1;            // 傳送門位置1
+    QPoint m_teleportPortal2;            // 傳送門位置2
+    
     // ========================================
     // 音效系統 (Sound System)
     // ========================================
@@ -441,9 +453,9 @@ private:
     void onOpponentJoined();
     void onPlayerLeft();
     void onPromotedToHost();
-    void onOpponentMove(const QPoint& from, const QPoint& to, PieceType promotionType);
+    void onOpponentMove(const QPoint& from, const QPoint& to, PieceType promotionType, QPoint finalPosition);
     void onGameStartReceived(PieceColor playerColor);
-    void onStartGameReceived(int whiteTimeMs, int blackTimeMs, int incrementMs, PieceColor hostColor, qint64 serverTimeOffset);
+    void onStartGameReceived(int whiteTimeMs, int blackTimeMs, int incrementMs, PieceColor hostColor, qint64 serverTimeOffset, const QMap<QString, bool>& gameModes);
     void onTimeSettingsReceived(int whiteTimeMs, int blackTimeMs, int incrementMs);
     void onTimerStateReceived(qint64 timeA, qint64 timeB, const QString& currentPlayer, qint64 lastSwitchTime);
     void onSurrenderReceived();
@@ -455,6 +467,24 @@ private:
     void updateConnectionStatus();
     bool isOnlineTurn() const;
     void showRoomInfoDialog(const QString& roomNumber);
+    
+    // 霧戰模式 (Fog of War Mode)
+    void updateVisibleSquares();         // 更新可見方格
+    bool isSquareVisible(int row, int col) const;  // 檢查方格是否可見
+    void calculateVisibleSquares(PieceColor playerColor);  // 計算玩家可見的方格
+    
+    // 地吸引力模式 (Gravity Mode)
+    void applyGravity();                 // 應用地吸引力讓棋子下落
+    void rotateBoardDisplay(bool rotate);  // 旋轉棋盤UI顯示
+    
+    // 傳送陣模式 (Teleportation Mode)
+    void initializeTeleportPortals();    // 初始化傳送門位置
+    void resetTeleportPortals();         // 重置傳送門位置
+    bool isTeleportPortal(int row, int col) const;  // 檢查方格是否為傳送門
+    void handleTeleportation(const QPoint& from, const QPoint& to);  // 處理傳送
+    bool performTeleportationMove(const QPoint& from, const QPoint& to);  // 執行傳送動作（不重置傳送門）
+    QPoint handleTeleportationAndGetFinalPosition(const QPoint& from, const QPoint& to);  // 處理傳送並返回最終位置
+    void applyFinalPosition(const QPoint& to, const QPoint& finalPosition);  // 應用最終位置（用於接收對手的傳送結果）
     
     // ========================================
     // 音效系統 (Sound System)
