@@ -125,11 +125,12 @@ void NetworkManager::closeConnection()
     m_opponentColor = PieceColor::None;
 }
 
-void NetworkManager::sendMove(const QPoint& from, const QPoint& to, PieceType promotionType)
+void NetworkManager::sendMove(const QPoint& from, const QPoint& to, PieceType promotionType, QPoint newPortal1, QPoint newPortal2)
 {
     qDebug() << "[NetworkManager::sendMove] Sending move from" << from << "to" << to 
              << "| Role:" << (m_role == NetworkRole::Host ? "Host" : "Guest")
-             << "| Socket connected:" << (m_webSocket && m_webSocket->state() == QAbstractSocket::ConnectedState);
+             << "| Socket connected:" << (m_webSocket && m_webSocket->state() == QAbstractSocket::ConnectedState)
+             << "| NewPortal1:" << newPortal1 << "NewPortal2:" << newPortal2;
     
     if (m_roomNumber.isEmpty()) {
         qDebug() << "[NetworkManager::sendMove] ERROR: Room number is empty, cannot send move";
@@ -147,6 +148,21 @@ void NetworkManager::sendMove(const QPoint& from, const QPoint& to, PieceType pr
     
     if (promotionType != PieceType::None) {
         message["promotion"] = static_cast<int>(promotionType);
+    }
+    
+    // 添加新的傳送門位置（如果有的話）
+    if (newPortal1.x() >= 0 && newPortal1.y() >= 0) {
+        QJsonObject portal1Json;
+        portal1Json["x"] = newPortal1.x();
+        portal1Json["y"] = newPortal1.y();
+        message["newPortal1"] = portal1Json;
+    }
+    
+    if (newPortal2.x() >= 0 && newPortal2.y() >= 0) {
+        QJsonObject portal2Json;
+        portal2Json["x"] = newPortal2.x();
+        portal2Json["y"] = newPortal2.y();
+        message["newPortal2"] = portal2Json;
     }
     
     sendMessage(message);
@@ -514,8 +530,21 @@ void NetworkManager::processMessage(const QJsonObject& message)
             promotionType = static_cast<PieceType>(message["promotion"].toInt());
         }
         
-        qDebug() << "[NetworkManager::processMessage] Emitting opponentMove signal";
-        emit opponentMove(from, to, promotionType);
+        // 提取新的傳送門位置（如果有的話）
+        QPoint newPortal1(-1, -1);
+        QPoint newPortal2(-1, -1);
+        if (message.contains("newPortal1")) {
+            QJsonObject portal1Json = message["newPortal1"].toObject();
+            newPortal1 = QPoint(portal1Json["x"].toInt(), portal1Json["y"].toInt());
+        }
+        if (message.contains("newPortal2")) {
+            QJsonObject portal2Json = message["newPortal2"].toObject();
+            newPortal2 = QPoint(portal2Json["x"].toInt(), portal2Json["y"].toInt());
+        }
+        
+        qDebug() << "[NetworkManager::processMessage] Emitting opponentMove signal"
+                 << "| NewPortal1:" << newPortal1 << "NewPortal2:" << newPortal2;
+        emit opponentMove(from, to, promotionType, newPortal1, newPortal2);
         
         // 如果訊息包含計時器狀態，發送計時器更新
         if (message.contains("timerState")) {
@@ -697,8 +726,21 @@ void NetworkManager::processMessage(const QJsonObject& message)
             promotionType = static_cast<PieceType>(message["promotion"].toInt());
         }
         
-        qDebug() << "[NetworkManager::processMessage] Emitting opponentMove signal";
-        emit opponentMove(from, to, promotionType);
+        // 提取新的傳送門位置（如果有的話）
+        QPoint newPortal1(-1, -1);
+        QPoint newPortal2(-1, -1);
+        if (message.contains("newPortal1")) {
+            QJsonObject portal1Json = message["newPortal1"].toObject();
+            newPortal1 = QPoint(portal1Json["x"].toInt(), portal1Json["y"].toInt());
+        }
+        if (message.contains("newPortal2")) {
+            QJsonObject portal2Json = message["newPortal2"].toObject();
+            newPortal2 = QPoint(portal2Json["x"].toInt(), portal2Json["y"].toInt());
+        }
+        
+        qDebug() << "[NetworkManager::processMessage] Emitting opponentMove signal"
+                 << "| NewPortal1:" << newPortal1 << "NewPortal2:" << newPortal2;
+        emit opponentMove(from, to, promotionType, newPortal1, newPortal2);
         break;
     }
         

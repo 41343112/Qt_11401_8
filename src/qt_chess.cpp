@@ -2339,9 +2339,12 @@ void Qt_Chess::onSquareClicked(int displayRow, int displayCol) {
                 needsUpdate = true;
             }
             
-            // 處理傳送陣模式（如果啟用）
+            // 處理傳送陣模式（如果啟用）並獲取新的傳送門位置
+            QPoint newPortal1(-1, -1), newPortal2(-1, -1);
             if (m_teleportModeEnabled) {
-                handleTeleportation(m_selectedSquare, clickedSquare);
+                QPair<QPoint, QPoint> newPortals = handleTeleportationAndGetNewPortals(m_selectedSquare, clickedSquare);
+                newPortal1 = newPortals.first;
+                newPortal2 = newPortals.second;
                 needsUpdate = true;
             }
             
@@ -2365,10 +2368,11 @@ void Qt_Chess::onSquareClicked(int displayRow, int displayCol) {
 
             updateStatus();
             
-            // 如果是線上模式，發送移動給對手
+            // 如果是線上模式，發送移動給對手（包含新的傳送門位置）
             if (m_isOnlineGame && m_networkManager) {
-                qDebug() << "[Qt_Chess] Sending move to opponent: from" << m_lastMoveFrom << "to" << m_lastMoveTo;
-                m_networkManager->sendMove(m_lastMoveFrom, m_lastMoveTo, promType);
+                qDebug() << "[Qt_Chess] Sending move to opponent: from" << m_lastMoveFrom << "to" << m_lastMoveTo
+                         << "| NewPortal1:" << newPortal1 << "NewPortal2:" << newPortal2;
+                m_networkManager->sendMove(m_lastMoveFrom, m_lastMoveTo, promType, newPortal1, newPortal2);
             }
             
             // 如果現在是電腦的回合，請求引擎走棋
@@ -3395,9 +3399,12 @@ void Qt_Chess::mouseReleaseEvent(QMouseEvent *event) {
                     needsUpdate = true;
                 }
                 
-                // 處理傳送陣模式（如果啟用）
+                // 處理傳送陣模式（如果啟用）並獲取新的傳送門位置
+                QPoint newPortal1(-1, -1), newPortal2(-1, -1);
                 if (m_teleportModeEnabled) {
-                    handleTeleportation(m_dragStartSquare, logicalDropSquare);
+                    QPair<QPoint, QPoint> newPortals = handleTeleportationAndGetNewPortals(m_dragStartSquare, logicalDropSquare);
+                    newPortal1 = newPortals.first;
+                    newPortal2 = newPortals.second;
                     needsUpdate = true;
                 }
                 
@@ -3422,10 +3429,11 @@ void Qt_Chess::mouseReleaseEvent(QMouseEvent *event) {
                 updateStatus();
                 clearHighlights();
                 
-                // 如果是線上模式，發送移動給對手
+                // 如果是線上模式，發送移動給對手（包含新的傳送門位置）
                 if (m_isOnlineGame && m_networkManager) {
-                    qDebug() << "[Qt_Chess] Sending move to opponent (drag): from" << m_lastMoveFrom << "to" << m_lastMoveTo;
-                    m_networkManager->sendMove(m_lastMoveFrom, m_lastMoveTo, promType);
+                    qDebug() << "[Qt_Chess] Sending move to opponent (drag): from" << m_lastMoveFrom << "to" << m_lastMoveTo
+                             << "| NewPortal1:" << newPortal1 << "NewPortal2:" << newPortal2;
+                    m_networkManager->sendMove(m_lastMoveFrom, m_lastMoveTo, promType, newPortal1, newPortal2);
                 }
                 
                 // 如果現在是電腦的回合，請求引擎走棋
@@ -5895,8 +5903,9 @@ void Qt_Chess::onPromotedToHost() {
     }
 }
 
-void Qt_Chess::onOpponentMove(const QPoint& from, const QPoint& to, PieceType promotionType) {
-    qDebug() << "[Qt_Chess::onOpponentMove] Received opponent move: from" << from << "to" << to;
+void Qt_Chess::onOpponentMove(const QPoint& from, const QPoint& to, PieceType promotionType, QPoint newPortal1, QPoint newPortal2) {
+    qDebug() << "[Qt_Chess::onOpponentMove] Received opponent move: from" << from << "to" << to
+             << "| NewPortal1:" << newPortal1 << "NewPortal2:" << newPortal2;
     
     // 對手的移動 - 直接執行移動，movePiece 會自動切換回合
     PieceColor currentPlayer = m_chessBoard.getCurrentPlayer();
@@ -5920,6 +5929,8 @@ void Qt_Chess::onOpponentMove(const QPoint& from, const QPoint& to, PieceType pr
         // 處理傳送陣模式（如果啟用）
         if (m_teleportModeEnabled) {
             handleTeleportation(from, to);
+            // 如果收到新的傳送門位置，使用它們（而不是本地生成的）
+            applyReceivedPortalPositions(newPortal1, newPortal2);
         }
         
         updateBoard();
@@ -8049,6 +8060,67 @@ void Qt_Chess::handleTeleportation(const QPoint& from, const QPoint& to) {
     
     // 重置傳送門到新的隨機位置
     resetTeleportPortals();
+}
+
+QPair<QPoint, QPoint> Qt_Chess::handleTeleportationAndGetNewPortals(const QPoint& from, const QPoint& to) {
+    QPoint newPortal1(-1, -1);
+    QPoint newPortal2(-1, -1);
+    
+    if (!m_teleportModeEnabled) {
+        return qMakePair(newPortal1, newPortal2);
+    }
+    
+    // 檢查目標位置是否為傳送門
+    if (!isTeleportPortal(to.y(), to.x())) {
+        return qMakePair(newPortal1, newPortal2);
+    }
+    
+    qDebug() << "[Qt_Chess::handleTeleportationAndGetNewPortals] Piece landed on portal at" << to;
+    
+    // 確定另一個傳送門的位置
+    QPoint targetPortal;
+    if (to == m_teleportPortal1) {
+        targetPortal = m_teleportPortal2;
+    } else {
+        targetPortal = m_teleportPortal1;
+    }
+    
+    // 檢查目標傳送門是否為空
+    const ChessPiece& targetPiece = m_chessBoard.getPiece(targetPortal.y(), targetPortal.x());
+    if (targetPiece.getType() != PieceType::None) {
+        qDebug() << "[Qt_Chess::handleTeleportationAndGetNewPortals] Target portal is not empty, teleportation failed";
+        return qMakePair(newPortal1, newPortal2);
+    }
+    
+    // 移動棋子到另一個傳送門
+    ChessPiece piece = m_chessBoard.getPiece(to.y(), to.x());
+    m_chessBoard.setPiece(targetPortal.y(), targetPortal.x(), piece);
+    m_chessBoard.setPiece(to.y(), to.x(), ChessPiece(PieceType::None, PieceColor::None));
+    
+    qDebug() << "[Qt_Chess::handleTeleportationAndGetNewPortals] Teleported piece to" << targetPortal;
+    
+    // 重置傳送門並返回新位置
+    resetTeleportPortals();
+    newPortal1 = m_teleportPortal1;
+    newPortal2 = m_teleportPortal2;
+    
+    qDebug() << "[Qt_Chess::handleTeleportationAndGetNewPortals] New portals: Portal1" << newPortal1 << "Portal2" << newPortal2;
+    
+    return qMakePair(newPortal1, newPortal2);
+}
+
+void Qt_Chess::applyReceivedPortalPositions(const QPoint& portal1, const QPoint& portal2) {
+    if (!m_teleportModeEnabled) {
+        return;
+    }
+    
+    // 如果接收到有效的傳送門位置，使用它們
+    if (portal1.x() >= 0 && portal1.y() >= 0 && portal2.x() >= 0 && portal2.y() >= 0) {
+        m_teleportPortal1 = portal1;
+        m_teleportPortal2 = portal2;
+        qDebug() << "[Qt_Chess::applyReceivedPortalPositions] Applied received portals: Portal1" << portal1 << "Portal2" << portal2;
+        updateBoard();  // 更新顯示
+    }
 }
 
 

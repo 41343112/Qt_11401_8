@@ -452,7 +452,7 @@ private:
     void onOpponentJoined();
     void onPlayerLeft();
     void onPromotedToHost();
-    void onOpponentMove(const QPoint& from, const QPoint& to, PieceType promotionType);
+    void onOpponentMove(const QPoint& from, const QPoint& to, PieceType promotionType, QPoint newPortal1, QPoint newPortal2);
     void onGameStartReceived(PieceColor playerColor);
     void onStartGameReceived(int whiteTimeMs, int blackTimeMs, int incrementMs, PieceColor hostColor, qint64 serverTimeOffset, const QMap<QString, bool>& gameModes, QPoint teleportPortal1, QPoint teleportPortal2);
     void onTimeSettingsReceived(int whiteTimeMs, int blackTimeMs, int incrementMs);
@@ -481,6 +481,8 @@ private:
     void resetTeleportPortals();         // 重置傳送門位置
     bool isTeleportPortal(int row, int col) const;  // 檢查方格是否為傳送門
     void handleTeleportation(const QPoint& from, const QPoint& to);  // 處理傳送
+    QPair<QPoint, QPoint> handleTeleportationAndGetNewPortals(const QPoint& from, const QPoint& to);  // 處理傳送並返回新的傳送門位置
+    void applyReceivedPortalPositions(const QPoint& portal1, const QPoint& portal2);  // 應用接收到的傳送門位置
     
     // ========================================
     // 音效系統 (Sound System)

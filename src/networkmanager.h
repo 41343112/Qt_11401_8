@@ -59,7 +59,7 @@ public:
     ConnectionStatus getStatus() const { return m_status; }
     
     // 遊戲同步
-    void sendMove(const QPoint& from, const QPoint& to, PieceType promotionType = PieceType::None);
+    void sendMove(const QPoint& from, const QPoint& to, PieceType promotionType = PieceType::None, QPoint newPortal1 = QPoint(-1, -1), QPoint newPortal2 = QPoint(-1, -1));
     void sendGameStart(PieceColor playerColor);
     void sendStartGame(int whiteTimeMs, int blackTimeMs, int incrementMs, PieceColor hostColor, const QMap<QString, bool>& gameModes = QMap<QString, bool>(), QPoint teleportPortal1 = QPoint(-1, -1), QPoint teleportPortal2 = QPoint(-1, -1));  // 房主通知開始遊戲（包含時間設定、顏色選擇、遊戲模式和傳送門位置）
     void sendTimeSettings(int whiteTimeMs, int blackTimeMs, int incrementMs);  // 房主發送時間設定更新
@@ -83,7 +83,7 @@ signals:
     void opponentJoined();
     void playerLeft();  // 對手在遊戲開始前離開房間
     void promotedToHost();  // 房主離開，自己被提升為新房主
-    void opponentMove(const QPoint& from, const QPoint& to, PieceType promotionType);
+    void opponentMove(const QPoint& from, const QPoint& to, PieceType promotionType, QPoint newPortal1, QPoint newPortal2);
     void gameStartReceived(PieceColor playerColor);
     void startGameReceived(int whiteTimeMs, int blackTimeMs, int incrementMs, PieceColor hostColor, qint64 serverTimeOffset, const QMap<QString, bool>& gameModes, QPoint teleportPortal1, QPoint teleportPortal2);  // 收到開始遊戲通知（包含時間設定、房主顏色、伺服器時間偏移、遊戲模式和傳送門位置）
     void timeSettingsReceived(int whiteTimeMs, int blackTimeMs, int incrementMs);  // 收到時間設定更新
