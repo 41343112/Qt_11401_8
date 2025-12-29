@@ -10,6 +10,7 @@
 #include <QMouseEvent>
 #include <QKeyEvent>
 #include <QMap>
+#include <QSet>
 #include <QSoundEffect>
 #include <QMediaPlayer>
 #include <QAudioOutput>
@@ -272,6 +273,9 @@ private:
     bool m_teleportModeEnabled;          // 是否啟用傳送陣模式
     QPoint m_teleportPortal1;            // 傳送門位置1
     QPoint m_teleportPortal2;            // 傳送門位置2
+    
+    // 地雷爆炸動畫 (Mine Explosion Animation)
+    QSet<QPushButton*> m_explodingSquares;  // 正在顯示爆炸動畫的方格
     
     // ========================================
     // 音效系統 (Sound System)

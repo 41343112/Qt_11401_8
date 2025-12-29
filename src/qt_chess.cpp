@@ -1993,6 +1993,11 @@ void Qt_Chess::updateStatus() {
 void Qt_Chess::displayPieceOnSquare(QPushButton* square, const ChessPiece& piece) {
     if (!square) return;
 
+    // 如果方格正在顯示爆炸動畫，不要清除或更新它
+    if (m_explodingSquares.contains(square)) {
+        return;
+    }
+
     // 清除 previous content
     square->setText("");
     square->setIcon(QIcon());
@@ -2044,11 +2049,21 @@ void Qt_Chess::handleMineExplosion(const QPoint& logicalPosition, bool isOpponen
     
     // 在爆炸的方格上顯示 boom.jpg 圖片
     if (explodedSquare) {
+        // 標記此方格正在顯示爆炸動畫
+        m_explodingSquares.insert(explodedSquare);
+        
+        // 清除方格上的文字（棋子符號）
+        explodedSquare->setText("");
+        
         // 載入並設置爆炸圖片作為方格的圖示
         QPixmap boomPixmap(":/resources/images/boom.jpg");
-        QIcon boomIcon(boomPixmap);
-        explodedSquare->setIcon(boomIcon);
-        explodedSquare->setIconSize(explodedSquare->size() * 0.9);  // 圖片大小為方格的 90%
+        if (!boomPixmap.isNull()) {
+            QIcon boomIcon(boomPixmap);
+            explodedSquare->setIcon(boomIcon);
+            // 圖片大小為方格大小
+            QSize squareSize = explodedSquare->size();
+            explodedSquare->setIconSize(squareSize);
+        }
         
         // 設置方格背景為橙紅色
         explodedSquare->setStyleSheet(
@@ -2056,10 +2071,16 @@ void Qt_Chess::handleMineExplosion(const QPoint& logicalPosition, bool isOpponen
         );
         
         // 1.5秒後恢復正常顏色並清除圖示
-        QTimer::singleShot(1500, this, [this, displayRow, displayCol]() {
-            QPushButton* square = m_squares[displayRow][displayCol];
-            if (square) {
-                square->setIcon(QIcon());  // 清除圖示
+        QTimer::singleShot(1500, this, [this, explodedSquare, displayRow, displayCol]() {
+            if (explodedSquare) {
+                // 從爆炸方格集合中移除
+                m_explodingSquares.remove(explodedSquare);
+                
+                // 清除圖示
+                explodedSquare->setIcon(QIcon());
+                explodedSquare->setText("");
+                
+                // 恢復方格顏色
                 updateSquareColor(displayRow, displayCol);
             }
         });
