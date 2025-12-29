@@ -303,6 +303,10 @@ Qt_Chess::Qt_Chess(QWidget *parent)
     loadBoardColorSettings();
     loadBoardFlipSettings();
     loadPieceIconsToCache(); // 載入設定後將圖示載入快取
+    
+    // 預載傳送門圖示以避免首次渲染時的 UI 卡頓
+    m_teleportIconCache = QPixmap(":/resources/images/send.png");
+    
     // setupMenuBar();  // 已移除選單欄功能
     setupUI();
     setupMainMenu();  // 在 setupUI() 之後設置主選單
@@ -1935,10 +1939,10 @@ void Qt_Chess::updateSquareColor(int displayRow, int displayCol) {
     bool isLight = (logicalRow + logicalCol) % 2 == 0;
     QColor color = isLight ? m_boardColorSettings.lightSquareColor : m_boardColorSettings.darkSquareColor;
     
-    // 檢查是否為傳送門位置，添加銀色塗層（只在可見時顯示）
+    // 檢查是否為傳送門位置，使用 send.png 圖片顯示（只在可見時顯示）
     if (m_teleportModeEnabled && isTeleportPortal(logicalRow, logicalCol)) {
-        // 銀色塗層效果 - 使用半透明的銀色覆蓋
-        color = QColor(192, 192, 192);  // 銀色
+        // 保持原有棋盤顏色作為背景
+        // send.png 圖片將會疊加在棋盤方格上
     }
     
     // 檢查是否啟用霧戰模式且該方格不可見（優先級最高）
@@ -2014,6 +2018,23 @@ void Qt_Chess::displayPieceOnSquare(QPushButton* square, const ChessPiece& piece
         // 如果霧戰模式啟用且該方格不可見，不顯示棋子
         if (m_fogOfWarEnabled && m_isOnlineGame && !isSquareVisible(logicalRow, logicalCol)) {
             return;  // 不顯示任何棋子
+        }
+        
+        // 檢查是否為傳送門位置，顯示 send.png 圖片（只在可見且沒有棋子時顯示）
+        if (m_teleportModeEnabled && isTeleportPortal(logicalRow, logicalCol) && piece.getType() == PieceType::None) {
+            // 使用預載的傳送門圖示（已在建構函式中載入）
+            if (m_teleportIconCache.isNull()) {
+                m_teleportIconCache = QPixmap(":/resources/images/send.png");
+            }
+            
+            if (!m_teleportIconCache.isNull()) {
+                QIcon sendIcon(m_teleportIconCache);
+                square->setIcon(sendIcon);
+                // 使用與棋子圖示相同的大小計算方式以保持一致性
+                int iconSize = calculateIconSize(square);
+                square->setIconSize(QSize(iconSize, iconSize));
+                return;  // 傳送門圖片顯示完成，直接返回
+            }
         }
     }
 
@@ -7123,12 +7144,11 @@ void Qt_Chess::showRoomInfoDialog(const QString& roomNumber) {
     // 複製按鈕
     QPushButton* copyButton = new QPushButton(tr("📋 複製房號"), &dialog);
     copyButton->setStyleSheet("QPushButton { background-color: #4CAF50; color: white; padding: 10px; font-size: 12pt; font-weight: bold; border-radius: 5px; }");
-    connect(copyButton, &QPushButton::clicked, [roomNumber]() {
+    connect(copyButton, &QPushButton::clicked, [&dialog, roomNumber]() {
         QClipboard* clipboard = QApplication::clipboard();
         clipboard->setText(roomNumber);
-        // 移除對話框以減少延遲，直接複製
-        // QMessageBox::information(nullptr, tr("已複製"), 
-        //     tr("房號已複製到剪貼簿！\n\n請用通訊軟體（如LINE、WeChat）傳給朋友"));
+        // 複製後關閉對話框
+        dialog.accept();
     });
     layout->addWidget(copyButton);
     
@@ -7146,12 +7166,6 @@ void Qt_Chess::showRoomInfoDialog(const QString& roomNumber) {
     layout->addWidget(detailLabel);
     
     layout->addSpacing(10);
-    
-    // 關閉按鈕
-    QPushButton* closeButton = new QPushButton(tr("知道了"), &dialog);
-    closeButton->setStyleSheet("QPushButton { padding: 8px; font-size: 11pt; }");
-    connect(closeButton, &QPushButton::clicked, &dialog, &QDialog::accept);
-    layout->addWidget(closeButton);
     
     // 更新房間資訊標籤顯示房號
     m_roomInfoLabel->setText(QString("🎮 房號: %1").arg(roomNumber));
