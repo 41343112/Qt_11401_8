@@ -2000,24 +2000,20 @@ void Qt_Chess::handleMineExplosion(const QPoint& logicalPosition, bool isOpponen
     }
     
     // 檢查是否為國王爆炸（遊戲結束）
+    // 注意：現在任何棋子踩到地雷都會導致遊戲結束
     GameResult result = m_chessBoard.getGameResult();
-    bool isKingExplosion = (result == GameResult::WhiteWins || result == GameResult::BlackWins);
+    bool isGameOver = (result == GameResult::WhiteWins || result == GameResult::BlackWins);
     
     // 顯示爆炸消息
-    QTimer::singleShot(100, this, [this, isKingExplosion, isOpponentMove]() {
+    QTimer::singleShot(100, this, [this, isGameOver, isOpponentMove]() {
         QMessageBox msgBox(this);
         msgBox.setWindowTitle(tr("💥 地雷爆炸！"));
         
         QString messageText;
-        if (isKingExplosion) {
-            messageText = isOpponentMove ? 
-                tr("💣 對手的國王踩到地雷被炸毀了！\n\n遊戲結束！") : 
-                tr("💣 國王踩到地雷被炸毀了！\n\n遊戲結束！");
-        } else {
-            messageText = isOpponentMove ? 
-                tr("💣 對手踩到地雷！棋子被炸毀了！") : 
-                tr("💣 踩到地雷！棋子被炸毀了！");
-        }
+        // 任何棋子踩到地雷都會導致遊戲結束，國王也會被摧毀
+        messageText = isOpponentMove ? 
+            tr("💣 對手踩到地雷！棋子被炸毀了！對手的國王也被摧毀！\n\n遊戲結束！") : 
+            tr("💣 踩到地雷！棋子被炸毀了！國王也被摧毀！\n\n遊戲結束！");
         
         msgBox.setText(messageText);
         msgBox.setIcon(QMessageBox::Warning);
