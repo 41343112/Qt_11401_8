@@ -768,6 +768,10 @@ void ChessBoard::rollDice() {
     }
 }
 
+void ChessBoard::setDiceRoll(const std::vector<PieceType>& diceResult) {
+    m_diceRoll = diceResult;
+}
+
 bool ChessBoard::canMovePieceType(PieceType type) const {
     if (!m_diceModeEnabled) {
         return true; // 骰子模式未啟用，所有棋子都可以移動

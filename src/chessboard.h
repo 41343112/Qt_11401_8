@@ -85,6 +85,7 @@ public:
     void enableDiceMode(bool enable);
     bool isDiceModeEnabled() const { return m_diceModeEnabled; }
     void rollDice();
+    void setDiceRoll(const std::vector<PieceType>& diceResult);  // 設置骰子結果（用於網路同步）
     const std::vector<PieceType>& getDiceRoll() const { return m_diceRoll; }
     bool canMovePieceType(PieceType type) const;
     bool hasAnyValidMovesWithDice(PieceColor color) const;

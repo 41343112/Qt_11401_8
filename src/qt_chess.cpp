@@ -2109,23 +2109,37 @@ void Qt_Chess::updateDiceDisplay() {
 
 void Qt_Chess::rollDiceForTurn() {
     if (m_chessBoard.isDiceModeEnabled()) {
-        m_chessBoard.rollDice();
-        updateDiceDisplay();
+        // 只有當前玩家投骰子（在線上模式中，只有自己回合時投）
+        bool shouldRoll = true;
+        if (m_isOnlineGame && m_networkManager) {
+            // 線上模式：只有自己的回合才投骰子
+            shouldRoll = (m_chessBoard.getCurrentPlayer() == m_networkManager->getPlayerColor());
+        }
         
-        // 檢查是否有任何可移動的棋子
-        if (!m_chessBoard.hasAnyValidMovesWithDice(m_chessBoard.getCurrentPlayer())) {
-            // 沒有任何棋子可以移動，自動跳過回合
-            QMessageBox::information(this, tr("🎲 骰子結果"),
-                tr("投擲結果：沒有可移動的棋子，自動跳過回合。"));
+        if (shouldRoll) {
+            m_chessBoard.rollDice();
+            updateDiceDisplay();
             
-            // 切換玩家
-            m_chessBoard.setCurrentPlayer(
-                m_chessBoard.getCurrentPlayer() == PieceColor::White ? 
-                PieceColor::Black : PieceColor::White
-            );
+            // 線上模式：發送骰子結果給對手
+            if (m_isOnlineGame && m_networkManager) {
+                m_networkManager->sendDiceRoll(m_chessBoard.getDiceRoll());
+            }
             
-            // 為下一個玩家投骰子
-            rollDiceForTurn();
+            // 檢查是否有任何可移動的棋子
+            if (!m_chessBoard.hasAnyValidMovesWithDice(m_chessBoard.getCurrentPlayer())) {
+                // 沒有任何棋子可以移動，自動跳過回合
+                QMessageBox::information(this, tr("🎲 骰子結果"),
+                    tr("投擲結果：沒有可移動的棋子，自動跳過回合。"));
+                
+                // 切換玩家
+                m_chessBoard.setCurrentPlayer(
+                    m_chessBoard.getCurrentPlayer() == PieceColor::White ? 
+                    PieceColor::Black : PieceColor::White
+                );
+                
+                // 為下一個玩家投骰子
+                rollDiceForTurn();
+            }
         }
     }
 }
@@ -5573,6 +5587,7 @@ void Qt_Chess::initializeNetwork() {
     connect(m_networkManager, &NetworkManager::playerLeft, this, &Qt_Chess::onPlayerLeft);
     connect(m_networkManager, &NetworkManager::promotedToHost, this, &Qt_Chess::onPromotedToHost);
     connect(m_networkManager, &NetworkManager::opponentMove, this, &Qt_Chess::onOpponentMove);
+    connect(m_networkManager, &NetworkManager::diceRollReceived, this, &Qt_Chess::onDiceRollReceived);
     connect(m_networkManager, &NetworkManager::gameStartReceived, this, &Qt_Chess::onGameStartReceived);
     connect(m_networkManager, &NetworkManager::startGameReceived, this, &Qt_Chess::onStartGameReceived);
     connect(m_networkManager, &NetworkManager::timeSettingsReceived, this, &Qt_Chess::onTimeSettingsReceived);
@@ -6039,6 +6054,18 @@ void Qt_Chess::onOpponentMove(const QPoint& from, const QPoint& to, PieceType pr
         }
     } else {
         qDebug() << "[Qt_Chess::onOpponentMove] Move failed!";
+    }
+}
+
+void Qt_Chess::onDiceRollReceived(const std::vector<PieceType>& diceResult) {
+    qDebug() << "[Qt_Chess::onDiceRollReceived] Received dice roll from opponent";
+    
+    // 使用對手發送的骰子結果
+    if (m_chessBoard.isDiceModeEnabled()) {
+        m_chessBoard.setDiceRoll(diceResult);
+        updateDiceDisplay();
+        
+        qDebug() << "[Qt_Chess::onDiceRollReceived] Dice roll synchronized with" << diceResult.size() << "pieces";
     }
 }
 

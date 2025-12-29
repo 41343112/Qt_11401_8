@@ -154,6 +154,30 @@ void NetworkManager::sendMove(const QPoint& from, const QPoint& to, PieceType pr
     qDebug() << "[NetworkManager::sendMove] Move sent successfully";
 }
 
+void NetworkManager::sendDiceRoll(const std::vector<PieceType>& diceResult)
+{
+    qDebug() << "[NetworkManager::sendDiceRoll] Sending dice roll";
+    
+    if (m_roomNumber.isEmpty()) {
+        qDebug() << "[NetworkManager::sendDiceRoll] ERROR: Room number is empty";
+        return;
+    }
+    
+    QJsonObject message;
+    message["action"] = "diceRoll";
+    message["room"] = m_roomNumber;
+    
+    QJsonArray diceArray;
+    for (const PieceType& piece : diceResult) {
+        diceArray.append(static_cast<int>(piece));
+    }
+    message["dice"] = diceArray;
+    
+    sendMessage(message);
+    
+    qDebug() << "[NetworkManager::sendDiceRoll] Dice roll sent successfully";
+}
+
 void NetworkManager::sendGameStart(PieceColor playerColor)
 {
     if (m_roomNumber.isEmpty()) {
@@ -487,6 +511,18 @@ void NetworkManager::processMessage(const QJsonObject& message)
             emit timerStateReceived(timeA, timeB, currentPlayer, lastSwitchTime);
         }
     }
+    else if (actionStr == "diceRoll") {
+        // 收到骰子結果
+        QJsonArray diceArray = message["dice"].toArray();
+        std::vector<PieceType> diceResult;
+        
+        for (const QJsonValue& val : diceArray) {
+            diceResult.push_back(static_cast<PieceType>(val.toInt()));
+        }
+        
+        qDebug() << "[NetworkManager] Received dice roll with" << diceResult.size() << "pieces";
+        emit diceRollReceived(diceResult);
+    }
     else if (actionStr == "surrender") {
         // 收到對手投降訊息（新格式）
         qDebug() << "[NetworkManager] Opponent surrendered";
@@ -672,6 +708,7 @@ MessageType NetworkManager::stringToMessageType(const QString& type) const
         {"StartGame", MessageType::StartGame},
         {"TimeSettings", MessageType::TimeSettings},
         {"Move", MessageType::Move},
+        {"DiceRoll", MessageType::DiceRoll},
         {"GameOver", MessageType::GameOver},
         {"Surrender", MessageType::Surrender},
         {"Chat", MessageType::Chat},
@@ -695,6 +732,7 @@ QString NetworkManager::messageTypeToString(MessageType type) const
         {MessageType::StartGame, "StartGame"},
         {MessageType::TimeSettings, "TimeSettings"},
         {MessageType::Move, "Move"},
+        {MessageType::DiceRoll, "DiceRoll"},
         {MessageType::GameOver, "GameOver"},
         {MessageType::Surrender, "Surrender"},
         {MessageType::Chat, "Chat"},

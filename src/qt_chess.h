@@ -458,6 +458,7 @@ private:
     void onPlayerLeft();
     void onPromotedToHost();
     void onOpponentMove(const QPoint& from, const QPoint& to, PieceType promotionType);
+    void onDiceRollReceived(const std::vector<PieceType>& diceResult);
     void onGameStartReceived(PieceColor playerColor);
     void onStartGameReceived(int whiteTimeMs, int blackTimeMs, int incrementMs, PieceColor hostColor, qint64 serverTimeOffset);
     void onTimeSettingsReceived(int whiteTimeMs, int blackTimeMs, int incrementMs);

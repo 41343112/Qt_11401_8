@@ -32,6 +32,7 @@ enum class MessageType {
     StartGame,          // 房主通知開始遊戲
     TimeSettings,       // 房主更新時間設定
     Move,               // 棋步
+    DiceRoll,           // 骰子結果
     GameOver,           // 遊戲結束
     Surrender,          // 投降
     Chat,               // 聊天訊息
@@ -60,6 +61,7 @@ public:
     
     // 遊戲同步
     void sendMove(const QPoint& from, const QPoint& to, PieceType promotionType = PieceType::None);
+    void sendDiceRoll(const std::vector<PieceType>& diceResult);  // 發送骰子結果
     void sendGameStart(PieceColor playerColor);
     void sendStartGame(int whiteTimeMs, int blackTimeMs, int incrementMs, PieceColor hostColor);  // 房主通知開始遊戲（包含時間設定和顏色選擇）
     void sendTimeSettings(int whiteTimeMs, int blackTimeMs, int incrementMs);  // 房主發送時間設定更新
@@ -84,6 +86,7 @@ signals:
     void playerLeft();  // 對手在遊戲開始前離開房間
     void promotedToHost();  // 房主離開，自己被提升為新房主
     void opponentMove(const QPoint& from, const QPoint& to, PieceType promotionType);
+    void diceRollReceived(const std::vector<PieceType>& diceResult);  // 收到骰子結果
     void gameStartReceived(PieceColor playerColor);
     void startGameReceived(int whiteTimeMs, int blackTimeMs, int incrementMs, PieceColor hostColor, qint64 serverTimeOffset);  // 收到開始遊戲通知（包含時間設定、房主顏色和伺服器時間偏移）
     void timeSettingsReceived(int whiteTimeMs, int blackTimeMs, int incrementMs);  // 收到時間設定更新
