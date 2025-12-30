@@ -6694,6 +6694,23 @@ void Qt_Chess::onTimerStateReceived(qint64 timeA, qint64 timeB, const QString& c
     m_useServerTimer = true;  // 啟用伺服器計時器模式
     m_lastServerUpdateTime = QDateTime::currentMSecsSinceEpoch();  // 記錄更新時間
     
+    // 在骰子模式下，同步棋盤的當前玩家與服務器狀態
+    // 這確保回合由服務器控制，而不是由 movePiece() 自動切換
+    if (m_diceModeEnabled && m_isOnlineGame) {
+        PieceColor serverPlayer = (currentPlayer == "White") ? PieceColor::White : PieceColor::Black;
+        PieceColor localPlayer = m_chessBoard.getCurrentPlayer();
+        
+        if (serverPlayer != localPlayer) {
+            qDebug() << "[Qt_Chess::onTimerStateReceived] Syncing current player from server"
+                     << "| Server:" << currentPlayer
+                     << "| Local:" << (int)localPlayer
+                     << "| Setting to:" << (int)serverPlayer;
+            m_chessBoard.setCurrentPlayer(serverPlayer);
+            updateBoard();
+            updateStatus();
+        }
+    }
+    
     // 立即更新顯示
     updateTimeDisplaysFromServer();
 }
@@ -6712,8 +6729,17 @@ void Qt_Chess::onDiceStateReceived(const std::vector<PieceType>& diceRolled, con
     m_diceRolledPieces = diceRolled;
     m_diceUsedPieces = diceUsed;
     
+    // 調試輸出骰子詳情
+    for (size_t i = 0; i < diceRolled.size(); i++) {
+        qDebug() << "[Qt_Chess::onDiceStateReceived] Dice" << i 
+                 << "| Type:" << static_cast<int>(diceRolled[i])
+                 << "| Used:" << (i < diceUsed.size() ? diceUsed[i] : false);
+    }
+    
     // 更新顯示
     updateDiceDisplay();
+    
+    qDebug() << "[Qt_Chess::onDiceStateReceived] Dice display updated";
 }
 
 void Qt_Chess::onSurrenderReceived() {
