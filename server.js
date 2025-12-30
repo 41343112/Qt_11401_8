@@ -137,11 +137,12 @@ wss.on('connection', ws => {
                 };
                 
                 // 如果啟用骰子模式，初始化骰子狀態
-                if(gameModes['骰子']) {
+                if(gameModes && gameModes['骰子']) {
                     diceRolls[roomId] = {
                         currentPlayer: "White",  // 白方先手
                         movesRemaining: 3
                     };
+                    console.log('[Server] Dice mode initialized for room', roomId);
                     // 不在這裡發送骰子，等待客戶端請求
                 }
                 
@@ -213,14 +214,18 @@ wss.on('connection', ws => {
                 
                 // 處理骰子模式
                 if(diceRolls[roomId]) {
+                    console.log('[Server] Dice mode: processing move. Current state:', diceRolls[roomId]);
+                    
                     if(diceRolls[roomId].movesRemaining > 0) {
                         diceRolls[roomId].movesRemaining--;
+                        console.log('[Server] Dice moves remaining:', diceRolls[roomId].movesRemaining);
                     }
                     
                     // 如果所有骰子都已移動，切換玩家並重置骰子
                     if(diceRolls[roomId].movesRemaining <= 0) {
                         diceRolls[roomId].currentPlayer = timer.currentPlayer;
                         diceRolls[roomId].movesRemaining = 3;
+                        console.log('[Server] All dice moved. Reset for next player:', timer.currentPlayer);
                     }
                 }
                 
@@ -260,14 +265,19 @@ wss.on('connection', ws => {
         // 處理骰子請求
         else if(msg.action === "requestDice"){
             const roomId = msg.room;
+            console.log('[Server] Dice request for room:', roomId, 'Dice state exists:', !!diceRolls[roomId]);
+            
             if(rooms[roomId] && diceRolls[roomId]){
                 const numMovablePieces = msg.numMovablePieces || 1;
+                console.log('[Server] Generating dice for', numMovablePieces, 'piece types');
                 
                 // 生成3個隨機索引（可重複）
                 const rolls = [];
                 for(let i = 0; i < 3; i++){
                     rolls.push(Math.floor(Math.random() * numMovablePieces));
                 }
+                
+                console.log('[Server] Generated rolls:', rolls, 'for player:', diceRolls[roomId].currentPlayer);
                 
                 // 廣播給房間內所有玩家
                 const diceMessage = {
@@ -282,6 +292,9 @@ wss.on('connection', ws => {
                         client.send(JSON.stringify(diceMessage));
                     }
                 });
+            } else {
+                console.log('[Server] ERROR: Cannot process dice request - room or dice state not found');
+                console.log('[Server] Room exists:', !!rooms[roomId], 'Dice state exists:', !!diceRolls[roomId]);
             }
         }
 
