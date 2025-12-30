@@ -11,6 +11,9 @@ const rooms = {};
 // 遊戲計時狀態
 const gameTimers = {}; // gameTimers[roomId] = { timeA, timeB, currentPlayer, lastSwitchTime, whiteIsA }
 
+// 骰子模式狀態 (Dice Mode State)
+const diceRolls = {}; // diceRolls[roomId] = { currentPlayer, rolls: [{row, col}], movesRemaining }
+
 // 生成 4 位數字房號
 function generateRoomId() {
     return Math.floor(1000 + Math.random() * 9000).toString();
@@ -52,6 +55,7 @@ function handlePlayerLeaveRoom(ws, roomId) {
     if(rooms[roomId].length === 0){
         delete rooms[roomId];
         delete gameTimers[roomId];  // 清理計時器狀態
+        delete diceRolls[roomId];   // 清理骰子狀態
     }
 }
 
@@ -132,6 +136,15 @@ wss.on('connection', ws => {
                     }
                 };
                 
+                // 如果啟用骰子模式，初始化骰子狀態
+                if(gameModes['骰子']) {
+                    diceRolls[roomId] = {
+                        currentPlayer: "White",  // 白方先手
+                        movesRemaining: 3
+                    };
+                    // 不在這裡發送骰子，等待客戶端請求
+                }
+                
                 // 廣播給房間內所有玩家
                 rooms[roomId].forEach(client => {
                     if(client.readyState === WebSocket.OPEN){
@@ -198,6 +211,19 @@ wss.on('connection', ws => {
                 // 加上緩衝時間以補償網路延遲，確保客戶端收到訊息時不會扣錯時間
                 timer.lastSwitchTime = currentTime + 1;  // 加 1 秒緩衝
                 
+                // 處理骰子模式
+                if(diceRolls[roomId]) {
+                    if(diceRolls[roomId].movesRemaining > 0) {
+                        diceRolls[roomId].movesRemaining--;
+                    }
+                    
+                    // 如果所有骰子都已移動，切換玩家並重置骰子
+                    if(diceRolls[roomId].movesRemaining <= 0) {
+                        diceRolls[roomId].currentPlayer = timer.currentPlayer;
+                        diceRolls[roomId].movesRemaining = 3;
+                    }
+                }
+                
                 // 廣播移動訊息和計時器狀態
                 const moveMessage = {
                     ...msg,
@@ -209,6 +235,13 @@ wss.on('connection', ws => {
                     }
                 };
                 
+                // 如果是骰子模式，添加骰子狀態
+                if(diceRolls[roomId]) {
+                    moveMessage.diceState = {
+                        movesRemaining: diceRolls[roomId].movesRemaining
+                    };
+                }
+                
                 rooms[roomId].forEach(client => {
                     if(client.readyState === WebSocket.OPEN){
                         client.send(JSON.stringify(moveMessage));
@@ -219,6 +252,34 @@ wss.on('connection', ws => {
                 rooms[roomId].forEach(client => {
                     if(client !== ws && client.readyState === WebSocket.OPEN){
                         client.send(JSON.stringify(msg));
+                    }
+                });
+            }
+        }
+
+        // 處理骰子請求
+        else if(msg.action === "requestDice"){
+            const roomId = msg.room;
+            if(rooms[roomId] && diceRolls[roomId]){
+                const numMovablePieces = msg.numMovablePieces || 1;
+                
+                // 生成3個隨機索引（可重複）
+                const rolls = [];
+                for(let i = 0; i < 3; i++){
+                    rolls.push(Math.floor(Math.random() * numMovablePieces));
+                }
+                
+                // 廣播給房間內所有玩家
+                const diceMessage = {
+                    action: "diceRolled",
+                    room: roomId,
+                    rolls: rolls,
+                    currentPlayer: diceRolls[roomId].currentPlayer
+                };
+                
+                rooms[roomId].forEach(client => {
+                    if(client.readyState === WebSocket.OPEN){
+                        client.send(JSON.stringify(diceMessage));
                     }
                 });
             }

@@ -68,6 +68,7 @@ public:
     void sendDrawResponse(bool accepted);  // 回應和棋請求（接受或拒絕）
     void sendGameOver(const QString& result);
     void sendChat(const QString& message);
+    void requestDiceRoll(int numMovablePieces);  // 請求伺服器生成骰子（骰子模式）
     
     // 玩家顏色管理
     PieceColor getOpponentColor() const { return m_opponentColor; }
@@ -94,6 +95,7 @@ signals:
     void gameOverReceived(const QString& result);
     void chatReceived(const QString& message);
     void opponentDisconnected();
+    void diceRolled(const std::vector<int>& rolls, const QString& currentPlayer);  // 收到骰子結果（骰子模式）
 
 private slots:
     void onConnected();

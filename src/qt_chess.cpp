@@ -5706,6 +5706,7 @@ void Qt_Chess::initializeNetwork() {
     connect(m_networkManager, &NetworkManager::drawOfferReceived, this, &Qt_Chess::onDrawOfferReceived);
     connect(m_networkManager, &NetworkManager::drawResponseReceived, this, &Qt_Chess::onDrawResponseReceived);
     connect(m_networkManager, &NetworkManager::opponentDisconnected, this, &Qt_Chess::onOpponentDisconnected);
+    connect(m_networkManager, &NetworkManager::diceRolled, this, &Qt_Chess::onDiceRolled);  // 骰子模式
 }
 
 void Qt_Chess::onOnlineModeClicked() {
@@ -8447,20 +8448,48 @@ void Qt_Chess::rollDiceForTurn() {
         return;
     }
     
+    // 請求伺服器生成骰子
+    if (m_networkManager) {
+        m_networkManager->requestDiceRoll(static_cast<int>(movablePieces.size()));
+        qDebug() << "[Qt_Chess::rollDiceForTurn] Requested dice roll from server for" << movablePieces.size() << "movable pieces";
+    }
+}
+
+// 處理從伺服器收到的骰子結果
+void Qt_Chess::onDiceRolled(const std::vector<int>& rolls, const QString& currentPlayerStr) {
+    if (!m_diceModeEnabled || !m_isOnlineGame) {
+        return;
+    }
+    
+    PieceColor currentColor = m_chessBoard.getCurrentPlayer();
+    qDebug() << "[Qt_Chess::onDiceRolled] Received dice rolls for" << currentPlayerStr;
+    
+    // 獲取所有可移動的棋子
+    std::vector<QPoint> movablePieces = getMovablePieces(currentColor);
+    
+    if (movablePieces.empty() || rolls.empty()) {
+        qDebug() << "[Qt_Chess::onDiceRolled] No movable pieces or rolls available";
+        m_rolledPieces.clear();
+        m_rolledPiecesMoved.clear();
+        m_diceMovesRemaining = 0;
+        updateDiceDisplay();
+        return;
+    }
+    
     // 清空之前的骰子結果
     m_rolledPieces.clear();
     m_rolledPiecesMoved.clear();
     
-    // 隨機選擇3個棋子（可重複）
-    for (int i = 0; i < 3; ++i) {
-        int randomIndex = QRandomGenerator::global()->bounded(static_cast<int>(movablePieces.size()));
-        m_rolledPieces.push_back(movablePieces[randomIndex]);
+    // 根據伺服器提供的隨機索引選擇棋子
+    for (size_t i = 0; i < rolls.size() && i < 3; ++i) {
+        int index = rolls[i] % static_cast<int>(movablePieces.size());  // 確保索引有效
+        m_rolledPieces.push_back(movablePieces[index]);
         m_rolledPiecesMoved.push_back(false);
     }
     
-    m_diceMovesRemaining = 3;
+    m_diceMovesRemaining = static_cast<int>(m_rolledPieces.size());
     
-    qDebug() << "[Qt_Chess::rollDiceForTurn] Rolled 3 pieces:";
+    qDebug() << "[Qt_Chess::onDiceRolled] Rolled" << m_rolledPieces.size() << "pieces:";
     for (size_t i = 0; i < m_rolledPieces.size(); ++i) {
         const ChessPiece& piece = m_chessBoard.getPiece(m_rolledPieces[i].y(), m_rolledPieces[i].x());
         qDebug() << "  Dice" << (i + 1) << ":" << m_rolledPieces[i] << "-" << piece.getTypeString();
