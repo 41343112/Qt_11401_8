@@ -6234,18 +6234,8 @@ void Qt_Chess::onOpponentMove(const QPoint& from, const QPoint& to, PieceType pr
             applyIncrement();
         }
         
-        // 骰子模式：輪到本地玩家時，骰出新的棋子
-        // 注意：只有在真正輪到我方時才骰子，而不是收到自己的移動回調時
-        // 同時檢查是否還有剩餘的骰子移動（避免重複擲骰）
-        if (m_diceModeEnabled && m_isOnlineGame && isOnlineTurn()) {
-            // 只有在沒有剩餘骰子移動時才重新擲骰（表示對手已完成回合）
-            if (m_diceMovesRemaining <= 0) {
-                qDebug() << "[Qt_Chess::onOpponentMove] It's now my turn in dice mode, rolling dice";
-                rollDiceForTurn();
-            } else {
-                qDebug() << "[Qt_Chess::onOpponentMove] Dice mode active with" << m_diceMovesRemaining << "moves remaining, not re-rolling";
-            }
-        }
+        // 注意：骰子模式的骰子生成已移至onDiceStateReceived，
+        // 因為需要等待伺服器的骰子狀態更新後才能正確判斷是否需要擲骰
     } else {
         qDebug() << "[Qt_Chess::onOpponentMove] Move failed!";
     }
@@ -8690,6 +8680,13 @@ void Qt_Chess::onDiceStateReceived(int movesRemaining) {
     // 更新顯示（雙方都要更新，以顯示灰階效果）
     updateDiceDisplay();
     updateStatus();
+    
+    // 骰子模式：如果對手已完成所有移動（movesRemaining == 0）且輪到本地玩家，骰出新的棋子
+    // 這裡才是正確的時機，因為我們已經收到了伺服器的骰子狀態更新
+    if (m_diceModeEnabled && m_isOnlineGame && isOnlineTurn() && m_diceMovesRemaining <= 0) {
+        qDebug() << "[Qt_Chess::onDiceStateReceived] It's now my turn and all moves complete, rolling new dice";
+        rollDiceForTurn();
+    }
 }
 
 // 更新骰子顯示面板
