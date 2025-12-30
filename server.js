@@ -158,6 +158,9 @@ wss.on('connection', ws => {
         // 廣播落子訊息並更新計時器
         else if(msg.action === "move"){
             const roomId = msg.room;
+            console.log('[Server] Move received for room:', roomId, 'from:', msg.fromRow, msg.fromCol, 'to:', msg.toRow, msg.toCol);
+            console.log('[Server] gameTimers exists:', !!gameTimers[roomId], 'rooms exists:', !!rooms[roomId]);
+            
             if(rooms[roomId] && gameTimers[roomId]){
                 const timer = gameTimers[roomId];
                 const currentTime = Math.floor(Date.now() / 1000);  // UNIX 秒數
@@ -260,16 +263,22 @@ wss.on('connection', ws => {
                 
                 rooms[roomId].forEach(client => {
                     if(client.readyState === WebSocket.OPEN){
+                        console.log('[Server] Broadcasting move to client in room', roomId);
                         client.send(JSON.stringify(moveMessage));
                     }
                 });
+                console.log('[Server] Move broadcast complete. Sent to', rooms[roomId].length, 'clients');
             } else if(rooms[roomId]){
                 // 如果沒有計時器狀態，只廣播移動（向後兼容）
+                console.log('[Server] No game timer - using fallback broadcast for room:', roomId);
                 rooms[roomId].forEach(client => {
                     if(client !== ws && client.readyState === WebSocket.OPEN){
+                        console.log('[Server] Fallback: Broadcasting move to other client');
                         client.send(JSON.stringify(msg));
                     }
                 });
+            } else {
+                console.log('[Server] ERROR: Room not found for move:', roomId);
             }
         }
 
