@@ -8684,7 +8684,13 @@ void Qt_Chess::onDiceStateReceived(int movesRemaining) {
     // 骰子模式：如果對手已完成所有移動（movesRemaining == 0）且輪到本地玩家，骰出新的棋子
     // 這裡才是正確的時機，因為我們已經收到了伺服器的骰子狀態更新
     if (m_diceModeEnabled && m_isOnlineGame && isOnlineTurn() && m_diceMovesRemaining <= 0) {
-        qDebug() << "[Qt_Chess::onDiceStateReceived] It's now my turn and all moves complete, rolling new dice";
+        qDebug() << "[Qt_Chess::onDiceStateReceived] It's now my turn and all moves complete, clearing gray effects and rolling new dice";
+        
+        // 清除灰階效果：重置所有骰子計數器
+        m_rolledPieceTypeCounts.clear();
+        m_rolledPieceTypes.clear();
+        
+        // 擲出新的骰子
         rollDiceForTurn();
     }
 }
