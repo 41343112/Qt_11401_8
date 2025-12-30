@@ -516,6 +516,66 @@ void Qt_Chess::setupUI() {
 
     // 左側棋譜面板 - 固定寬度，不參與水平伸展
     m_contentLayout->addWidget(m_moveListPanel, 1);  // 固定寬度不伸展
+    
+    // 骰子顯示面板（初始隱藏，僅在骰子模式下顯示）
+    // 創建為獨立的左側面板，當啟用時替換棋譜面板
+    m_dicePanel = new QWidget(this);
+    m_dicePanel->setMinimumWidth(MIN_PANEL_WIDTH);
+    m_dicePanel->setMaximumWidth(MAX_PANEL_WIDTH);
+    QVBoxLayout* dicePanelLayout = new QVBoxLayout(m_dicePanel);
+    dicePanelLayout->setContentsMargins(5, 5, 5, 5);
+    dicePanelLayout->setSpacing(5);
+    
+    // 添加頂部伸展以垂直居中
+    dicePanelLayout->addStretch(1);
+    
+    // 骰子標題
+    QLabel* diceTitle = new QLabel("🎲 可用棋子", m_dicePanel);
+    diceTitle->setAlignment(Qt::AlignCenter);
+    QFont diceTitleFont;
+    diceTitleFont.setPointSize(14);
+    diceTitleFont.setBold(true);
+    diceTitle->setFont(diceTitleFont);
+    diceTitle->setStyleSheet(QString(
+        "QLabel { "
+        "  color: %1; "
+        "  padding: 8px; "
+        "  background: qlineargradient(x1:0, y1:0, x2:1, y2:0, "
+        "    stop:0 transparent, stop:0.5 rgba(255, 215, 0, 0.3), stop:1 transparent); "
+        "  border-bottom: 2px solid %1; "
+        "}"
+    ).arg(THEME_ACCENT_WARNING));
+    dicePanelLayout->addWidget(diceTitle);
+    
+    // 創建3個骰子標籤
+    m_diceLabels.resize(3);
+    for (int i = 0; i < 3; i++) {
+        QLabel* diceLabel = new QLabel(m_dicePanel);
+        diceLabel->setAlignment(Qt::AlignCenter);
+        QFont diceFont;
+        diceFont.setPointSize(32);  // 更大的字體
+        diceLabel->setFont(diceFont);
+        diceLabel->setMinimumHeight(80);  // 更大的高度
+        diceLabel->setStyleSheet(QString(
+            "QLabel { "
+            "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 rgba(30, 30, 50, 0.95), stop:1 rgba(20, 20, 40, 0.95)); "
+            "  color: %1; "
+            "  padding: 15px; "
+            "  border: 3px solid %2; "
+            "  border-radius: 10px; "
+            "  margin: 5px; "
+            "}"
+        ).arg(THEME_TEXT_PRIMARY, THEME_BORDER));
+        dicePanelLayout->addWidget(diceLabel);
+        m_diceLabels[i] = diceLabel;
+    }
+    
+    // 添加底部伸展以垂直居中
+    dicePanelLayout->addStretch(1);
+    
+    // 將骰子面板添加到內容佈局（與棋譜面板位置相同）
+    m_contentLayout->insertWidget(0, m_dicePanel, 1);  // 插入到最左側
+    m_dicePanel->hide();  // 初始隱藏
 
     // 添加左側伸展以保持棋盤居中並吸收多餘空間
     m_contentLayout->addStretch(0);
@@ -793,58 +853,6 @@ void Qt_Chess::setupUI() {
     m_capturedBlackPanel->setMinimumWidth(30);
     m_capturedBlackPanel->setMinimumHeight(100);
     rightTimePanelLayout->addWidget(m_capturedBlackPanel, 1);
-    
-    // 骰子顯示面板（初始隱藏，僅在骰子模式下顯示）
-    m_dicePanel = new QWidget(m_rightTimePanel);
-    m_dicePanel->setMinimumWidth(100);
-    m_dicePanel->setMaximumWidth(150);
-    QVBoxLayout* dicePanelLayout = new QVBoxLayout(m_dicePanel);
-    dicePanelLayout->setContentsMargins(5, 5, 5, 5);
-    dicePanelLayout->setSpacing(5);
-    
-    // 骰子標題
-    QLabel* diceTitle = new QLabel("🎲 可用棋子", m_dicePanel);
-    diceTitle->setAlignment(Qt::AlignCenter);
-    QFont diceTitleFont;
-    diceTitleFont.setPointSize(12);
-    diceTitleFont.setBold(true);
-    diceTitle->setFont(diceTitleFont);
-    diceTitle->setStyleSheet(QString(
-        "QLabel { "
-        "  color: %1; "
-        "  padding: 6px; "
-        "  background: qlineargradient(x1:0, y1:0, x2:1, y2:0, "
-        "    stop:0 transparent, stop:0.5 rgba(255, 215, 0, 0.3), stop:1 transparent); "
-        "  border-bottom: 2px solid %1; "
-        "}"
-    ).arg(THEME_ACCENT_WARNING));
-    dicePanelLayout->addWidget(diceTitle);
-    
-    // 創建3個骰子標籤
-    m_diceLabels.resize(3);
-    for (int i = 0; i < 3; i++) {
-        QLabel* diceLabel = new QLabel(m_dicePanel);
-        diceLabel->setAlignment(Qt::AlignCenter);
-        QFont diceFont;
-        diceFont.setPointSize(24);
-        diceLabel->setFont(diceFont);
-        diceLabel->setMinimumHeight(60);
-        diceLabel->setStyleSheet(QString(
-            "QLabel { "
-            "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 rgba(30, 30, 50, 0.95), stop:1 rgba(20, 20, 40, 0.95)); "
-            "  color: %1; "
-            "  padding: 10px; "
-            "  border: 2px solid %2; "
-            "  border-radius: 8px; "
-            "}"
-        ).arg(THEME_TEXT_PRIMARY, THEME_BORDER));
-        dicePanelLayout->addWidget(diceLabel);
-        m_diceLabels[i] = diceLabel;
-    }
-    
-    dicePanelLayout->addStretch();
-    rightTimePanelLayout->addWidget(m_dicePanel);
-    m_dicePanel->hide();  // 初始隱藏
 
     // 將右側時間面板添加到內容佈局
     m_contentLayout->addWidget(m_rightTimePanel, 0);
@@ -6509,7 +6517,10 @@ void Qt_Chess::onStartGameReceived(int whiteTimeMs, int blackTimeMs, int increme
         m_diceModeEnabled = true;
         qDebug() << "[Qt_Chess::onStartGameReceived] Dice mode enabled";
         
-        // 顯示骰子面板
+        // 隱藏棋譜面板，顯示骰子面板在左側
+        if (m_moveListPanel) {
+            m_moveListPanel->hide();
+        }
         if (m_dicePanel) {
             m_dicePanel->show();
         }
@@ -6518,6 +6529,11 @@ void Qt_Chess::onStartGameReceived(int whiteTimeMs, int blackTimeMs, int increme
         // rollDice() 會在收到服務器的 diceState 時被 onDiceStateReceived 處理
     } else {
         m_diceModeEnabled = false;
+        
+        // 顯示棋譜面板，隱藏骰子面板
+        if (m_moveListPanel) {
+            m_moveListPanel->show();
+        }
         if (m_dicePanel) {
             m_dicePanel->hide();
         }
