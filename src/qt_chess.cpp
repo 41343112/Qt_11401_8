@@ -8492,7 +8492,7 @@ void Qt_Chess::onDiceRolled(const std::vector<int>& rolls, const QString& curren
     qDebug() << "[Qt_Chess::onDiceRolled] Rolled" << m_rolledPieces.size() << "pieces:";
     for (size_t i = 0; i < m_rolledPieces.size(); ++i) {
         const ChessPiece& piece = m_chessBoard.getPiece(m_rolledPieces[i].y(), m_rolledPieces[i].x());
-        qDebug() << "  Dice" << (i + 1) << ":" << m_rolledPieces[i] << "-" << piece.getTypeString();
+        qDebug() << "  Dice" << (i + 1) << ":" << m_rolledPieces[i] << "-" << piece.getSymbol();
     }
     
     updateDiceDisplay();
