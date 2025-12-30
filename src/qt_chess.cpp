@@ -8673,8 +8673,19 @@ void Qt_Chess::onDiceStateReceived(int movesRemaining) {
     qDebug() << "[Qt_Chess::onDiceStateReceived] Server dice movesRemaining:" << movesRemaining 
              << "| Current local value:" << m_diceMovesRemaining;
     
+    // 計算已使用的骰子數量
+    int piecesUsed = 3 - movesRemaining;
+    
+    // 更新骰子類型計數器，標記前N個為已使用（灰階）
+    for (int i = 0; i < piecesUsed && i < static_cast<int>(m_rolledPieceTypeCounts.size()); ++i) {
+        m_rolledPieceTypeCounts[i] = 0;  // 標記為已使用
+    }
+    
     // 同步伺服器的骰子剩餘移動次數
     m_diceMovesRemaining = movesRemaining;
+    
+    qDebug() << "[Qt_Chess::onDiceStateReceived] Updated dice counts. Pieces used:" << piecesUsed 
+             << "| Remaining moves:" << m_diceMovesRemaining;
     
     // 更新顯示（雙方都要更新，以顯示灰階效果）
     updateDiceDisplay();
