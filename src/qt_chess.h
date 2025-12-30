@@ -478,6 +478,7 @@ private:
     void onStartGameReceived(int whiteTimeMs, int blackTimeMs, int incrementMs, PieceColor hostColor, qint64 serverTimeOffset, const QMap<QString, bool>& gameModes, const std::vector<QPoint>& minePositions);
     void onTimeSettingsReceived(int whiteTimeMs, int blackTimeMs, int incrementMs);
     void onTimerStateReceived(qint64 timeA, qint64 timeB, const QString& currentPlayer, qint64 lastSwitchTime);
+    void onDiceStateReceived(const std::vector<PieceType>& diceRolled, const std::vector<bool>& diceUsed);
     void onSurrenderReceived();
     void onDrawOfferReceived();
     void onDrawResponseReceived(bool accepted);

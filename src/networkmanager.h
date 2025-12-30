@@ -59,7 +59,7 @@ public:
     ConnectionStatus getStatus() const { return m_status; }
     
     // 遊戲同步
-    void sendMove(const QPoint& from, const QPoint& to, PieceType promotionType = PieceType::None, QPoint finalPosition = QPoint(-1, -1));
+    void sendMove(const QPoint& from, const QPoint& to, PieceType promotionType = PieceType::None, QPoint finalPosition = QPoint(-1, -1), PieceType movedPieceType = PieceType::None);
     void sendGameStart(PieceColor playerColor);
     void sendStartGame(int whiteTimeMs, int blackTimeMs, int incrementMs, PieceColor hostColor, const QMap<QString, bool>& gameModes = QMap<QString, bool>(), const std::vector<QPoint>& minePositions = std::vector<QPoint>());  // 房主通知開始遊戲（包含時間設定、顏色選擇、遊戲模式和地雷位置）
     void sendTimeSettings(int whiteTimeMs, int blackTimeMs, int incrementMs);  // 房主發送時間設定更新
@@ -88,6 +88,7 @@ signals:
     void startGameReceived(int whiteTimeMs, int blackTimeMs, int incrementMs, PieceColor hostColor, qint64 serverTimeOffset, const QMap<QString, bool>& gameModes, const std::vector<QPoint>& minePositions);  // 收到開始遊戲通知（包含時間設定、房主顏色、伺服器時間偏移、遊戲模式和地雷位置）
     void timeSettingsReceived(int whiteTimeMs, int blackTimeMs, int incrementMs);  // 收到時間設定更新
     void timerStateReceived(qint64 timeA, qint64 timeB, const QString& currentPlayer, qint64 lastSwitchTime);  // 收到伺服器計時器狀態更新
+    void diceStateReceived(const std::vector<PieceType>& diceRolled, const std::vector<bool>& diceUsed);  // 收到骰子狀態更新
     void surrenderReceived();  // 收到投降訊息
     void drawOfferReceived();  // 收到和棋請求
     void drawResponseReceived(bool accepted);  // 收到和棋回應（接受或拒絕）
@@ -114,6 +115,7 @@ private:
     
     void sendMessage(const QJsonObject& message);
     std::vector<QPoint> parseMinePositions(const QJsonObject& message) const;  // 解析地雷位置的輔助方法
+    std::pair<std::vector<PieceType>, std::vector<bool>> parseDiceState(const QJsonObject& message) const;  // 解析骰子狀態的輔助方法
     void processMessage(const QJsonObject& message);
     MessageType stringToMessageType(const QString& type) const;
     QString messageTypeToString(MessageType type) const;

@@ -125,12 +125,13 @@ void NetworkManager::closeConnection()
     m_opponentColor = PieceColor::None;
 }
 
-void NetworkManager::sendMove(const QPoint& from, const QPoint& to, PieceType promotionType, QPoint finalPosition)
+void NetworkManager::sendMove(const QPoint& from, const QPoint& to, PieceType promotionType, QPoint finalPosition, PieceType movedPieceType)
 {
     qDebug() << "[NetworkManager::sendMove] Sending move from" << from << "to" << to 
              << "| Role:" << (m_role == NetworkRole::Host ? "Host" : "Guest")
              << "| Socket connected:" << (m_webSocket && m_webSocket->state() == QAbstractSocket::ConnectedState)
-             << "| FinalPosition:" << finalPosition;
+             << "| FinalPosition:" << finalPosition
+             << "| MovedPieceType:" << static_cast<int>(movedPieceType);
     
     if (m_roomNumber.isEmpty()) {
         qDebug() << "[NetworkManager::sendMove] ERROR: Room number is empty, cannot send move";
@@ -156,6 +157,23 @@ void NetworkManager::sendMove(const QPoint& from, const QPoint& to, PieceType pr
         finalPosJson["x"] = finalPosition.x();
         finalPosJson["y"] = finalPosition.y();
         message["finalPosition"] = finalPosJson;
+    }
+    
+    // 添加移動的棋子類型（用於骰子模式）
+    if (movedPieceType != PieceType::None) {
+        QString pieceTypeStr;
+        switch (movedPieceType) {
+            case PieceType::Pawn:   pieceTypeStr = "Pawn"; break;
+            case PieceType::Knight: pieceTypeStr = "Knight"; break;
+            case PieceType::Bishop: pieceTypeStr = "Bishop"; break;
+            case PieceType::Rook:   pieceTypeStr = "Rook"; break;
+            case PieceType::Queen:  pieceTypeStr = "Queen"; break;
+            case PieceType::King:   pieceTypeStr = "King"; break;
+            default: break;
+        }
+        if (!pieceTypeStr.isEmpty()) {
+            message["movedPieceType"] = pieceTypeStr;
+        }
     }
     
     sendMessage(message);
@@ -468,6 +486,14 @@ void NetworkManager::processMessage(const QJsonObject& message)
         
         emit startGameReceived(whiteTimeMs, blackTimeMs, incrementMs, hostColor, serverTimeOffset, gameModes, minePositions);
         
+        // 如果訊息包含骰子狀態，發送骰子更新
+        if (message.contains("diceState")) {
+            auto [diceRolled, diceUsed] = parseDiceState(message);
+            qDebug() << "[NetworkManager] Initial dice state - diceRolled size:" << diceRolled.size()
+                     << "| diceUsed size:" << diceUsed.size();
+            emit diceStateReceived(diceRolled, diceUsed);
+        }
+        
         // 如果訊息包含計時器狀態，發送計時器更新
         if (message.contains("timerState")) {
             QJsonObject timerState = message["timerState"].toObject();
@@ -521,6 +547,14 @@ void NetworkManager::processMessage(const QJsonObject& message)
         qDebug() << "[NetworkManager::processMessage] Emitting opponentMove signal"
                  << "| FinalPosition:" << finalPosition;
         emit opponentMove(from, to, promotionType, finalPosition);
+        
+        // 如果訊息包含骰子狀態，發送骰子更新
+        if (message.contains("diceState")) {
+            auto [diceRolled, diceUsed] = parseDiceState(message);
+            qDebug() << "[NetworkManager] Dice state update - diceRolled size:" << diceRolled.size()
+                     << "| diceUsed size:" << diceUsed.size();
+            emit diceStateReceived(diceRolled, diceUsed);
+        }
         
         // 如果訊息包含計時器狀態，發送計時器更新
         if (message.contains("timerState")) {
@@ -789,4 +823,41 @@ std::vector<QPoint> NetworkManager::parseMinePositions(const QJsonObject& messag
         }
     }
     return minePositions;
+}
+
+std::pair<std::vector<PieceType>, std::vector<bool>> NetworkManager::parseDiceState(const QJsonObject& message) const {
+    std::vector<PieceType> diceRolled;
+    std::vector<bool> diceUsed;
+    
+    if (message.contains("diceState")) {
+        QJsonObject diceStateObj = message["diceState"].toObject();
+        
+        // 解析 diceRolled
+        if (diceStateObj.contains("diceRolled")) {
+            QJsonArray diceRolledArray = diceStateObj["diceRolled"].toArray();
+            for (const QJsonValue& val : diceRolledArray) {
+                QString pieceTypeStr = val.toString();
+                PieceType pieceType = PieceType::None;
+                
+                if (pieceTypeStr == "Pawn") pieceType = PieceType::Pawn;
+                else if (pieceTypeStr == "Knight") pieceType = PieceType::Knight;
+                else if (pieceTypeStr == "Bishop") pieceType = PieceType::Bishop;
+                else if (pieceTypeStr == "Rook") pieceType = PieceType::Rook;
+                else if (pieceTypeStr == "Queen") pieceType = PieceType::Queen;
+                else if (pieceTypeStr == "King") pieceType = PieceType::King;
+                
+                diceRolled.push_back(pieceType);
+            }
+        }
+        
+        // 解析 diceUsed
+        if (diceStateObj.contains("diceUsed")) {
+            QJsonArray diceUsedArray = diceStateObj["diceUsed"].toArray();
+            for (const QJsonValue& val : diceUsedArray) {
+                diceUsed.push_back(val.toBool());
+            }
+        }
+    }
+    
+    return std::make_pair(diceRolled, diceUsed);
 }

@@ -2452,6 +2452,10 @@ void Qt_Chess::onSquareClicked(int displayRow, int displayCol) {
         // 在執行移動之前檢測移動類型
         bool isCapture = isCaptureMove(m_selectedSquare, clickedSquare);
         bool isCastling = isCastlingMove(m_selectedSquare, clickedSquare);
+        
+        // 保存移動前的棋子類型（用於骰子模式）
+        const ChessPiece& pieceBeforeMove = m_chessBoard.getPiece(m_selectedSquare.y(), m_selectedSquare.x());
+        PieceType originalPieceType = pieceBeforeMove.getType();
 
         // 嘗試移動選中的棋子
         if (m_chessBoard.movePiece(m_selectedSquare, clickedSquare)) {
@@ -2530,11 +2534,8 @@ void Qt_Chess::onSquareClicked(int displayRow, int displayCol) {
             updateStatus();
             
             // 骰子模式：標記使用的棋子並管理回合
+            PieceType movedType = originalPieceType;  // 默認使用原始類型
             if (m_diceModeEnabled && m_isOnlineGame) {
-                // 獲取移動的棋子類型
-                const ChessPiece& movedPiece = m_chessBoard.getPiece(clickedSquare.y(), clickedSquare.x());
-                PieceType movedType = movedPiece.getType();
-                
                 // 如果是升變，使用升變後的類型
                 if (promType != PieceType::None) {
                     movedType = promType;
@@ -2558,11 +2559,12 @@ void Qt_Chess::onSquareClicked(int displayRow, int displayCol) {
                 }
             }
             
-            // 如果是線上模式，發送移動給對手（包含最終位置）
+            // 如果是線上模式，發送移動給對手（包含最終位置和棋子類型）
             if (m_isOnlineGame && m_networkManager) {
                 qDebug() << "[Qt_Chess] Sending move to opponent: from" << m_lastMoveFrom << "to" << m_lastMoveTo
-                         << "| FinalPosition:" << finalPosition;
-                m_networkManager->sendMove(m_lastMoveFrom, m_lastMoveTo, promType, finalPosition);
+                         << "| FinalPosition:" << finalPosition
+                         << "| MovedType:" << static_cast<int>(movedType);
+                m_networkManager->sendMove(m_lastMoveFrom, m_lastMoveTo, promType, finalPosition, movedType);
             }
             
             // 如果現在是電腦的回合，請求引擎走棋
@@ -5708,6 +5710,7 @@ void Qt_Chess::initializeNetwork() {
     connect(m_networkManager, &NetworkManager::startGameReceived, this, &Qt_Chess::onStartGameReceived);
     connect(m_networkManager, &NetworkManager::timeSettingsReceived, this, &Qt_Chess::onTimeSettingsReceived);
     connect(m_networkManager, &NetworkManager::timerStateReceived, this, &Qt_Chess::onTimerStateReceived);
+    connect(m_networkManager, &NetworkManager::diceStateReceived, this, &Qt_Chess::onDiceStateReceived);
     connect(m_networkManager, &NetworkManager::surrenderReceived, this, &Qt_Chess::onSurrenderReceived);
     connect(m_networkManager, &NetworkManager::drawOfferReceived, this, &Qt_Chess::onDrawOfferReceived);
     connect(m_networkManager, &NetworkManager::drawResponseReceived, this, &Qt_Chess::onDrawResponseReceived);
@@ -6149,17 +6152,9 @@ void Qt_Chess::onOpponentMove(const QPoint& from, const QPoint& to, PieceType pr
         
         // 處理骰子模式
         if (m_diceModeEnabled && m_isOnlineGame) {
-            // 檢查對手是否用完所有骰子（回合已切換到我方）
-            if (m_chessBoard.getCurrentPlayer() == m_networkManager->getPlayerColor()) {
-                qDebug() << "[Qt_Chess::onOpponentMove] Opponent finished all dice, rolling new dice for my turn";
-                rollDice();
-            }
-            // 否則對手還有骰子未用完，需要撤銷回合切換
-            else {
-                qDebug() << "[Qt_Chess::onOpponentMove] Opponent still has dice to use, reversing turn switch";
-                PieceColor currentPlayer = m_chessBoard.getCurrentPlayer();
-                m_chessBoard.setCurrentPlayer(currentPlayer == PieceColor::White ? PieceColor::Black : PieceColor::White);
-            }
+            // 骰子狀態由服務器處理並通過 diceState 消息同步
+            // 不需要本地處理回合切換
+            qDebug() << "[Qt_Chess::onOpponentMove] Dice mode - waiting for server dice state update";
         }
         
         updateBoard();
@@ -6519,8 +6514,8 @@ void Qt_Chess::onStartGameReceived(int whiteTimeMs, int blackTimeMs, int increme
             m_dicePanel->show();
         }
         
-        // 骰出第一組骰子
-        rollDice();
+        // 骰子狀態由服務器發送，不需要本地骰
+        // rollDice() 會在收到服務器的 diceState 時被 onDiceStateReceived 處理
     } else {
         m_diceModeEnabled = false;
         if (m_dicePanel) {
@@ -6697,6 +6692,24 @@ void Qt_Chess::onTimerStateReceived(qint64 timeA, qint64 timeB, const QString& c
     
     // 立即更新顯示
     updateTimeDisplaysFromServer();
+}
+
+void Qt_Chess::onDiceStateReceived(const std::vector<PieceType>& diceRolled, const std::vector<bool>& diceUsed) {
+    qDebug() << "[Qt_Chess::onDiceStateReceived] Received dice state"
+             << "| diceRolled size:" << diceRolled.size()
+             << "| diceUsed size:" << diceUsed.size();
+    
+    if (!m_diceModeEnabled) {
+        qDebug() << "[Qt_Chess::onDiceStateReceived] Dice mode not enabled, ignoring";
+        return;
+    }
+    
+    // 更新骰子狀態
+    m_diceRolledPieces = diceRolled;
+    m_diceUsedPieces = diceUsed;
+    
+    // 更新顯示
+    updateDiceDisplay();
 }
 
 void Qt_Chess::onSurrenderReceived() {
