@@ -2575,6 +2575,13 @@ void Qt_Chess::onSquareClicked(int displayRow, int displayCol) {
             if (piece.getType() != PieceType::None &&
                 piece.getColor() == m_chessBoard.getCurrentPlayer() &&
                 isPlayerPiece(piece.getColor())) {  // 檢查是否為玩家的棋子
+                
+                // 骰子模式：檢查該棋子是否在骰出列表中
+                if (m_diceModeEnabled && m_isOnlineGame && !isPieceInRolledList(clickedSquare)) {
+                    qDebug() << "[Qt_Chess::onSquareClicked] Dice mode: piece at" << clickedSquare << "is not in rolled list, cannot select";
+                    return;
+                }
+                
                 m_selectedSquare = clickedSquare;
                 highlightValidMoves();
             }
@@ -3443,6 +3450,13 @@ void Qt_Chess::mousePressEvent(QMouseEvent *event) {
             piece.getColor() == m_chessBoard.getCurrentPlayer() &&
             isPlayerPiece(piece.getColor())) {  // 檢查是否為玩家的棋子
 
+            // 骰子模式：檢查該棋子是否在骰出列表中
+            if (m_diceModeEnabled && m_isOnlineGame && !isPieceInRolledList(logicalSquare)) {
+                qDebug() << "[Qt_Chess::mousePressEvent] Dice mode: piece at" << logicalSquare << "is not in rolled list, cannot drag";
+                QMainWindow::mousePressEvent(event);
+                return;
+            }
+
             // 追蹤這個棋子在拖動前是否已被選中
             m_wasSelectedBeforeDrag = (m_pieceSelected && m_selectedSquare == logicalSquare);
 
@@ -3623,6 +3637,27 @@ void Qt_Chess::mouseReleaseEvent(QMouseEvent *event) {
                     qDebug() << "[Qt_Chess] Sending move to opponent (drag): from" << m_lastMoveFrom << "to" << m_lastMoveTo
                              << "| FinalPosition:" << finalPosition;
                     m_networkManager->sendMove(m_lastMoveFrom, m_lastMoveTo, promType, finalPosition);
+                }
+                
+                // 骰子模式：標記棋子已移動
+                if (m_diceModeEnabled && m_isOnlineGame) {
+                    markPieceAsMoved(m_dragStartSquare);
+                    
+                    // 檢查是否所有骰出的棋子都已移動
+                    if (allRolledPiecesMoved()) {
+                        qDebug() << "[Qt_Chess] All rolled pieces moved (drag), switching turn";
+                        // 所有骰子都移動完畢，正常切換回合（棋盤會自動切換玩家）
+                    } else {
+                        // 還有骰子未移動，保持當前玩家回合
+                        // 需要撤銷棋盤自動切換的玩家
+                        PieceColor nextPlayer = m_chessBoard.getCurrentPlayer();
+                        PieceColor previousPlayer = (nextPlayer == PieceColor::White) ? PieceColor::Black : PieceColor::White;
+                        m_chessBoard.setCurrentPlayer(previousPlayer);
+                        qDebug() << "[Qt_Chess] Dice moves remaining (drag):" << m_diceMovesRemaining << ", keeping same player";
+                        
+                        updateDiceDisplay();
+                        updateStatus();
+                    }
                 }
                 
                 // 如果現在是電腦的回合，請求引擎走棋
