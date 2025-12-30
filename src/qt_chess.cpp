@@ -8663,35 +8663,41 @@ void Qt_Chess::onDiceStateReceived(int movesRemaining) {
     qDebug() << "[Qt_Chess::onDiceStateReceived] Server dice movesRemaining:" << movesRemaining 
              << "| Current local value:" << m_diceMovesRemaining;
     
-    // 計算已使用的骰子數量
-    int piecesUsed = 3 - movesRemaining;
-    
-    // 更新骰子類型計數器，標記前N個為已使用（灰階）
-    for (int i = 0; i < piecesUsed && i < static_cast<int>(m_rolledPieceTypeCounts.size()); ++i) {
-        m_rolledPieceTypeCounts[i] = 0;  // 標記為已使用
-    }
-    
     // 同步伺服器的骰子剩餘移動次數
     m_diceMovesRemaining = movesRemaining;
-    
-    qDebug() << "[Qt_Chess::onDiceStateReceived] Updated dice counts. Pieces used:" << piecesUsed 
-             << "| Remaining moves:" << m_diceMovesRemaining;
-    
-    // 更新顯示（雙方都要更新，以顯示灰階效果）
-    updateDiceDisplay();
-    updateStatus();
     
     // 骰子模式：如果對手已完成所有移動（movesRemaining == 0）且輪到本地玩家，骰出新的棋子
     // 這裡才是正確的時機，因為我們已經收到了伺服器的骰子狀態更新
     if (m_diceModeEnabled && m_isOnlineGame && isOnlineTurn() && m_diceMovesRemaining <= 0) {
-        qDebug() << "[Qt_Chess::onDiceStateReceived] It's now my turn and all moves complete, clearing gray effects and rolling new dice";
+        qDebug() << "[Qt_Chess::onDiceStateReceived] It's now my turn and all moves complete, clearing old dice and rolling new dice";
         
-        // 清除灰階效果：重置所有骰子計數器
+        // 清除舊的骰子：重置所有骰子計數器
         m_rolledPieceTypeCounts.clear();
         m_rolledPieceTypes.clear();
+        m_diceMovesRemaining = 3;  // 重置為3步
+        
+        // 更新顯示（清空舊骰子）
+        updateDiceDisplay();
+        updateStatus();
         
         // 擲出新的骰子
         rollDiceForTurn();
+    } else {
+        // 不是輪到我，或者還有剩餘移動次數
+        // 計算已使用的骰子數量
+        int piecesUsed = 3 - movesRemaining;
+        
+        // 更新骰子類型計數器，標記前N個為已使用（灰階）
+        for (int i = 0; i < piecesUsed && i < static_cast<int>(m_rolledPieceTypeCounts.size()); ++i) {
+            m_rolledPieceTypeCounts[i] = 0;  // 標記為已使用
+        }
+        
+        qDebug() << "[Qt_Chess::onDiceStateReceived] Updated dice counts. Pieces used:" << piecesUsed 
+                 << "| Remaining moves:" << m_diceMovesRemaining;
+        
+        // 更新顯示（雙方都要更新，以顯示灰階效果）
+        updateDiceDisplay();
+        updateStatus();
     }
 }
 
