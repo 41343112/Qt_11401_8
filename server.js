@@ -11,9 +11,23 @@ const rooms = {};
 // 遊戲計時狀態
 const gameTimers = {}; // gameTimers[roomId] = { timeA, timeB, currentPlayer, lastSwitchTime, whiteIsA }
 
+// 骰子狀態
+const diceStates = {}; // diceStates[roomId] = { diceRolled: [type1, type2, type3], diceUsed: [bool1, bool2, bool3] }
+
 // 生成 4 位數字房號
 function generateRoomId() {
     return Math.floor(1000 + Math.random() * 9000).toString();
+}
+
+// 生成隨機骰子（3個棋子類型）
+function rollDice() {
+    const pieceTypes = ["Pawn", "Knight", "Bishop", "Rook", "Queen"];
+    const rolled = [];
+    for (let i = 0; i < 3; i++) {
+        const randomIndex = Math.floor(Math.random() * pieceTypes.length);
+        rolled.push(pieceTypes[randomIndex]);
+    }
+    return rolled;
 }
 
 // 處理玩家離開房間的共用邏輯
@@ -111,6 +125,15 @@ wss.on('connection', ws => {
                     incrementMs: msg.incrementMs || 0
                 };
                 
+                // 初始化骰子狀態（如果啟用了骰子模式）
+                if (gameModes["骰子"]) {
+                    diceStates[roomId] = {
+                        diceRolled: rollDice(),
+                        diceUsed: [false, false, false],
+                        diceMovesCount: 0  // 追蹤當前玩家已走的骰子數
+                    };
+                }
+                
                 // 加上伺服器時間戳記以確保同步
                 // 使用未來時間（當前時間 + 500ms）以補償網路延遲
                 const startMessage = {
@@ -131,6 +154,14 @@ wss.on('connection', ws => {
                         lastSwitchTime: gameTimers[roomId].lastSwitchTime
                     }
                 };
+                
+                // 如果啟用骰子模式，添加骰子狀態
+                if (diceStates[roomId]) {
+                    startMessage.diceState = {
+                        diceRolled: diceStates[roomId].diceRolled,
+                        diceUsed: diceStates[roomId].diceUsed
+                    };
+                }
                 
                 // 廣播給房間內所有玩家
                 rooms[roomId].forEach(client => {
@@ -166,7 +197,39 @@ wss.on('connection', ws => {
                 
                 const playerWhoJustMoved = timer.currentPlayer;
                 
-                if(playerWhoJustMoved === "White"){
+                // 處理骰子模式
+                let shouldSwitchTurn = true;  // 默認切換回合
+                if (diceStates[roomId]) {
+                    const diceState = diceStates[roomId];
+                    const movedPieceType = msg.movedPieceType;  // 客戶端需要發送移動的棋子類型
+                    
+                    // 標記骰子為已使用
+                    if (movedPieceType && movedPieceType !== "King") {
+                        for (let i = 0; i < diceState.diceRolled.length; i++) {
+                            if (diceState.diceRolled[i] === movedPieceType && !diceState.diceUsed[i]) {
+                                diceState.diceUsed[i] = true;
+                                diceState.diceMovesCount++;
+                                break;
+                            }
+                        }
+                    }
+                    
+                    // 檢查是否所有骰子都已使用
+                    const allDiceUsed = diceState.diceUsed.every(used => used);
+                    
+                    if (!allDiceUsed) {
+                        // 還有骰子未使用，不切換回合
+                        shouldSwitchTurn = false;
+                    } else {
+                        // 所有骰子都已使用，重新骰骰子並切換回合
+                        diceState.diceRolled = rollDice();
+                        diceState.diceUsed = [false, false, false];
+                        diceState.diceMovesCount = 0;
+                        shouldSwitchTurn = true;
+                    }
+                }
+                
+                if(shouldSwitchTurn && playerWhoJustMoved === "White"){
                     // 白方剛走棋，從白方時間扣除
                     const whiteTime = timer.whiteIsA ? timer.timeA : timer.timeB;
                     const newWhiteTime = Math.max(0, whiteTime - elapsedMs) + timer.incrementMs;
@@ -179,7 +242,7 @@ wss.on('connection', ws => {
                     
                     // 切換到黑方
                     timer.currentPlayer = "Black";
-                } else {
+                } else if(shouldSwitchTurn) {
                     // 黑方剛走棋，從黑方時間扣除
                     const blackTime = timer.whiteIsA ? timer.timeB : timer.timeA;
                     const newBlackTime = Math.max(0, blackTime - elapsedMs) + timer.incrementMs;
@@ -193,6 +256,7 @@ wss.on('connection', ws => {
                     // 切換到白方
                     timer.currentPlayer = "White";
                 }
+                // 如果不應該切換回合（骰子模式下還有骰子未使用），則保持 currentPlayer 不變
                 
                 // 更新最後切換時間（如果是第一步，這裡開始計時）
                 // 加上緩衝時間以補償網路延遲，確保客戶端收到訊息時不會扣錯時間
@@ -208,6 +272,14 @@ wss.on('connection', ws => {
                         lastSwitchTime: timer.lastSwitchTime
                     }
                 };
+                
+                // 如果啟用骰子模式，添加骰子狀態
+                if (diceStates[roomId]) {
+                    moveMessage.diceState = {
+                        diceRolled: diceStates[roomId].diceRolled,
+                        diceUsed: diceStates[roomId].diceUsed
+                    };
+                }
                 
                 rooms[roomId].forEach(client => {
                     if(client.readyState === WebSocket.OPEN){

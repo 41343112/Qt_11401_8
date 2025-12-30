@@ -278,6 +278,13 @@ private:
     // 地雷爆炸動畫 (Mine Explosion Animation)
     QSet<QPushButton*> m_explodingSquares;  // 正在顯示爆炸動畫的方格
     
+    // 骰子模式相關 (Dice Mode)
+    bool m_diceModeEnabled;              // 是否啟用骰子模式
+    std::vector<PieceType> m_diceRolledPieces;  // 骰出的3個棋子類型
+    std::vector<bool> m_diceUsedPieces;  // 每個骰子是否已使用（3個布林值）
+    QWidget* m_dicePanel;                // 骰子顯示面板
+    std::vector<QLabel*> m_diceLabels;   // 骰子顯示標籤（3個）
+    
     // ========================================
     // 音效系統 (Sound System)
     // ========================================
@@ -498,6 +505,13 @@ private:
     bool performTeleportationMove(const QPoint& from, const QPoint& to);  // 執行傳送動作（不重置傳送門）
     QPoint handleTeleportationAndGetFinalPosition(const QPoint& from, const QPoint& to);  // 處理傳送並返回最終位置
     void applyFinalPosition(const QPoint& to, const QPoint& finalPosition);  // 應用最終位置（用於接收對手的傳送結果）
+    
+    // 骰子模式 (Dice Mode)
+    void rollDice();                     // 骰出3個隨機棋子
+    void updateDiceDisplay();            // 更新骰子顯示
+    void markDiceAsUsed(PieceType pieceType);  // 標記骰子為已使用
+    bool canMovePieceInDiceMode(PieceType pieceType) const;  // 檢查在骰子模式下是否可以移動該棋子
+    bool allDiceUsed() const;            // 檢查是否所有骰子都已使用
     
     // ========================================
     // 音效系統 (Sound System)
