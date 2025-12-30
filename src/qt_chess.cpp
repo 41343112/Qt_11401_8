@@ -7233,7 +7233,7 @@ void Qt_Chess::applySoundSettings() {
     m_checkmateSound.setVolume(m_soundSettings.checkmateVolume);
     
     // 初始化地雷爆炸音效（使用預設路徑和音量）
-    setSoundSource(m_explosionSound, "qrc:/resources/sounds/explosion.wav");
+    setSoundSource(m_explosionSound, "qrc:/resources/sounds/bomb.mp3");
     m_explosionSound.setVolume(0.7);  // 預設音量 70%
 }
 
