@@ -198,6 +198,7 @@ private:
     // ========================================
     // 棋譜系統 (Move History System)
     // ========================================
+    QLabel* m_moveListTitle;
     QListWidget* m_moveListWidget;
     QPushButton* m_exportPGNButton;
     QPushButton* m_copyPGNButton;

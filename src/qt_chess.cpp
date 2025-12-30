@@ -207,6 +207,7 @@ Qt_Chess::Qt_Chess(QWidget *parent)
     , m_timeControlPanel(nullptr)
     , m_contentLayout(nullptr)
     , m_rightStretchIndex(-1)
+    , m_moveListTitle(nullptr)
     , m_moveListWidget(nullptr)
     , m_exportPGNButton(nullptr)
     , m_copyPGNButton(nullptr)
@@ -391,13 +392,13 @@ void Qt_Chess::setupUI() {
     moveListLayout->setContentsMargins(5, 5, 5, 5);
 
     // 棋譜標題 - 現代科技風格
-    QLabel* moveListTitle = new QLabel("📜 棋譜記錄", m_moveListPanel);
-    moveListTitle->setAlignment(Qt::AlignCenter);
+    m_moveListTitle = new QLabel("📜 棋譜記錄", m_moveListPanel);
+    m_moveListTitle->setAlignment(Qt::AlignCenter);
     QFont titleFont;
     titleFont.setPointSize(13);
     titleFont.setBold(true);
-    moveListTitle->setFont(titleFont);
-    moveListTitle->setStyleSheet(QString(
+    m_moveListTitle->setFont(titleFont);
+    m_moveListTitle->setStyleSheet(QString(
         "QLabel { "
         "  color: %1; "
         "  padding: 8px; "
@@ -406,7 +407,7 @@ void Qt_Chess::setupUI() {
         "  border-bottom: 2px solid %1; "
         "}"
     ).arg(THEME_ACCENT_PRIMARY));
-    moveListLayout->addWidget(moveListTitle);
+    moveListLayout->addWidget(m_moveListTitle);
 
     m_moveListWidget = new QListWidget(m_moveListPanel);
     m_moveListWidget->setAlternatingRowColors(true);
@@ -423,6 +424,50 @@ void Qt_Chess::setupUI() {
         replayToMove(moveIndex);
     });
     moveListLayout->addWidget(m_moveListWidget);
+
+    // 骰子顯示面板（線上骰子模式時顯示，位於左側中間）
+    m_diceDisplayPanel = new QWidget(m_moveListPanel);
+    m_diceDisplayPanel->setMinimumWidth(MIN_PANEL_WIDTH - 10);
+    m_diceDisplayPanel->setMaximumWidth(MAX_PANEL_WIDTH - 10);
+    QVBoxLayout* diceDisplayLayout = new QVBoxLayout(m_diceDisplayPanel);
+    diceDisplayLayout->setContentsMargins(5, 10, 5, 10);
+    diceDisplayLayout->setSpacing(8);
+    
+    // 骰子標題
+    QLabel* diceTitleLabel = new QLabel("🎲 本回合可動", m_diceDisplayPanel);
+    QFont diceTitleFont;
+    diceTitleFont.setPointSize(10);
+    diceTitleFont.setBold(true);
+    diceTitleLabel->setFont(diceTitleFont);
+    diceTitleLabel->setAlignment(Qt::AlignCenter);
+    diceTitleLabel->setStyleSheet(QString(
+        "QLabel { color: %1; padding: 5px; }"
+    ).arg(THEME_ACCENT_PRIMARY));
+    diceDisplayLayout->addWidget(diceTitleLabel);
+    
+    // 創建3個骰子顯示標籤
+    for (int i = 0; i < 3; ++i) {
+        QLabel* diceLabel = new QLabel(m_diceDisplayPanel);
+        diceLabel->setAlignment(Qt::AlignCenter);
+        diceLabel->setMinimumHeight(70);
+        diceLabel->setStyleSheet(QString(
+            "QLabel { "
+            "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1, "
+            "    stop:0 rgba(33, 150, 243, 0.3), stop:1 rgba(26, 26, 46, 0.95)); "
+            "  color: %1; "
+            "  border: 2px solid %2; "
+            "  border-radius: 8px; "
+            "  padding: 5px; "
+            "  font-size: 11pt; "
+            "}"
+        ).arg(THEME_TEXT_PRIMARY, THEME_ACCENT_PRIMARY));
+        diceLabel->setWordWrap(true);
+        diceDisplayLayout->addWidget(diceLabel);
+        m_diceDisplayLabels.append(diceLabel);
+    }
+    
+    moveListLayout->addWidget(m_diceDisplayPanel);
+    m_diceDisplayPanel->hide();  // 初始隱藏
 
     // 匯出PGN按鈕（初始隱藏）- 現代科技風格
     m_exportPGNButton = new QPushButton("📤 匯出 PGN", m_moveListPanel);
@@ -788,50 +833,6 @@ void Qt_Chess::setupUI() {
     ).arg(THEME_BORDER, THEME_BG_DARK, THEME_ACCENT_SUCCESS, THEME_ACCENT_PRIMARY));
     m_whiteTimeProgressBar->hide();  // 初始隱藏
     rightTimePanelLayout->addWidget(m_whiteTimeProgressBar, 0, Qt::AlignCenter);
-
-    // 骰子顯示面板（線上骰子模式時顯示）
-    m_diceDisplayPanel = new QWidget(m_rightTimePanel);
-    m_diceDisplayPanel->setMinimumWidth(100);
-    m_diceDisplayPanel->setMaximumWidth(150);
-    QVBoxLayout* diceDisplayLayout = new QVBoxLayout(m_diceDisplayPanel);
-    diceDisplayLayout->setContentsMargins(5, 10, 5, 10);
-    diceDisplayLayout->setSpacing(8);
-    
-    // 骰子標題
-    QLabel* diceTitleLabel = new QLabel("🎲 本回合可動", m_diceDisplayPanel);
-    QFont diceTitleFont;
-    diceTitleFont.setPointSize(10);
-    diceTitleFont.setBold(true);
-    diceTitleLabel->setFont(diceTitleFont);
-    diceTitleLabel->setAlignment(Qt::AlignCenter);
-    diceTitleLabel->setStyleSheet(QString(
-        "QLabel { color: %1; padding: 5px; }"
-    ).arg(THEME_ACCENT_PRIMARY));
-    diceDisplayLayout->addWidget(diceTitleLabel);
-    
-    // 創建3個骰子顯示標籤
-    for (int i = 0; i < 3; ++i) {
-        QLabel* diceLabel = new QLabel(m_diceDisplayPanel);
-        diceLabel->setAlignment(Qt::AlignCenter);
-        diceLabel->setFixedSize(100, 80);
-        diceLabel->setStyleSheet(QString(
-            "QLabel { "
-            "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1, "
-            "    stop:0 rgba(33, 150, 243, 0.3), stop:1 rgba(26, 26, 46, 0.95)); "
-            "  color: %1; "
-            "  border: 2px solid %2; "
-            "  border-radius: 8px; "
-            "  padding: 5px; "
-            "  font-size: 11pt; "
-            "}"
-        ).arg(THEME_TEXT_PRIMARY, THEME_ACCENT_PRIMARY));
-        diceLabel->setWordWrap(true);
-        diceDisplayLayout->addWidget(diceLabel);
-        m_diceDisplayLabels.append(diceLabel);
-    }
-    
-    rightTimePanelLayout->addWidget(m_diceDisplayPanel, 0, Qt::AlignCenter);
-    m_diceDisplayPanel->hide();  // 初始隱藏
 
     // 我方的吃子紀錄從時間垂直往下（黑子被白方吃掉）
     m_capturedBlackPanel = new QWidget(m_rightTimePanel);
@@ -6512,6 +6513,28 @@ void Qt_Chess::onStartGameReceived(int whiteTimeMs, int blackTimeMs, int increme
         if (m_diceDisplayPanel) {
             m_diceDisplayPanel->hide();
         }
+    }
+    
+    // 檢查是否有任何特殊遊戲模式啟用
+    bool hasSpecialGameMode = m_fogOfWarEnabled || m_gravityModeEnabled || 
+                              m_teleportModeEnabled || m_diceModeEnabled ||
+                              (m_selectedGameModes.contains(GAME_MODE_BOMB) && m_selectedGameModes[GAME_MODE_BOMB]);
+    
+    // 如果有特殊遊戲模式，隱藏棋譜相關元件
+    if (hasSpecialGameMode) {
+        if (m_moveListTitle) m_moveListTitle->hide();
+        if (m_moveListWidget) m_moveListWidget->hide();
+        if (m_exportPGNButton) m_exportPGNButton->hide();
+        if (m_copyPGNButton) m_copyPGNButton->hide();
+        if (m_replayTitle) m_replayTitle->hide();
+        if (m_replayFirstButton) m_replayFirstButton->hide();
+        if (m_replayPrevButton) m_replayPrevButton->hide();
+        if (m_replayNextButton) m_replayNextButton->hide();
+        if (m_replayLastButton) m_replayLastButton->hide();
+    } else {
+        if (m_moveListTitle) m_moveListTitle->show();
+        if (m_moveListWidget) m_moveListWidget->show();
+        // 注意：PGN按鈕和回放按鈕在其他地方控制顯示/隱藏
     }
     
     // 更新棋盤和狀態
