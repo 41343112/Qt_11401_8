@@ -275,6 +275,14 @@ private:
     QPoint m_teleportPortal2;            // 傳送門位置2
     QPixmap m_teleportIconCache;         // 傳送門圖示快取
     
+    // 骰子模式相關 (Dice Mode)
+    bool m_diceModeEnabled;              // 是否啟用骰子模式
+    std::vector<QPoint> m_rolledPieces;  // 本回合骰出的3個棋子位置
+    std::vector<bool> m_rolledPiecesMoved; // 骰出的棋子是否已移動
+    QWidget* m_diceDisplayPanel;         // 骰子顯示面板
+    QList<QLabel*> m_diceDisplayLabels;  // 顯示骰出棋子的標籤
+    int m_diceMovesRemaining;            // 本回合剩餘可移動的骰子數量
+    
     // 地雷爆炸動畫 (Mine Explosion Animation)
     QSet<QPushButton*> m_explodingSquares;  // 正在顯示爆炸動畫的方格
     
@@ -498,6 +506,15 @@ private:
     bool performTeleportationMove(const QPoint& from, const QPoint& to);  // 執行傳送動作（不重置傳送門）
     QPoint handleTeleportationAndGetFinalPosition(const QPoint& from, const QPoint& to);  // 處理傳送並返回最終位置
     void applyFinalPosition(const QPoint& to, const QPoint& finalPosition);  // 應用最終位置（用於接收對手的傳送結果）
+    
+    // 骰子模式 (Dice Mode)
+    void rollDiceForTurn();              // 為當前回合骰出3個棋子
+    void updateDiceDisplay();            // 更新骰子顯示面板
+    bool canRollPiece(const QPoint& pos) const;  // 檢查該位置的棋子是否可以被骰出
+    bool isPieceInRolledList(const QPoint& pos) const;  // 檢查棋子是否在骰出列表中
+    void markPieceAsMoved(const QPoint& pos);  // 標記骰出的棋子已移動
+    bool allRolledPiecesMoved() const;   // 檢查是否所有骰出的棋子都已移動
+    std::vector<QPoint> getMovablePieces(PieceColor color) const;  // 獲取當前可移動的棋子列表
     
     // ========================================
     // 音效系統 (Sound System)
