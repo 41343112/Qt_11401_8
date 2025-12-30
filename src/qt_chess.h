@@ -278,8 +278,8 @@ private:
     
     // 骰子模式相關 (Dice Mode)
     bool m_diceModeEnabled;              // 是否啟用骰子模式
-    std::vector<QPoint> m_rolledPieces;  // 本回合骰出的3個棋子位置
-    std::vector<bool> m_rolledPiecesMoved; // 骰出的棋子是否已移動
+    std::vector<PieceType> m_rolledPieceTypes;  // 本回合骰出的3個棋子類型
+    std::vector<int> m_rolledPieceTypeCounts;   // 每種類型剩餘可移動次數
     QWidget* m_diceDisplayPanel;         // 骰子顯示面板
     QList<QLabel*> m_diceDisplayLabels;  // 顯示骰出棋子的標籤
     int m_diceMovesRemaining;            // 本回合剩餘可移動的骰子數量
@@ -510,11 +510,11 @@ private:
     void applyFinalPosition(const QPoint& to, const QPoint& finalPosition);  // 應用最終位置（用於接收對手的傳送結果）
     
     // 骰子模式 (Dice Mode)
-    void rollDiceForTurn();              // 為當前回合骰出3個棋子
+    void rollDiceForTurn();              // 為當前回合骰出3個棋子類型
     void updateDiceDisplay();            // 更新骰子顯示面板
     bool canRollPiece(const QPoint& pos) const;  // 檢查該位置的棋子是否可以被骰出
-    bool isPieceInRolledList(const QPoint& pos) const;  // 檢查棋子是否在骰出列表中
-    void markPieceAsMoved(const QPoint& pos);  // 標記骰出的棋子已移動
+    bool isPieceTypeInRolledList(PieceType type) const;  // 檢查棋子類型是否在骰出列表中
+    void markPieceTypeAsMoved(PieceType type);  // 標記骰出的棋子類型已移動一次
     bool allRolledPiecesMoved() const;   // 檢查是否所有骰出的棋子都已移動
     std::vector<QPoint> getMovablePieces(PieceColor color) const;  // 獲取當前可移動的棋子列表
     
