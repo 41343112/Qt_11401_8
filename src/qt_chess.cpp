@@ -6214,9 +6214,15 @@ void Qt_Chess::onOpponentMove(const QPoint& from, const QPoint& to, PieceType pr
         
         // 骰子模式：輪到本地玩家時，骰出新的棋子
         // 注意：只有在真正輪到我方時才骰子，而不是收到自己的移動回調時
+        // 同時檢查是否還有剩餘的骰子移動（避免重複擲骰）
         if (m_diceModeEnabled && m_isOnlineGame && isOnlineTurn()) {
-            qDebug() << "[Qt_Chess::onOpponentMove] It's now my turn in dice mode, rolling dice";
-            rollDiceForTurn();
+            // 只有在沒有剩餘骰子移動時才重新擲骰（表示對手已完成回合）
+            if (m_diceMovesRemaining <= 0) {
+                qDebug() << "[Qt_Chess::onOpponentMove] It's now my turn in dice mode, rolling dice";
+                rollDiceForTurn();
+            } else {
+                qDebug() << "[Qt_Chess::onOpponentMove] Dice mode active with" << m_diceMovesRemaining << "moves remaining, not re-rolling";
+            }
         }
     } else {
         qDebug() << "[Qt_Chess::onOpponentMove] Move failed!";
@@ -6544,7 +6550,10 @@ void Qt_Chess::onStartGameReceived(int whiteTimeMs, int blackTimeMs, int increme
         
         // 如果輪到本地玩家，骰出棋子
         if (isOnlineTurn()) {
+            qDebug() << "[Qt_Chess::onStartGameReceived] My turn, rolling initial dice";
             rollDiceForTurn();
+        } else {
+            qDebug() << "[Qt_Chess::onStartGameReceived] Opponent's turn, waiting for them";
         }
     } else {
         m_diceModeEnabled = false;
