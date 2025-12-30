@@ -180,6 +180,23 @@ wss.on('connection', ws => {
                 
                 const playerWhoJustMoved = timer.currentPlayer;
                 
+                // 檢查是否在骰子模式中還有剩餘移動
+                let shouldSwitchPlayer = true;
+                if(diceRolls[roomId]) {
+                    console.log('[Server] Dice mode: checking if should switch player. Moves remaining before:', diceRolls[roomId].movesRemaining);
+                    // 先扣除這次移動
+                    if(diceRolls[roomId].movesRemaining > 0) {
+                        diceRolls[roomId].movesRemaining--;
+                    }
+                    // 檢查扣除後是否還有剩餘移動
+                    if(diceRolls[roomId].movesRemaining > 0) {
+                        shouldSwitchPlayer = false;
+                        console.log('[Server] Dice moves remaining:', diceRolls[roomId].movesRemaining, '- NOT switching player');
+                    } else {
+                        console.log('[Server] All dice moved - will switch player');
+                    }
+                }
+                
                 if(playerWhoJustMoved === "White"){
                     // 白方剛走棋，從白方時間扣除
                     const whiteTime = timer.whiteIsA ? timer.timeA : timer.timeB;
@@ -191,8 +208,10 @@ wss.on('connection', ws => {
                         timer.timeB = newWhiteTime;
                     }
                     
-                    // 切換到黑方
-                    timer.currentPlayer = "Black";
+                    // 只在應該切換時才切換到黑方
+                    if(shouldSwitchPlayer) {
+                        timer.currentPlayer = "Black";
+                    }
                 } else {
                     // 黑方剛走棋，從黑方時間扣除
                     const blackTime = timer.whiteIsA ? timer.timeB : timer.timeA;
@@ -204,29 +223,21 @@ wss.on('connection', ws => {
                         timer.timeA = newBlackTime;
                     }
                     
-                    // 切換到白方
-                    timer.currentPlayer = "White";
+                    // 只在應該切換時才切換到白方
+                    if(shouldSwitchPlayer) {
+                        timer.currentPlayer = "White";
+                    }
                 }
                 
                 // 更新最後切換時間（如果是第一步，這裡開始計時）
                 // 加上緩衝時間以補償網路延遲，確保客戶端收到訊息時不會扣錯時間
                 timer.lastSwitchTime = currentTime + 1;  // 加 1 秒緩衝
                 
-                // 處理骰子模式
-                if(diceRolls[roomId]) {
-                    console.log('[Server] Dice mode: processing move. Current state:', diceRolls[roomId]);
-                    
-                    if(diceRolls[roomId].movesRemaining > 0) {
-                        diceRolls[roomId].movesRemaining--;
-                        console.log('[Server] Dice moves remaining:', diceRolls[roomId].movesRemaining);
-                    }
-                    
-                    // 如果所有骰子都已移動，切換玩家並重置骰子
-                    if(diceRolls[roomId].movesRemaining <= 0) {
-                        diceRolls[roomId].currentPlayer = timer.currentPlayer;
-                        diceRolls[roomId].movesRemaining = 3;
-                        console.log('[Server] All dice moved. Reset for next player:', timer.currentPlayer);
-                    }
+                // 如果骰子模式所有移動完成，重置骰子狀態
+                if(diceRolls[roomId] && diceRolls[roomId].movesRemaining <= 0) {
+                    diceRolls[roomId].currentPlayer = timer.currentPlayer;
+                    diceRolls[roomId].movesRemaining = 3;
+                    console.log('[Server] Dice reset for next player:', timer.currentPlayer);
                 }
                 
                 // 廣播移動訊息和計時器狀態
