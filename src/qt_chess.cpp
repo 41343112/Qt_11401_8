@@ -434,16 +434,16 @@ void Qt_Chess::setupUI() {
     diceDisplayLayout->setSpacing(8);
     
     // 骰子標題
-    QLabel* diceTitleLabel = new QLabel("🎲 本回合可動", m_diceDisplayPanel);
+    m_diceDisplayTitle = new QLabel("🎲 本回合可動", m_diceDisplayPanel);
     QFont diceTitleFont;
     diceTitleFont.setPointSize(10);
     diceTitleFont.setBold(true);
-    diceTitleLabel->setFont(diceTitleFont);
-    diceTitleLabel->setAlignment(Qt::AlignCenter);
-    diceTitleLabel->setStyleSheet(QString(
+    m_diceDisplayTitle->setFont(diceTitleFont);
+    m_diceDisplayTitle->setAlignment(Qt::AlignCenter);
+    m_diceDisplayTitle->setStyleSheet(QString(
         "QLabel { color: %1; padding: 5px; }"
     ).arg(THEME_ACCENT_PRIMARY));
-    diceDisplayLayout->addWidget(diceTitleLabel);
+    diceDisplayLayout->addWidget(m_diceDisplayTitle);
     
     // 創建3個骰子顯示標籤
     for (int i = 0; i < 3; ++i) {
@@ -8676,7 +8676,7 @@ void Qt_Chess::onDiceStateReceived(int movesRemaining) {
     // 同步伺服器的骰子剩餘移動次數
     m_diceMovesRemaining = movesRemaining;
     
-    // 更新顯示
+    // 更新顯示（雙方都要更新，以顯示灰階效果）
     updateDiceDisplay();
     updateStatus();
 }
@@ -8687,9 +8687,15 @@ void Qt_Chess::updateDiceDisplay() {
         return;
     }
     
-    // 如果骰子模式啟用且輪到玩家，顯示面板
-    if (m_diceModeEnabled && m_isOnlineGame && isOnlineTurn()) {
+    // 如果骰子模式啟用，顯示面板（雙方都要看到）
+    if (m_diceModeEnabled && m_isOnlineGame) {
         m_diceDisplayPanel->show();
+        
+        // 更新回合指示器
+        if (m_diceDisplayTitle) {
+            QString turnText = isOnlineTurn() ? "🎲 輪到我" : "⏸️ 對手回合";
+            m_diceDisplayTitle->setText(turnText);
+        }
         
         // 更新每個骰子標籤
         for (int i = 0; i < 3 && i < m_diceDisplayLabels.size(); ++i) {

@@ -281,6 +281,7 @@ private:
     std::vector<PieceType> m_rolledPieceTypes;  // 本回合骰出的3個棋子類型
     std::vector<int> m_rolledPieceTypeCounts;   // 每種類型剩餘可移動次數
     QWidget* m_diceDisplayPanel;         // 骰子顯示面板
+    QLabel* m_diceDisplayTitle;          // 骰子面板標題（顯示輪到誰）
     QList<QLabel*> m_diceDisplayLabels;  // 顯示骰出棋子的標籤
     int m_diceMovesRemaining;            // 本回合剩餘可移動的骰子數量
     
