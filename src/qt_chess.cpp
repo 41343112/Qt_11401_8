@@ -2541,7 +2541,8 @@ void Qt_Chess::onSquareClicked(int displayRow, int displayCol) {
 
             updateStatus();
             
-            // 骰子模式：標記使用的棋子並管理回合
+            // 骰子模式：只需獲取移動的棋子類型以發送給服務器
+            // 不在客戶端標記骰子使用或管理回合，由服務器處理
             PieceType movedType = originalPieceType;  // 默認使用原始類型
             if (m_diceModeEnabled && m_isOnlineGame) {
                 // 如果是升變，使用升變後的類型
@@ -2549,22 +2550,9 @@ void Qt_Chess::onSquareClicked(int displayRow, int displayCol) {
                     movedType = promType;
                 }
                 
-                // 標記骰子為已使用（King 除外）
-                if (movedType != PieceType::King) {
-                    markDiceAsUsed(movedType);
-                }
-                
-                // 檢查是否所有骰子都已使用
-                if (allDiceUsed()) {
-                    qDebug() << "[Qt_Chess] All dice used, turn will switch normally";
-                    // 所有骰子都已使用，回合正常切換（已在 movePiece 中完成）
-                    // 不需要額外操作，對手收到移動後會骰新的骰子
-                } else {
-                    // 還有骰子未使用，需要撤銷 movePiece 中的回合切換
-                    qDebug() << "[Qt_Chess] Not all dice used, reversing turn switch";
-                    PieceColor currentPlayer = m_chessBoard.getCurrentPlayer();
-                    m_chessBoard.setCurrentPlayer(currentPlayer == PieceColor::White ? PieceColor::Black : PieceColor::White);
-                }
+                // 不在這裡標記骰子為已使用或撤銷回合切換
+                // 服務器會處理骰子狀態並通過 diceStateReceived 信號同步
+                // 服務器會管理回合切換邏輯
             }
             
             // 如果是線上模式，發送移動給對手（包含最終位置和棋子類型）
@@ -8514,9 +8502,10 @@ void Qt_Chess::updateDiceDisplay() {
                 "QLabel { "
                 "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 rgba(30, 30, 50, 0.5), stop:1 rgba(20, 20, 40, 0.5)); "
                 "  color: #555555; "
-                "  padding: 10px; "
-                "  border: 2px solid #333333; "
-                "  border-radius: 8px; "
+                "  padding: 15px; "
+                "  border: 3px solid #333333; "
+                "  border-radius: 10px; "
+                "  margin: 5px; "
                 "}"
             ));
         } else {
@@ -8524,9 +8513,10 @@ void Qt_Chess::updateDiceDisplay() {
                 "QLabel { "
                 "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 rgba(30, 30, 50, 0.95), stop:1 rgba(20, 20, 40, 0.95)); "
                 "  color: %1; "
-                "  padding: 10px; "
-                "  border: 2px solid %2; "
-                "  border-radius: 8px; "
+                "  padding: 15px; "
+                "  border: 3px solid %2; "
+                "  border-radius: 10px; "
+                "  margin: 5px; "
                 "}"
             ).arg(THEME_TEXT_PRIMARY, THEME_BORDER));
         }
