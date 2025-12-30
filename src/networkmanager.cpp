@@ -553,6 +553,17 @@ void NetworkManager::processMessage(const QJsonObject& message)
             
             emit timerStateReceived(timeA, timeB, currentPlayer, lastSwitchTime);
         }
+        
+        // 如果訊息包含骰子狀態，處理骰子剩餘移動次數
+        if (message.contains("diceState")) {
+            QJsonObject diceState = message["diceState"].toObject();
+            int movesRemaining = diceState["movesRemaining"].toInt();
+            
+            qDebug() << "[NetworkManager] Dice state update - movesRemaining:" << movesRemaining;
+            
+            // 通知主程式更新骰子剩餘移動次數
+            emit diceStateReceived(movesRemaining);
+        }
     }
     else if (actionStr == "surrender") {
         // 收到對手投降訊息（新格式）

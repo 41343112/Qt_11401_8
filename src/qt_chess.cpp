@@ -5748,6 +5748,7 @@ void Qt_Chess::initializeNetwork() {
     connect(m_networkManager, &NetworkManager::drawResponseReceived, this, &Qt_Chess::onDrawResponseReceived);
     connect(m_networkManager, &NetworkManager::opponentDisconnected, this, &Qt_Chess::onOpponentDisconnected);
     connect(m_networkManager, &NetworkManager::diceRolled, this, &Qt_Chess::onDiceRolled);  // 骰子模式
+    connect(m_networkManager, &NetworkManager::diceStateReceived, this, &Qt_Chess::onDiceStateReceived);  // 骰子狀態同步
 }
 
 void Qt_Chess::onOnlineModeClicked() {
@@ -6154,13 +6155,34 @@ void Qt_Chess::onOpponentMove(const QPoint& from, const QPoint& to, PieceType pr
              << "| FinalPosition:" << finalPosition;
     
     // 對手的移動 - 直接執行移動，movePiece 會自動切換回合
-    PieceColor currentPlayer = m_chessBoard.getCurrentPlayer();
+    PieceColor currentPlayerBefore = m_chessBoard.getCurrentPlayer();
     
-    qDebug() << "[Qt_Chess::onOpponentMove] Current player before move:" << (int)currentPlayer;
+    qDebug() << "[Qt_Chess::onOpponentMove] Current player before move:" << (int)currentPlayerBefore;
     
     // 直接移動對手的棋子，movePiece 會驗證並自動切換回合
     if (m_chessBoard.movePiece(from, to)) {
-        qDebug() << "[Qt_Chess::onOpponentMove] Move successful, current player after move:" << (int)m_chessBoard.getCurrentPlayer();
+        PieceColor currentPlayerAfter = m_chessBoard.getCurrentPlayer();
+        qDebug() << "[Qt_Chess::onOpponentMove] Move successful, current player after move:" << (int)currentPlayerAfter;
+        
+        // 在骰子模式下，伺服器會通過diceStateReceived信號告訴我們剩餘移動次數
+        // 如果還有剩餘移動，movePiece會切換玩家，但我們需要切回去
+        // 注意：這裡不需要手動管理，因為伺服器會發送正確的dice狀態
+        // 但我們需要確保棋盤的currentPlayer與伺服器狀態一致
+        if (m_diceModeEnabled && m_isOnlineGame) {
+            // 在骰子模式下，依賴伺服器的diceState來判斷是否應該切換玩家
+            // 如果對手還有骰子移動剩餘（m_diceMovesRemaining > 0），則不應切換
+            // 但movePiece已經切換了，所以需要切回去
+            PieceColor myColor = m_networkManager->getPlayerColor();
+            PieceColor opponentColor = (myColor == PieceColor::White) ? PieceColor::Black : PieceColor::White;
+            
+            // 如果m_diceMovesRemaining > 0，表示對手還有移動剩餘
+            // 此時currentPlayerAfter已經切換到我了，需要切回對手
+            if (m_diceMovesRemaining > 0 && currentPlayerAfter == myColor) {
+                qDebug() << "[Qt_Chess::onOpponentMove] Dice mode: opponent has" << m_diceMovesRemaining 
+                         << "moves remaining, keeping opponent's turn";
+                m_chessBoard.setCurrentPlayer(opponentColor);
+            }
+        }
         
         // 檢查是否踩到地雷
         if (m_chessBoard.lastMoveTriggeredMine()) {
@@ -7270,7 +7292,20 @@ bool Qt_Chess::isOnlineTurn() const {
     
     // 檢查是否輪到本地玩家
     PieceColor playerColor = m_networkManager->getPlayerColor();
-    return m_chessBoard.getCurrentPlayer() == playerColor;
+    PieceColor currentPlayer = m_chessBoard.getCurrentPlayer();
+    
+    // 在骰子模式下，需要特別處理：
+    // 如果還有剩餘的骰子移動次數，且當前玩家是我，則仍然是我的回合
+    // 即使棋盤的getCurrentPlayer可能已經切換了
+    if (m_diceModeEnabled && m_isOnlineGame) {
+        // 如果還有骰子移動剩餘，檢查是否是我的骰子
+        if (m_diceMovesRemaining > 0) {
+            // 仍然是輪到我（因為我還沒下完3步）
+            return playerColor == currentPlayer;
+        }
+    }
+    
+    return currentPlayer == playerColor;
 }
 
 void Qt_Chess::showRoomInfoDialog(const QString& roomNumber) {
@@ -8547,11 +8582,19 @@ void Qt_Chess::onDiceRolled(const std::vector<int>& rolls, const QString& curren
         return;
     }
     
-    PieceColor currentColor = m_chessBoard.getCurrentPlayer();
-    qDebug() << "[Qt_Chess::onDiceRolled] Received dice rolls for" << currentPlayerStr;
+    // 判斷骰子是誰的：使用伺服器發送的currentPlayerStr
+    PieceColor diceOwnerColor;
+    if (currentPlayerStr == "White" || currentPlayerStr == "white") {
+        diceOwnerColor = PieceColor::White;
+    } else {
+        diceOwnerColor = PieceColor::Black;
+    }
     
-    // 獲取所有可移動的棋子
-    std::vector<QPoint> movablePieces = getMovablePieces(currentColor);
+    qDebug() << "[Qt_Chess::onDiceRolled] Received dice rolls for" << currentPlayerStr 
+             << "| My color:" << (m_networkManager->getPlayerColor() == PieceColor::White ? "White" : "Black");
+    
+    // 獲取該玩家所有可移動的棋子（使用骰子擁有者的顏色）
+    std::vector<QPoint> movablePieces = getMovablePieces(diceOwnerColor);
     
     if (movablePieces.empty() || rolls.empty()) {
         qDebug() << "[Qt_Chess::onDiceRolled] No movable pieces or rolls available";
@@ -8597,7 +8640,11 @@ void Qt_Chess::onDiceRolled(const std::vector<int>& rolls, const QString& curren
     
     m_diceMovesRemaining = 3;  // 總是3步
     
-    qDebug() << "[Qt_Chess::onDiceRolled] Rolled" << m_rolledPieceTypes.size() << "piece types:";
+    // 判斷這些骰子是否屬於本地玩家
+    bool isMyDice = (diceOwnerColor == m_networkManager->getPlayerColor());
+    
+    qDebug() << "[Qt_Chess::onDiceRolled] Rolled" << m_rolledPieceTypes.size() << "piece types for" 
+             << (isMyDice ? "ME" : "OPPONENT") << ":";
     for (size_t i = 0; i < m_rolledPieceTypes.size(); ++i) {
         QString typeName;
         switch (m_rolledPieceTypes[i]) {
@@ -8612,7 +8659,26 @@ void Qt_Chess::onDiceRolled(const std::vector<int>& rolls, const QString& curren
         qDebug() << "  Dice" << (i + 1) << ":" << typeName;
     }
     
+    // 總是更新骰子顯示（無論是我的還是對手的）
+    // 這樣對手也能看到我骰出的棋子
     updateDiceDisplay();
+}
+
+// 處理從伺服器收到的骰子狀態更新
+void Qt_Chess::onDiceStateReceived(int movesRemaining) {
+    if (!m_diceModeEnabled || !m_isOnlineGame) {
+        return;
+    }
+    
+    qDebug() << "[Qt_Chess::onDiceStateReceived] Server dice movesRemaining:" << movesRemaining 
+             << "| Current local value:" << m_diceMovesRemaining;
+    
+    // 同步伺服器的骰子剩餘移動次數
+    m_diceMovesRemaining = movesRemaining;
+    
+    // 更新顯示
+    updateDiceDisplay();
+    updateStatus();
 }
 
 // 更新骰子顯示面板

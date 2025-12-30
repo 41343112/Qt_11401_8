@@ -485,6 +485,7 @@ private:
     void onDrawResponseReceived(bool accepted);
     void onOpponentDisconnected();
     void onDiceRolled(const std::vector<int>& rolls, const QString& currentPlayer);  // 骰子模式：收到骰子結果
+    void onDiceStateReceived(int movesRemaining);  // 骰子模式：收到骰子狀態更新
     void onCancelRoomClicked();
     void onExitRoomClicked();
     void updateConnectionStatus();
