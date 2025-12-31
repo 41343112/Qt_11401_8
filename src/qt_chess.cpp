@@ -6766,8 +6766,18 @@ void Qt_Chess::onTimerStateReceived(qint64 timeA, qint64 timeB, const QString& c
     m_useServerTimer = true;  // 啟用伺服器計時器模式
     m_lastServerUpdateTime = QDateTime::currentMSecsSinceEpoch();  // 記錄更新時間
     
+    // 同步棋盤的當前玩家與伺服器狀態
+    // 這對於骰子模式特別重要，確保雙方都知道輪到誰下棋
+    PieceColor serverPlayer = (currentPlayer == "White") ? PieceColor::White : PieceColor::Black;
+    if (m_chessBoard.getCurrentPlayer() != serverPlayer) {
+        qDebug() << "[Qt_Chess::onTimerStateReceived] Syncing board currentPlayer to server state:"
+                 << currentPlayer;
+        m_chessBoard.setCurrentPlayer(serverPlayer);
+    }
+    
     // 立即更新顯示
     updateTimeDisplaysFromServer();
+    updateStatus();  // 更新狀態以反映正確的輪次
 }
 
 void Qt_Chess::onSurrenderReceived() {
