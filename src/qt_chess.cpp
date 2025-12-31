@@ -2542,12 +2542,11 @@ void Qt_Chess::onSquareClicked(int displayRow, int displayCol) {
                 m_networkManager->sendMove(m_lastMoveFrom, m_lastMoveTo, promType, finalPosition);
             }
             
-            // 骰子模式：標記棋子類型已移動
+            // 骰子模式：不在本地標記，依賴伺服器的 diceState 更新
+            // 伺服器會通過 onDiceStateReceived 同步骰子狀態
             if (m_diceModeEnabled && m_isOnlineGame) {
-                const ChessPiece& movedPiece = m_chessBoard.getPiece(m_lastMoveTo.y(), m_lastMoveTo.x());
-                markPieceTypeAsMoved(movedPiece.getType());
-                
-                // 檢查是否所有骰出的棋子都已移動
+                // 檢查是否所有骰出的棋子都已移動（基於當前的m_diceMovesRemaining）
+                // 注意：m_diceMovesRemaining會通過onDiceStateReceived從伺服器更新
                 if (allRolledPiecesMoved()) {
                     qDebug() << "[Qt_Chess] All rolled pieces moved, switching turn";
                     // 所有骰子都移動完畢，正常切換回合（棋盤會自動切換玩家）
@@ -3643,12 +3642,11 @@ void Qt_Chess::mouseReleaseEvent(QMouseEvent *event) {
                     m_networkManager->sendMove(m_lastMoveFrom, m_lastMoveTo, promType, finalPosition);
                 }
                 
-                // 骰子模式：標記棋子類型已移動
+                // 骰子模式：不在本地標記，依賴伺服器的 diceState 更新
+                // 伺服器會通過 onDiceStateReceived 同步骰子狀態
                 if (m_diceModeEnabled && m_isOnlineGame) {
-                    const ChessPiece& movedPiece = m_chessBoard.getPiece(m_lastMoveTo.y(), m_lastMoveTo.x());
-                    markPieceTypeAsMoved(movedPiece.getType());
-                    
-                    // 檢查是否所有骰出的棋子都已移動
+                    // 檢查是否所有骰出的棋子都已移動（基於當前的m_diceMovesRemaining）
+                    // 注意：m_diceMovesRemaining會通過onDiceStateReceived從伺服器更新
                     if (allRolledPiecesMoved()) {
                         qDebug() << "[Qt_Chess] All rolled pieces moved (drag), switching turn";
                         // 所有骰子都移動完畢，正常切換回合（棋盤會自動切換玩家）
