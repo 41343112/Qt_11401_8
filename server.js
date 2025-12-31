@@ -11,6 +11,9 @@ const rooms = {};
 // 遊戲計時狀態
 const gameTimers = {}; // gameTimers[roomId] = { timeA, timeB, currentPlayer, lastSwitchTime, whiteIsA }
 
+// 骰子模式狀態 (Dice Mode State)
+const diceRolls = {}; // diceRolls[roomId] = { currentPlayer, rolls: [{row, col}], movesRemaining }
+
 // 生成 4 位數字房號
 function generateRoomId() {
     return Math.floor(1000 + Math.random() * 9000).toString();
@@ -52,6 +55,7 @@ function handlePlayerLeaveRoom(ws, roomId) {
     if(rooms[roomId].length === 0){
         delete rooms[roomId];
         delete gameTimers[roomId];  // 清理計時器狀態
+        delete diceRolls[roomId];   // 清理骰子狀態
     }
 }
 
@@ -132,6 +136,16 @@ wss.on('connection', ws => {
                     }
                 };
                 
+                // 如果啟用骰子模式，初始化骰子狀態
+                if(gameModes && gameModes['骰子']) {
+                    diceRolls[roomId] = {
+                        currentPlayer: "White",  // 白方先手
+                        movesRemaining: 3
+                    };
+                    console.log('[Server] Dice mode initialized for room', roomId);
+                    // 不在這裡發送骰子，等待客戶端請求
+                }
+                
                 // 廣播給房間內所有玩家
                 rooms[roomId].forEach(client => {
                     if(client.readyState === WebSocket.OPEN){
@@ -144,6 +158,9 @@ wss.on('connection', ws => {
         // 廣播落子訊息並更新計時器
         else if(msg.action === "move"){
             const roomId = msg.room;
+            console.log('[Server] Move received for room:', roomId, 'from:', msg.fromRow, msg.fromCol, 'to:', msg.toRow, msg.toCol);
+            console.log('[Server] gameTimers exists:', !!gameTimers[roomId], 'rooms exists:', !!rooms[roomId]);
+            
             if(rooms[roomId] && gameTimers[roomId]){
                 const timer = gameTimers[roomId];
                 const currentTime = Math.floor(Date.now() / 1000);  // UNIX 秒數
@@ -166,6 +183,23 @@ wss.on('connection', ws => {
                 
                 const playerWhoJustMoved = timer.currentPlayer;
                 
+                // 檢查是否在骰子模式中還有剩餘移動
+                let shouldSwitchPlayer = true;
+                if(diceRolls[roomId]) {
+                    console.log('[Server] Dice mode: checking if should switch player. Moves remaining before:', diceRolls[roomId].movesRemaining);
+                    // 先扣除這次移動
+                    if(diceRolls[roomId].movesRemaining > 0) {
+                        diceRolls[roomId].movesRemaining--;
+                    }
+                    // 檢查扣除後是否還有剩餘移動
+                    if(diceRolls[roomId].movesRemaining > 0) {
+                        shouldSwitchPlayer = false;
+                        console.log('[Server] Dice moves remaining:', diceRolls[roomId].movesRemaining, '- NOT switching player');
+                    } else {
+                        console.log('[Server] All dice moved - will switch player');
+                    }
+                }
+                
                 if(playerWhoJustMoved === "White"){
                     // 白方剛走棋，從白方時間扣除
                     const whiteTime = timer.whiteIsA ? timer.timeA : timer.timeB;
@@ -177,8 +211,10 @@ wss.on('connection', ws => {
                         timer.timeB = newWhiteTime;
                     }
                     
-                    // 切換到黑方
-                    timer.currentPlayer = "Black";
+                    // 只在應該切換時才切換到黑方
+                    if(shouldSwitchPlayer) {
+                        timer.currentPlayer = "Black";
+                    }
                 } else {
                     // 黑方剛走棋，從黑方時間扣除
                     const blackTime = timer.whiteIsA ? timer.timeB : timer.timeA;
@@ -190,8 +226,10 @@ wss.on('connection', ws => {
                         timer.timeA = newBlackTime;
                     }
                     
-                    // 切換到白方
-                    timer.currentPlayer = "White";
+                    // 只在應該切換時才切換到白方
+                    if(shouldSwitchPlayer) {
+                        timer.currentPlayer = "White";
+                    }
                 }
                 
                 // 更新最後切換時間（如果是第一步，這裡開始計時）
@@ -209,18 +247,74 @@ wss.on('connection', ws => {
                     }
                 };
                 
+                // 如果是骰子模式，添加骰子狀態（在重置之前捕獲）
+                if(diceRolls[roomId]) {
+                    moveMessage.diceState = {
+                        movesRemaining: diceRolls[roomId].movesRemaining
+                    };
+                }
+                
+                // 如果骰子模式所有移動完成，重置骰子狀態（在廣播之後才重置）
+                if(diceRolls[roomId] && diceRolls[roomId].movesRemaining <= 0) {
+                    diceRolls[roomId].currentPlayer = timer.currentPlayer;
+                    diceRolls[roomId].movesRemaining = 3;
+                    console.log('[Server] Dice reset for next player:', timer.currentPlayer);
+                }
+                
                 rooms[roomId].forEach(client => {
                     if(client.readyState === WebSocket.OPEN){
+                        console.log('[Server] Broadcasting move to client in room', roomId);
                         client.send(JSON.stringify(moveMessage));
                     }
                 });
+                console.log('[Server] Move broadcast complete. Sent to', rooms[roomId].length, 'clients');
             } else if(rooms[roomId]){
                 // 如果沒有計時器狀態，只廣播移動（向後兼容）
+                console.log('[Server] No game timer - using fallback broadcast for room:', roomId);
                 rooms[roomId].forEach(client => {
                     if(client !== ws && client.readyState === WebSocket.OPEN){
+                        console.log('[Server] Fallback: Broadcasting move to other client');
                         client.send(JSON.stringify(msg));
                     }
                 });
+            } else {
+                console.log('[Server] ERROR: Room not found for move:', roomId);
+            }
+        }
+
+        // 處理骰子請求
+        else if(msg.action === "requestDice"){
+            const roomId = msg.room;
+            console.log('[Server] Dice request for room:', roomId, 'Dice state exists:', !!diceRolls[roomId]);
+            
+            if(rooms[roomId] && diceRolls[roomId]){
+                const numMovablePieces = msg.numMovablePieces || 1;
+                console.log('[Server] Generating dice for', numMovablePieces, 'piece types');
+                
+                // 生成3個隨機索引（可重複）
+                const rolls = [];
+                for(let i = 0; i < 3; i++){
+                    rolls.push(Math.floor(Math.random() * numMovablePieces));
+                }
+                
+                console.log('[Server] Generated rolls:', rolls, 'for player:', diceRolls[roomId].currentPlayer);
+                
+                // 廣播給房間內所有玩家
+                const diceMessage = {
+                    action: "diceRolled",
+                    room: roomId,
+                    rolls: rolls,
+                    currentPlayer: diceRolls[roomId].currentPlayer
+                };
+                
+                rooms[roomId].forEach(client => {
+                    if(client.readyState === WebSocket.OPEN){
+                        client.send(JSON.stringify(diceMessage));
+                    }
+                });
+            } else {
+                console.log('[Server] ERROR: Cannot process dice request - room or dice state not found');
+                console.log('[Server] Room exists:', !!rooms[roomId], 'Dice state exists:', !!diceRolls[roomId]);
             }
         }
 

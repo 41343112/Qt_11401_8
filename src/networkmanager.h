@@ -68,6 +68,7 @@ public:
     void sendDrawResponse(bool accepted);  // 回應和棋請求（接受或拒絕）
     void sendGameOver(const QString& result);
     void sendChat(const QString& message);
+    void requestDiceRoll(int numMovablePieces);  // 請求伺服器生成骰子（骰子模式）
     
     // 玩家顏色管理
     PieceColor getOpponentColor() const { return m_opponentColor; }
@@ -88,12 +89,14 @@ signals:
     void startGameReceived(int whiteTimeMs, int blackTimeMs, int incrementMs, PieceColor hostColor, qint64 serverTimeOffset, const QMap<QString, bool>& gameModes, const std::vector<QPoint>& minePositions);  // 收到開始遊戲通知（包含時間設定、房主顏色、伺服器時間偏移、遊戲模式和地雷位置）
     void timeSettingsReceived(int whiteTimeMs, int blackTimeMs, int incrementMs);  // 收到時間設定更新
     void timerStateReceived(qint64 timeA, qint64 timeB, const QString& currentPlayer, qint64 lastSwitchTime);  // 收到伺服器計時器狀態更新
+    void diceStateReceived(int movesRemaining);  // 收到骰子狀態更新（骰子模式）
     void surrenderReceived();  // 收到投降訊息
     void drawOfferReceived();  // 收到和棋請求
     void drawResponseReceived(bool accepted);  // 收到和棋回應（接受或拒絕）
     void gameOverReceived(const QString& result);
     void chatReceived(const QString& message);
     void opponentDisconnected();
+    void diceRolled(const std::vector<int>& rolls, const QString& currentPlayer);  // 收到骰子結果（骰子模式）
 
 private slots:
     void onConnected();

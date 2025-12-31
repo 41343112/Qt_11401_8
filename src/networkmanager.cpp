@@ -271,6 +271,22 @@ void NetworkManager::sendDrawResponse(bool accepted)
     sendMessage(message);
 }
 
+void NetworkManager::requestDiceRoll(int numMovablePieces)
+{
+    if (m_roomNumber.isEmpty()) {
+        qDebug() << "[NetworkManager::requestDiceRoll] ERROR: Room number is empty";
+        return;
+    }
+    
+    QJsonObject message;
+    message["action"] = "requestDice";
+    message["room"] = m_roomNumber;
+    message["numMovablePieces"] = numMovablePieces;
+    sendMessage(message);
+    
+    qDebug() << "[NetworkManager::requestDiceRoll] Requesting dice roll for" << numMovablePieces << "movable pieces";
+}
+
 void NetworkManager::setPlayerColors(PieceColor playerColor)
 {
     // 設定玩家顏色和對手顏色
@@ -537,6 +553,17 @@ void NetworkManager::processMessage(const QJsonObject& message)
             
             emit timerStateReceived(timeA, timeB, currentPlayer, lastSwitchTime);
         }
+        
+        // 如果訊息包含骰子狀態，處理骰子剩餘移動次數
+        if (message.contains("diceState")) {
+            QJsonObject diceState = message["diceState"].toObject();
+            int movesRemaining = diceState["movesRemaining"].toInt();
+            
+            qDebug() << "[NetworkManager] Dice state update - movesRemaining:" << movesRemaining;
+            
+            // 通知主程式更新骰子剩餘移動次數
+            emit diceStateReceived(movesRemaining);
+        }
     }
     else if (actionStr == "surrender") {
         // 收到對手投降訊息（新格式）
@@ -553,6 +580,17 @@ void NetworkManager::processMessage(const QJsonObject& message)
         bool accepted = message["accepted"].toBool();
         qDebug() << "[NetworkManager] Opponent draw response:" << (accepted ? "accepted" : "declined");
         emit drawResponseReceived(accepted);
+    }
+    else if (actionStr == "diceRolled") {
+        // 收到伺服器的骰子結果
+        QJsonArray rollsArray = message["rolls"].toArray();
+        std::vector<int> rolls;
+        for (const QJsonValue& value : rollsArray) {
+            rolls.push_back(value.toInt());
+        }
+        QString currentPlayer = message["currentPlayer"].toString();
+        qDebug() << "[NetworkManager] Received dice rolls:" << rolls.size() << "rolls for player:" << currentPlayer;
+        emit diceRolled(rolls, currentPlayer);
     }
     else if (actionStr == "playerLeft") {
         // 對手離開房間（遊戲開始前）
