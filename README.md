@@ -286,12 +286,18 @@ make
 - `chessboard.h/cpp` - 遊戲棋盤邏輯和規則
 - `chesspiece.h/cpp` - 棋子定義和移動驗證
 - `chessengine.h/cpp` - Stockfish 引擎整合，支援人機對弈
+- `networkmanager.h/cpp` - WebSocket 網路管理器，支援線上對戰
 - `soundsettingsdialog.h/cpp` - 自訂音訊的音效設定對話框
 - `pieceiconsettingsdialog.h/cpp` - 自訂棋子圖形的圖標設定對話框
 - `boardcolorsettingsdialog.h/cpp` - 自訂棋盤顏色的顏色設定對話框
+- `updatechecker.h/cpp` - 版本更新檢查器
+- `onlinedialog.h/cpp` - 線上遊戲設定對話框
+- `theme.h` - 主題顏色常數定義
 - `qt_chess.ui` - Qt UI 設計檔案
 - `resources.qrc` - 嵌入音效檔案的 Qt 資源檔案
 - `engine/` - Stockfish 西洋棋引擎目錄
+
+📖 **詳細程式碼說明請參閱 [src 目錄程式碼詳細說明](docs/SRC_CODE_EXPLANATION.md)** - 完整解釋所有 src 檔案的內容、功能和架構
 
 ## 授權條款
 
