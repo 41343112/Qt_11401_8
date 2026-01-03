@@ -527,6 +527,7 @@ private:
     void markPieceTypeAsMoved(PieceType type);  // 標記骰出的棋子類型已移動一次
     bool allRolledPiecesMoved() const;   // 檢查是否所有骰出的棋子都已移動
     std::vector<QPoint> getMovablePieces(PieceColor color) const;  // 獲取當前可移動的棋子列表
+    bool canPieceTypeMove(PieceType type, PieceColor color) const;  // 檢查該類型棋子是否存在且有合法移動
     
     // ========================================
     // 音效系統 (Sound System)

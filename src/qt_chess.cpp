@@ -8849,6 +8849,32 @@ std::vector<QPoint> Qt_Chess::getMovablePieces(PieceColor color) const {
     return movablePieces;
 }
 
+// 檢查該類型棋子是否存在且有合法移動
+bool Qt_Chess::canPieceTypeMove(PieceType type, PieceColor color) const {
+    // 遍歷棋盤，尋找指定類型和顏色的棋子
+    for (int row = 0; row < 8; ++row) {
+        for (int col = 0; col < 8; ++col) {
+            const ChessPiece& piece = m_chessBoard.getPiece(row, col);
+            // 檢查是否是目標類型和顏色的棋子
+            if (piece.getType() == type && piece.getColor() == color) {
+                QPoint from(col, row);
+                
+                // 檢查這個棋子是否有任何合法移動
+                for (int toRow = 0; toRow < 8; ++toRow) {
+                    for (int toCol = 0; toCol < 8; ++toCol) {
+                        QPoint to(toCol, toRow);
+                        if (m_chessBoard.isValidMove(from, to)) {
+                            return true;  // 找到一個合法移動，該類型棋子可以移動
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    return false;  // 沒有找到該類型的棋子，或該類型的所有棋子都沒有合法移動
+}
+
 // 為當前回合骰出3個棋子類型
 void Qt_Chess::rollDiceForTurn() {
     if (!m_diceModeEnabled || !m_isOnlineGame) {
@@ -9082,8 +9108,13 @@ void Qt_Chess::updateDiceDisplay() {
                 QString displayText = QString("%1\n(剩%2)").arg(pieceTypeName).arg(remainingMoves);
                 label->setText(displayText);
                 
-                // 如果棋子已移動，灰階顯示
-                if (remainingMoves <= 0) {
+                // 判斷是否應該灰階顯示：
+                // 1. 剩餘移動次數已用完，或
+                // 2. 該類型棋子已不存在或沒有合法移動
+                PieceColor diceOwnerColor = m_chessBoard.getCurrentPlayer();
+                bool canMove = canPieceTypeMove(type, diceOwnerColor);
+                
+                if (remainingMoves <= 0 || !canMove) {
                     label->setStyleSheet(QString(
                         "QLabel { "
                         "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1, "
