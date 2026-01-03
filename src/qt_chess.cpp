@@ -2562,7 +2562,8 @@ void Qt_Chess::onSquareClicked(int displayRow, int displayCol) {
                 
                 if (opponentInCheck && !opponentInCheckmate && !allRolledPiecesMoved()) {
                     willCauseCheckInterruption = true;
-                    diceMovesSaved = m_diceMovesRemaining;
+                    // 計算完成當前移動後的剩餘移動次數
+                    diceMovesSaved = m_diceMovesRemaining - 1;
                     qDebug() << "[Qt_Chess] Move will cause check interruption, saving" << diceMovesSaved << "moves";
                 }
             }
@@ -3725,7 +3726,8 @@ void Qt_Chess::mouseReleaseEvent(QMouseEvent *event) {
                     
                     if (opponentInCheck && !opponentInCheckmate && !allRolledPiecesMoved()) {
                         willCauseCheckInterruption = true;
-                        diceMovesSaved = m_diceMovesRemaining;
+                        // 計算完成當前移動後的剩餘移動次數
+                        diceMovesSaved = m_diceMovesRemaining - 1;
                         qDebug() << "[Qt_Chess] Move (drag) will cause check interruption, saving" << diceMovesSaved << "moves";
                     }
                 }
