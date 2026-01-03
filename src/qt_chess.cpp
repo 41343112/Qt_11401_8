@@ -7003,6 +7003,9 @@ void Qt_Chess::onStartGameReceived(int whiteTimeMs, int blackTimeMs, int increme
         if (m_blackTimeProgressBar) {
             m_blackTimeProgressBar->show();
         }
+        
+        // 在顯示標籤後立即更新時間顯示，確保時間正確顯示
+        updateTimeDisplays();
     } else {
         // 隱藏時間標籤和進度條
         if (m_whiteTimeLabel) m_whiteTimeLabel->hide();
