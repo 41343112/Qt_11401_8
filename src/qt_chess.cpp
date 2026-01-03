@@ -2514,8 +2514,21 @@ void Qt_Chess::onSquareClicked(int displayRow, int displayCol) {
                 qDebug() << "[Qt_Chess] Timer started after first move";
             }
             
-            // 為剛完成移動的玩家應用時間增量（第一步棋不應用增量）
-            if (!isFirstMove) {
+            // 為剛完成移動的玩家應用時間增量
+            // 第一步棋也需要調用此函數以重置對手的回合計時器
+            if (isFirstMove) {
+                // 第一步棋不添加增量，但需要重置回合計時器
+                if (m_isOnlineGame && m_gameStartLocalTime > 0) {
+                    m_currentTurnStartTime = QDateTime::currentMSecsSinceEpoch() + m_serverTimeOffset;
+                    // 更新對手的初始時間（用於計算經過時間）
+                    PieceColor currentPlayer = m_chessBoard.getCurrentPlayer();
+                    if (currentPlayer == PieceColor::White) {
+                        m_whiteInitialTimeMs = m_whiteTimeMs;
+                    } else {
+                        m_blackInitialTimeMs = m_blackTimeMs;
+                    }
+                }
+            } else {
                 applyIncrement();
             }
 
@@ -3717,8 +3730,21 @@ void Qt_Chess::mouseReleaseEvent(QMouseEvent *event) {
                     qDebug() << "[Qt_Chess] Timer started after first move (drag)";
                 }
 
-                // 應用時間增量給剛完成移動的玩家（第一步棋不應用增量）
-                if (!isFirstMove) {
+                // 為剛完成移動的玩家應用時間增量
+                // 第一步棋也需要調用此函數以重置對手的回合計時器
+                if (isFirstMove) {
+                    // 第一步棋不添加增量，但需要重置回合計時器
+                    if (m_isOnlineGame && m_gameStartLocalTime > 0) {
+                        m_currentTurnStartTime = QDateTime::currentMSecsSinceEpoch() + m_serverTimeOffset;
+                        // 更新對手的初始時間（用於計算經過時間）
+                        PieceColor currentPlayer = m_chessBoard.getCurrentPlayer();
+                        if (currentPlayer == PieceColor::White) {
+                            m_whiteInitialTimeMs = m_whiteTimeMs;
+                        } else {
+                            m_blackInitialTimeMs = m_blackTimeMs;
+                        }
+                    }
+                } else {
                     applyIncrement();
                 }
 
@@ -5718,8 +5744,21 @@ void Qt_Chess::onEngineBestMove(const QString& move) {
             qDebug() << "[Qt_Chess] Timer started after first move (engine)";
         }
         
-        // 為剛完成移動的玩家應用時間增量（第一步棋不應用增量）
-        if (!isFirstMove) {
+        // 為剛完成移動的玩家應用時間增量
+        // 第一步棋也需要調用此函數以重置對手的回合計時器
+        if (isFirstMove) {
+            // 第一步棋不添加增量，但需要重置回合計時器
+            if (m_isOnlineGame && m_gameStartLocalTime > 0) {
+                m_currentTurnStartTime = QDateTime::currentMSecsSinceEpoch() + m_serverTimeOffset;
+                // 更新對手的初始時間（用於計算經過時間）
+                PieceColor currentPlayer = m_chessBoard.getCurrentPlayer();
+                if (currentPlayer == PieceColor::White) {
+                    m_whiteInitialTimeMs = m_whiteTimeMs;
+                } else {
+                    m_blackInitialTimeMs = m_blackTimeMs;
+                }
+            }
+        } else {
             applyIncrement();
         }
         
