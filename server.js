@@ -203,17 +203,16 @@ wss.on('connection', ws => {
             
             if(rooms[roomId] && gameTimers[roomId]){
                 const timer = gameTimers[roomId];
-                const currentTime = Math.floor(Date.now() / 1000);  // UNIX 秒數
+                const currentTime = Date.now();  // 保持毫秒精度
                 
                 // 檢查是否為第一步棋（計時器尚未啟動）
                 const isFirstMove = (timer.lastSwitchTime === null);
                 
-                // 計算經過的時間
+                // 計算經過的時間（毫秒）
                 let elapsedMs = 0;
                 if (!isFirstMove) {
                     // 不是第一步，計算經過的時間
-                    const elapsed = currentTime - timer.lastSwitchTime;
-                    elapsedMs = elapsed * 1000;
+                    elapsedMs = currentTime - timer.lastSwitchTime;
                 }
                 // 如果是第一步，elapsedMs 保持為 0，不扣除時間
                 
@@ -292,7 +291,7 @@ wss.on('connection', ws => {
                 
                 // 更新最後切換時間（如果是第一步，這裡開始計時）
                 // 加上緩衝時間以補償網路延遲，確保客戶端收到訊息時不會扣錯時間
-                timer.lastSwitchTime = currentTime + 1;  // 加 1 秒緩衝
+                timer.lastSwitchTime = currentTime + 1000;  // 加 1000 毫秒 (1 秒) 緩衝
                 
                 // 如果骰子模式所有移動完成，檢查是否需要恢復中斷的玩家（在廣播之前）
                 if(diceRolls[roomId] && diceRolls[roomId].movesRemaining <= 0) {
