@@ -2617,9 +2617,11 @@ void Qt_Chess::onSquareClicked(int displayRow, int displayCol) {
                     handleGameEnd();
                     QString winner = (opponentColor == PieceColor::White) ? "黑方" : "白方";
                     QMessageBox::information(this, "遊戲結束", QString("將死！%1獲勝！").arg(winner));
-                } else if (opponentInCheck && !opponentInCheckmate && !allRolledPiecesMoved()) {
-                // 如果對方被將軍但不是將死，且當前玩家還有骰子沒移動完，才需要中斷
-                // 注意：這裡不應該再設置 m_diceRespondingToCheck，因為已經在上面統一處理了
+                } else if (opponentInCheck && !opponentInCheckmate && m_diceMovesRemaining > 0) {
+                // 如果對方被將軍但不是將死，且當前玩家還有骰子沒移動完（基於移動次數計數器）
+                // 注意：這裡使用 m_diceMovesRemaining 而不是 allRolledPiecesMoved()，
+                // 因為 allRolledPiecesMoved() 檢查灰階狀態（包括被吃或被擋的棋子），
+                // 而將軍中斷應該只在玩家計劃還有移動次數時才發生
                     qDebug() << "[Qt_Chess] Dice mode: Opponent in check but not checkmate, interrupting turn";
                     
                     // 保存當前骰子狀態
@@ -3807,8 +3809,11 @@ void Qt_Chess::mouseReleaseEvent(QMouseEvent *event) {
                         handleGameEnd();
                         QString winner = (opponentColor == PieceColor::White) ? "黑方" : "白方";
                         QMessageBox::information(this, "遊戲結束", QString("將死！%1獲勝！").arg(winner));
-                    } else if (opponentInCheck && !opponentInCheckmate && !allRolledPiecesMoved()) {
-                    // 如果對方被將軍但不是將死，且當前玩家還有骰子沒移動完
+                    } else if (opponentInCheck && !opponentInCheckmate && m_diceMovesRemaining > 0) {
+                    // 如果對方被將軍但不是將死，且當前玩家還有骰子沒移動完（基於移動次數計數器）
+                    // 注意：這裡使用 m_diceMovesRemaining 而不是 allRolledPiecesMoved()，
+                    // 因為 allRolledPiecesMoved() 檢查灰階狀態（包括被吃或被擋的棋子），
+                    // 而將軍中斷應該只在玩家計劃還有移動次數時才發生
                         qDebug() << "[Qt_Chess] Dice mode (drag): Opponent in check but not checkmate, interrupting turn";
                         
                         // 保存當前骰子狀態
