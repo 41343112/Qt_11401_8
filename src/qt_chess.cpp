@@ -2047,15 +2047,24 @@ void Qt_Chess::updateStatus() {
         }
         handleGameEnd();
         QString winner = (currentPlayer == PieceColor::White) ? "黑方" : "白方";
-        QMessageBox::information(this, "遊戲結束", QString("將死！%1獲勝！").arg(winner));
+        
+        // 在線上遊戲中，立即發送遊戲結束訊息，不阻塞
+        // 使用 QTimer::singleShot 延遲顯示對話框，確保網路訊息先發送
+        QTimer::singleShot(100, this, [this, winner]() {
+            QMessageBox::information(this, "遊戲結束", QString("將死！%1獲勝！").arg(winner));
+        });
     } else if (m_chessBoard.isStalemate(currentPlayer)) {
         m_chessBoard.setGameResult(GameResult::Draw);
         handleGameEnd();
-        QMessageBox::information(this, "遊戲結束", "逼和！對局和棋。");
+        QTimer::singleShot(100, this, [this]() {
+            QMessageBox::information(this, "遊戲結束", "逼和！對局和棋。");
+        });
     } else if (m_chessBoard.isInsufficientMaterial()) {
         m_chessBoard.setGameResult(GameResult::Draw);
         handleGameEnd();
-        QMessageBox::information(this, "遊戲結束", "子力不足以將死！對局和棋。");
+        QTimer::singleShot(100, this, [this]() {
+            QMessageBox::information(this, "遊戲結束", "子力不足以將死！對局和棋。");
+        });
     }
 }
 
@@ -2616,7 +2625,10 @@ void Qt_Chess::onSquareClicked(int displayRow, int displayCol) {
                         }
                         handleGameEnd();
                         QString winner = (opponentColor == PieceColor::White) ? "黑方" : "白方";
-                        QMessageBox::information(this, "遊戲結束", QString("將死！%1獲勝！").arg(winner));
+                        // 延遲顯示對話框，讓網路訊息先發送
+                        QTimer::singleShot(100, this, [this, winner]() {
+                            QMessageBox::information(this, "遊戲結束", QString("將死！%1獲勝！").arg(winner));
+                        });
                     } else {
                         qDebug() << "[Qt_Chess] Checkmate already handled by updateStatus(), skipping duplicate dialog";
                     }
@@ -3817,7 +3829,10 @@ void Qt_Chess::mouseReleaseEvent(QMouseEvent *event) {
                             }
                             handleGameEnd();
                             QString winner = (opponentColor == PieceColor::White) ? "黑方" : "白方";
-                            QMessageBox::information(this, "遊戲結束", QString("將死！%1獲勝！").arg(winner));
+                            // 延遲顯示對話框，讓網路訊息先發送
+                            QTimer::singleShot(100, this, [this, winner]() {
+                                QMessageBox::information(this, "遊戲結束", QString("將死！%1獲勝！").arg(winner));
+                            });
                         } else {
                             qDebug() << "[Qt_Chess] Checkmate already handled by updateStatus() (drag), skipping duplicate dialog";
                         }
@@ -7160,8 +7175,10 @@ void Qt_Chess::onGameOverReceived(const QString& result) {
     // 處理遊戲結束
     handleGameEnd();
     
-    // 顯示訊息
-    QMessageBox::information(this, "遊戲結束", message);
+    // 延遲顯示訊息，確保遊戲結束處理完成
+    QTimer::singleShot(100, this, [this, message]() {
+        QMessageBox::information(this, "遊戲結束", message);
+    });
 }
 
 void Qt_Chess::onDrawOfferReceived() {
@@ -7673,28 +7690,29 @@ bool Qt_Chess::isOnlineTurn() const {
 }
 
 void Qt_Chess::showRoomInfoDialog(const QString& roomNumber) {
-    // 創建自訂對話框
-    QDialog dialog(this);
-    dialog.setWindowTitle(tr("🎉 房間已創建！"));
-    dialog.setMinimumWidth(450);
+    // 創建自訂對話框（使用指標以便自動管理生命週期）
+    QDialog* dialog = new QDialog(this);
+    dialog->setWindowTitle(tr("🎉 房間已創建！"));
+    dialog->setMinimumWidth(450);
+    dialog->setAttribute(Qt::WA_DeleteOnClose);  // 關閉時自動刪除
     
-    QVBoxLayout* layout = new QVBoxLayout(&dialog);
+    QVBoxLayout* layout = new QVBoxLayout(dialog);
     
     // 標題
-    QLabel* titleLabel = new QLabel(tr("<h2>✅ 房間創建成功！</h2>"), &dialog);
+    QLabel* titleLabel = new QLabel(tr("<h2>✅ 房間創建成功！</h2>"), dialog);
     titleLabel->setAlignment(Qt::AlignCenter);
     titleLabel->setStyleSheet("QLabel { color: #4CAF50; padding: 10px; }");
     layout->addWidget(titleLabel);
     
     // 說明文字
     QLabel* instructionLabel = new QLabel(
-        tr("<p><b>📱 請將以下房號傳給您的朋友：</b></p>"), &dialog);
+        tr("<p><b>📱 請將以下房號傳給您的朋友：</b></p>"), dialog);
     instructionLabel->setWordWrap(true);
     instructionLabel->setStyleSheet("QLabel { font-size: 11pt; padding: 5px; }");
     layout->addWidget(instructionLabel);
     
     // 房號顯示（大字體，可選取）
-    QTextEdit* codeEdit = new QTextEdit(&dialog);
+    QTextEdit* codeEdit = new QTextEdit(dialog);
     codeEdit->setPlainText(roomNumber);
     codeEdit->setReadOnly(true);
     codeEdit->setMaximumHeight(60);
@@ -7708,7 +7726,7 @@ void Qt_Chess::showRoomInfoDialog(const QString& roomNumber) {
     
     // 顯示選擇的遊戲模式
     if (!m_selectedGameModes.isEmpty()) {
-        QGroupBox* gameModeGroup = new QGroupBox(tr("🎯 已選擇的遊戲模式"), &dialog);
+        QGroupBox* gameModeGroup = new QGroupBox(tr("🎯 已選擇的遊戲模式"), dialog);
         gameModeGroup->setStyleSheet("QGroupBox { font-weight: bold; color: #2196F3; padding: 10px; }");
         QVBoxLayout* gameModeLayout = new QVBoxLayout(gameModeGroup);
         
@@ -7717,7 +7735,7 @@ void Qt_Chess::showRoomInfoDialog(const QString& roomNumber) {
         while (it.hasNext()) {
             it.next();
             if (it.value()) {
-                QLabel* modeLabel = new QLabel("✓ " + it.key(), &dialog);
+                QLabel* modeLabel = new QLabel("✓ " + it.key(), dialog);
                 modeLabel->setStyleSheet("QLabel { font-size: 10pt; padding: 3px; color: #4CAF50; }");
                 gameModeLayout->addWidget(modeLabel);
                 hasSelectedMode = true;
@@ -7725,7 +7743,7 @@ void Qt_Chess::showRoomInfoDialog(const QString& roomNumber) {
         }
         
         if (!hasSelectedMode) {
-            QLabel* noModeLabel = new QLabel(tr("未選擇特殊模式"), &dialog);
+            QLabel* noModeLabel = new QLabel(tr("未選擇特殊模式"), dialog);
             noModeLabel->setStyleSheet("QLabel { font-size: 10pt; padding: 3px; color: #666; }");
             gameModeLayout->addWidget(noModeLabel);
         }
@@ -7734,13 +7752,13 @@ void Qt_Chess::showRoomInfoDialog(const QString& roomNumber) {
     }
     
     // 複製按鈕
-    QPushButton* copyButton = new QPushButton(tr("📋 複製房號"), &dialog);
+    QPushButton* copyButton = new QPushButton(tr("📋 複製房號"), dialog);
     copyButton->setStyleSheet("QPushButton { background-color: #4CAF50; color: white; padding: 10px; font-size: 12pt; font-weight: bold; border-radius: 5px; }");
-    connect(copyButton, &QPushButton::clicked, [&dialog, roomNumber]() {
+    connect(copyButton, &QPushButton::clicked, [dialog, roomNumber]() {
         QClipboard* clipboard = QApplication::clipboard();
         clipboard->setText(roomNumber);
-        // 複製後關閉對話框
-        dialog.accept();
+        // 複製後自動關閉對話框
+        dialog->accept();
     });
     layout->addWidget(copyButton);
     
@@ -7752,17 +7770,25 @@ void Qt_Chess::showRoomInfoDialog(const QString& roomNumber) {
            "房間號碼：<span style='color: #2196F3; font-weight: bold;'>%1</span></p>"
            "<p style='color: #666; font-size: 9pt;'>"
            "💡 朋友收到房號後，選擇「加入房間」並貼上即可<br>"
-           "🌐 使用中央伺服器，無需設定網路或防火牆</p>").arg(roomNumber), &dialog);
+           "🌐 使用中央伺服器，無需設定網路或防火牆</p>").arg(roomNumber), dialog);
     detailLabel->setWordWrap(true);
     detailLabel->setStyleSheet("QLabel { padding: 10px; background-color: #f5f5f5; border-radius: 5px; }");
     layout->addWidget(detailLabel);
     
     layout->addSpacing(10);
     
+    // 添加關閉按鈕
+    QPushButton* closeButton = new QPushButton(tr("關閉"), dialog);
+    closeButton->setStyleSheet("QPushButton { padding: 8px; font-size: 11pt; }");
+    connect(closeButton, &QPushButton::clicked, dialog, &QDialog::accept);
+    layout->addWidget(closeButton);
+    
     // 更新房間資訊標籤顯示房號
     m_roomInfoLabel->setText(QString("🎮 房號: %1").arg(roomNumber));
     
-    dialog.exec();
+    // 使用 show() 而不是 exec()，讓對話框非阻塞
+    // 這樣即使對話框開著，其他玩家加入房間也不會被阻塞
+    dialog->show();
 }
 
 // ============================================================================
