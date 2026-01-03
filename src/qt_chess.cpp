@@ -2309,12 +2309,39 @@ PieceType Qt_Chess::showPromotionDialog(PieceColor color) {
     QDialog dialog(this);
     dialog.setWindowTitle("兵升變");
     dialog.setModal(true);
+    
+    // 應用歐式古典風格
+    dialog.setStyleSheet(QString(
+        "QDialog { "
+        "  background-color: %1; "
+        "}"
+        "QLabel { "
+        "  color: %2; "
+        "}"
+        "QPushButton { "
+        "  background-color: %3; "
+        "  color: %2; "
+        "  border: 2px solid %4; "
+        "  border-radius: 6px; "
+        "  font-weight: 500; "
+        "}"
+        "QPushButton:hover { "
+        "  background-color: %5; "
+        "  border-color: %6; "
+        "  color: %6; "
+        "}"
+        "QPushButton:pressed { "
+        "  background-color: %4; "
+        "}"
+    ).arg(THEME_BG_MEDIUM, THEME_TEXT_PRIMARY, THEME_BG_PANEL, 
+          THEME_BORDER, THEME_BG_DARK, THEME_ACCENT_PRIMARY));
 
     QVBoxLayout* layout = new QVBoxLayout(&dialog);
 
     QLabel* label = new QLabel("選擇升變的棋子：", &dialog);
     QFont font = label->font();
     font.setPointSize(12);
+    font.setBold(true);
     label->setFont(font);
     label->setAlignment(Qt::AlignCenter);
     layout->addWidget(label);
