@@ -37,9 +37,9 @@ function checkRateLimit(ws) {
     return true;
 }
 
-// 生成 6 位數字房號（增加到 900,000 個可能性以降低碰撞風險）
+// 生成 4 位數字房號
 function generateRoomId() {
-    return Math.floor(100000 + Math.random() * 900000).toString();
+    return Math.floor(1000 + Math.random() * 9000).toString();
 }
 
 // 處理玩家離開房間的共用邏輯
