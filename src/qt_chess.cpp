@@ -2560,11 +2560,12 @@ void Qt_Chess::onSquareClicked(int displayRow, int displayCol) {
                 
                 qDebug() << "[Qt_Chess] Check interruption check: opponentInCheck=" << opponentInCheck
                          << "opponentInCheckmate=" << opponentInCheckmate
-                         << "allRolledPiecesMoved=" << allRolledPiecesMoved();
+                         << "m_diceMovesRemaining=" << m_diceMovesRemaining;
                 
                 // 只有在將軍但非將殺的情況下才中斷
                 // 如果是將殺，不中斷，讓遊戲正常結束
-                if (opponentInCheck && !opponentInCheckmate && !allRolledPiecesMoved()) {
+                // 注意：這裡檢查 m_diceMovesRemaining - 1 > 0，因為當前移動還沒有被標記
+                if (opponentInCheck && !opponentInCheckmate && m_diceMovesRemaining - 1 > 0) {
                     willCauseCheckInterruption = true;
                     // 計算完成當前移動後的剩餘移動次數
                     diceMovesSaved = m_diceMovesRemaining - 1;
@@ -3752,11 +3753,12 @@ void Qt_Chess::mouseReleaseEvent(QMouseEvent *event) {
                     
                     qDebug() << "[Qt_Chess] Check interruption check (drag): opponentInCheck=" << opponentInCheck
                              << "opponentInCheckmate=" << opponentInCheckmate
-                             << "allRolledPiecesMoved=" << allRolledPiecesMoved();
+                             << "m_diceMovesRemaining=" << m_diceMovesRemaining;
                     
                     // 只有在將軍但非將殺的情況下才中斷
                     // 如果是將殺，不中斷，讓遊戲正常結束
-                    if (opponentInCheck && !opponentInCheckmate && !allRolledPiecesMoved()) {
+                    // 注意：這裡檢查 m_diceMovesRemaining - 1 > 0，因為當前移動還沒有被標記
+                    if (opponentInCheck && !opponentInCheckmate && m_diceMovesRemaining - 1 > 0) {
                         willCauseCheckInterruption = true;
                         // 計算完成當前移動後的剩餘移動次數
                         diceMovesSaved = m_diceMovesRemaining - 1;
