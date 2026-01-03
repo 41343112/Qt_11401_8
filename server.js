@@ -254,6 +254,29 @@ wss.on('connection', ws => {
                 // 加上緩衝時間以補償網路延遲，確保客戶端收到訊息時不會扣錯時間
                 timer.lastSwitchTime = currentTime + 1;  // 加 1 秒緩衝
                 
+                // 如果骰子模式所有移動完成，重置或恢復骰子狀態（在廣播之前）
+                if(diceRolls[roomId] && diceRolls[roomId].movesRemaining <= 0) {
+                    // 檢查是否有被中斷的玩家需要恢復
+                    if(diceRolls[roomId].interruptedPlayer && diceRolls[roomId].savedMovesRemaining > 0) {
+                        // 有被中斷的玩家，恢復他們的回合而不是開始新回合
+                        console.log('[Server] Restoring interrupted player:', diceRolls[roomId].interruptedPlayer);
+                        timer.currentPlayer = diceRolls[roomId].interruptedPlayer;
+                        diceRolls[roomId].currentPlayer = diceRolls[roomId].interruptedPlayer;
+                        diceRolls[roomId].movesRemaining = diceRolls[roomId].savedMovesRemaining;
+                        
+                        // 清除中斷狀態
+                        delete diceRolls[roomId].interruptedPlayer;
+                        delete diceRolls[roomId].savedMovesRemaining;
+                        
+                        console.log('[Server] Turn restored to:', timer.currentPlayer, 'with', diceRolls[roomId].movesRemaining, 'moves remaining');
+                    } else {
+                        // 正常情況：重置骰子給下一個玩家
+                        diceRolls[roomId].currentPlayer = timer.currentPlayer;
+                        diceRolls[roomId].movesRemaining = 3;
+                        console.log('[Server] Dice reset for next player:', timer.currentPlayer);
+                    }
+                }
+                
                 // 廣播移動訊息和計時器狀態
                 const moveMessage = {
                     ...msg,
@@ -265,18 +288,11 @@ wss.on('connection', ws => {
                     }
                 };
                 
-                // 如果是骰子模式，添加骰子狀態（在重置之前捕獲）
+                // 如果是骰子模式，添加骰子狀態
                 if(diceRolls[roomId]) {
                     moveMessage.diceState = {
                         movesRemaining: diceRolls[roomId].movesRemaining
                     };
-                }
-                
-                // 如果骰子模式所有移動完成，重置骰子狀態（在廣播之後才重置）
-                if(diceRolls[roomId] && diceRolls[roomId].movesRemaining <= 0) {
-                    diceRolls[roomId].currentPlayer = timer.currentPlayer;
-                    diceRolls[roomId].movesRemaining = 3;
-                    console.log('[Server] Dice reset for next player:', timer.currentPlayer);
                 }
                 
                 rooms[roomId].forEach(client => {
