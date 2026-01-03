@@ -2364,11 +2364,31 @@ PieceType Qt_Chess::showPromotionDialog(PieceColor color) {
     PieceType selectedType = PieceType::Queen; // 預設為后
 
     for (const auto& option : options) {
-        QPushButton* button = new QPushButton(option.symbol, &dialog);
+        QPushButton* button = new QPushButton(&dialog);
         button->setMinimumSize(80, 80);
-        QFont buttonFont;
-        buttonFont.setPointSize(36);
-        button->setFont(buttonFont);
+        
+        // 根據使用者設定顯示圖示或符號
+        if (m_pieceIconSettings.useCustomIcons) {
+            QPixmap pixmap = getCachedPieceIcon(option.type, color);
+            if (!pixmap.isNull()) {
+                // 使用自訂圖示
+                QIcon icon(pixmap);
+                button->setIcon(icon);
+                button->setIconSize(QSize(64, 64));
+            } else {
+                // 如果圖示無法載入則回退到符號
+                button->setText(option.symbol);
+                QFont buttonFont;
+                buttonFont.setPointSize(36);
+                button->setFont(buttonFont);
+            }
+        } else {
+            // 使用 Unicode 符號
+            button->setText(option.symbol);
+            QFont buttonFont;
+            buttonFont.setPointSize(36);
+            button->setFont(buttonFont);
+        }
 
         connect(button, &QPushButton::clicked, [&dialog, &selectedType, option]() {
             selectedType = option.type;
