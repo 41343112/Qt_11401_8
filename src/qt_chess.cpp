@@ -59,20 +59,20 @@ const int RELEASE_NOTES_PREVIEW_LENGTH = 200; // 更新說明預覽的字元數
 const QString WHITE_PIECE_COLOR = "#FFFFFF"; // 白色棋子顏色
 const QString BLACK_PIECE_COLOR = "#000000"; // 黑色棋子顏色
 
-// 上一步移動高亮顏色 - 現代科技風格的青色/霓虹色調
-const QString LAST_MOVE_LIGHT_COLOR = "#7FDBDB";  // 淺色格子的高亮（科技青色）
-const QString LAST_MOVE_DARK_COLOR = "#4ECDC4";   // 深色格子的高亮（霓虹青色）
+// 上一步移動高亮顏色 - 簡約風格的淺灰色調
+const QString LAST_MOVE_LIGHT_COLOR = "#D0D0D0";  // 淺色格子的高亮（淺灰）
+const QString LAST_MOVE_DARK_COLOR = "#B0B0B0";   // 深色格子的高亮（中灰）
 
-// ===== 現代科技風格主題顏色（基於 chess.jpg 的霓虹電路板主題）=====
-const QString THEME_BG_DARK = "#0A1628";           // 深色背景（深藍黑色）
-const QString THEME_BG_MEDIUM = "#0D1F3C";         // 中等深度背景（深藍色）
-const QString THEME_BG_PANEL = "#0F2940";          // 面板背景（霓虹藍色調）
-const QString THEME_ACCENT_PRIMARY = "#00FFFF";    // 主要強調色（霓虹青色）
-const QString THEME_ACCENT_SECONDARY = "#FF9955";  // 次要強調色（霓虹橙色）
-const QString THEME_ACCENT_SUCCESS = "#00D9FF";    // 成功色（青色）
-const QString THEME_ACCENT_WARNING = "#FFB366";    // 警告色（霓虹橙黃色）
-const QString THEME_TEXT_PRIMARY = "#E8F4F8";      // 主要文字顏色（淺青白色）
-const QString THEME_BORDER = "#1A3F5C";            // 邊框顏色（深青藍色）
+// ===== 簡約風格主題顏色（Minimalist Design Theme）=====
+const QString THEME_BG_DARK = "#F5F5F5";           // 淺灰背景
+const QString THEME_BG_MEDIUM = "#FAFAFA";         // 極淺灰背景
+const QString THEME_BG_PANEL = "#FFFFFF";          // 白色面板
+const QString THEME_ACCENT_PRIMARY = "#2C2C2C";    // 深灰（主要強調）
+const QString THEME_ACCENT_SECONDARY = "#666666";  // 中灰（次要強調）
+const QString THEME_ACCENT_SUCCESS = "#4A4A4A";    // 成功色（深中灰）
+const QString THEME_ACCENT_WARNING = "#757575";    // 警告色（中灰）
+const QString THEME_TEXT_PRIMARY = "#333333";      // 深灰文字
+const QString THEME_BORDER = "#E0E0E0";            // 淺灰邊框
 
 // 視窗大小的佈局常數
 const int PANEL_SPACING = 10;          // 面板之間的間距
@@ -291,7 +291,7 @@ Qt_Chess::Qt_Chess(QWidget *parent)
     , m_backToMenuButton(nullptr)
 {
     ui->setupUi(this);
-    setWindowTitle("♔ 國際象棋 - 科技對弈 ♚");
+    setWindowTitle("♔ 國際象棋 ♚");
     resize(900, 660);  // 增加寬度以容納時間控制面板
 
     // 設置最小視窗大小以確保所有內容都能完整顯示而不被裁切
@@ -406,11 +406,10 @@ void Qt_Chess::setupUI() {
         "QLabel { "
         "  color: %1; "
         "  padding: 8px; "
-        "  background: qlineargradient(x1:0, y1:0, x2:1, y2:0, "
-        "    stop:0 transparent, stop:0.5 rgba(0, 255, 255, 0.2), stop:1 transparent); "
-        "  border-bottom: 2px solid %1; "
+        "  background-color: %2; "
+        "  border-bottom: 1px solid %3; "
         "}"
-    ).arg(THEME_ACCENT_PRIMARY));
+    ).arg(THEME_TEXT_PRIMARY, THEME_BG_PANEL, THEME_BORDER));
     moveListLayout->addWidget(m_moveListTitle);
 
     m_moveListWidget = new QListWidget(m_moveListPanel);
@@ -446,7 +445,7 @@ void Qt_Chess::setupUI() {
     m_diceDisplayTitle->setAlignment(Qt::AlignCenter);
     m_diceDisplayTitle->setStyleSheet(QString(
         "QLabel { color: %1; padding: 5px; }"
-    ).arg(THEME_ACCENT_PRIMARY));
+    ).arg(THEME_TEXT_PRIMARY));
     diceDisplayLayout->addWidget(m_diceDisplayTitle);
     
     // 創建3個骰子顯示標籤
@@ -456,15 +455,14 @@ void Qt_Chess::setupUI() {
         diceLabel->setMinimumHeight(70);
         diceLabel->setStyleSheet(QString(
             "QLabel { "
-            "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1, "
-            "    stop:0 rgba(33, 150, 243, 0.3), stop:1 rgba(26, 26, 46, 0.95)); "
-            "  color: %1; "
-            "  border: 2px solid %2; "
-            "  border-radius: 8px; "
+            "  background-color: %1; "
+            "  color: %2; "
+            "  border: 1px solid %3; "
+            "  border-radius: 4px; "
             "  padding: 5px; "
             "  font-size: 11pt; "
             "}"
-        ).arg(THEME_TEXT_PRIMARY, THEME_ACCENT_PRIMARY));
+        ).arg(THEME_BG_PANEL, THEME_TEXT_PRIMARY, THEME_BORDER));
         diceLabel->setWordWrap(true);
         diceDisplayLayout->addWidget(diceLabel);
         m_diceDisplayLabels.append(diceLabel);
@@ -498,7 +496,7 @@ void Qt_Chess::setupUI() {
         "  padding: 6px; "
         "  margin-top: 5px; "
         "}"
-    ).arg(THEME_ACCENT_WARNING));
+    ).arg(THEME_TEXT_PRIMARY));
     moveListLayout->addWidget(m_replayTitle);
 
     // 回放按鈕容器
@@ -507,32 +505,29 @@ void Qt_Chess::setupUI() {
     replayButtonLayout->setContentsMargins(0, 0, 0, 0);
     replayButtonLayout->setSpacing(4);
 
-    // 回放按鈕樣式 - 現代科技風格霓虹效果
+    // 回放按鈕樣式 - 簡約風格
     QString replayButtonStyle = QString(
         "QPushButton { "
-        "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 %1, stop:1 %2); "
-        "  color: %3; "
-        "  border: 2px solid %4; "
-        "  border-radius: 6px; "
+        "  background-color: %1; "
+        "  color: %2; "
+        "  border: 1px solid %3; "
+        "  border-radius: 4px; "
         "  padding: 6px 10px; "
         "  font-size: 14px; "
-        "  font-weight: bold; "
         "}"
         "QPushButton:hover { "
-        "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 %1, stop:0.5 rgba(255, 217, 61, 0.3), stop:1 %2); "
+        "  background-color: %4; "
         "  border-color: %5; "
-        "  color: %5; "
         "}"
         "QPushButton:pressed { "
-        "  background: %5; "
-        "  color: %2; "
+        "  background-color: %3; "
         "}"
         "QPushButton:disabled { "
-        "  background: rgba(30, 30, 50, 0.5); "
-        "  color: #555; "
-        "  border-color: #333; "
+        "  background-color: %4; "
+        "  color: #999; "
+        "  border-color: %3; "
         "}"
-    ).arg(THEME_BG_PANEL, THEME_BG_DARK, THEME_TEXT_PRIMARY, THEME_BORDER, THEME_ACCENT_WARNING);
+    ).arg(THEME_BG_PANEL, THEME_TEXT_PRIMARY, THEME_BORDER, THEME_BG_DARK, THEME_ACCENT_PRIMARY);
 
     m_replayFirstButton = new QPushButton("⏮", replayButtonContainer);
     m_replayFirstButton->setToolTip("第一步");
@@ -653,27 +648,25 @@ void Qt_Chess::setupUI() {
     m_resignButton->setFont(resignButtonFont);
     m_resignButton->setStyleSheet(QString(
         "QPushButton { "
-        "  background: qlineargradient(x1:0, y1:0, x2:1, y2:0, "
-        "    stop:0 %1, stop:0.5 rgba(233, 69, 96, 0.7), stop:1 %1); "
+        "  background-color: %1; "
         "  color: %2; "
-        "  border: 3px solid %3; "
-        "  border-radius: 10px; "
+        "  border: 1px solid %3; "
+        "  border-radius: 4px; "
         "  padding: 8px; "
         "}"
         "QPushButton:hover { "
-        "  background: qlineargradient(x1:0, y1:0, x2:1, y2:0, "
-        "    stop:0 %3, stop:0.5 rgba(255, 100, 120, 0.9), stop:1 %3); "
-        "  border-color: #FF6B6B; "
+        "  background-color: %4; "
+        "  border-color: %2; "
         "}"
         "QPushButton:pressed { "
-        "  background: %3; "
+        "  background-color: %3; "
         "}"
-    ).arg(THEME_BG_DARK, THEME_TEXT_PRIMARY, THEME_ACCENT_SECONDARY));
+    ).arg(THEME_BG_PANEL, THEME_TEXT_PRIMARY, THEME_BORDER, THEME_BG_DARK));
     m_resignButton->hide();  // 初始隱藏
     connect(m_resignButton, &QPushButton::clicked, this, &Qt_Chess::onResignClicked);
     boardButtonLayout->addWidget(m_resignButton);
     
-    // 請求和棋按鈕 - 現代科技風格藍色效果
+    // 請求和棋按鈕 - 簡約風格
     m_requestDrawButton = new QPushButton("🤝 請求和棋", m_boardButtonPanel);
     m_requestDrawButton->setMinimumHeight(45);
     m_requestDrawButton->setMinimumWidth(120);
@@ -683,27 +676,25 @@ void Qt_Chess::setupUI() {
     m_requestDrawButton->setFont(drawButtonFont);
     m_requestDrawButton->setStyleSheet(QString(
         "QPushButton { "
-        "  background: qlineargradient(x1:0, y1:0, x2:1, y2:0, "
-        "    stop:0 %1, stop:0.5 rgba(0, 255, 255, 0.7), stop:1 %1); "
+        "  background-color: %1; "
         "  color: %2; "
-        "  border: 3px solid %3; "
-        "  border-radius: 10px; "
+        "  border: 1px solid %3; "
+        "  border-radius: 4px; "
         "  padding: 8px; "
         "}"
         "QPushButton:hover { "
-        "  background: qlineargradient(x1:0, y1:0, x2:1, y2:0, "
-        "    stop:0 %3, stop:0.5 rgba(100, 230, 255, 0.9), stop:1 %3); "
-        "  border-color: #6BDBFF; "
+        "  background-color: %4; "
+        "  border-color: %2; "
         "}"
         "QPushButton:pressed { "
-        "  background: %3; "
+        "  background-color: %3; "
         "}"
-    ).arg(THEME_BG_DARK, THEME_TEXT_PRIMARY, THEME_ACCENT_PRIMARY));
+    ).arg(THEME_BG_PANEL, THEME_TEXT_PRIMARY, THEME_BORDER, THEME_BG_DARK));
     m_requestDrawButton->hide();  // 初始隱藏
     connect(m_requestDrawButton, &QPushButton::clicked, this, &Qt_Chess::onRequestDrawClicked);
     boardButtonLayout->addWidget(m_requestDrawButton);
     
-    // 退出遊戲按鈕 - 現代科技風格紅色警告效果
+    // 退出遊戲按鈕 - 簡約風格
     m_exitButton = new QPushButton("🚪 退出遊戲", m_boardButtonPanel);
     m_exitButton->setMinimumHeight(45);
     m_exitButton->setMinimumWidth(120);
@@ -713,22 +704,20 @@ void Qt_Chess::setupUI() {
     m_exitButton->setFont(exitButtonFont);
     m_exitButton->setStyleSheet(QString(
         "QPushButton { "
-        "  background: qlineargradient(x1:0, y1:0, x2:1, y2:0, "
-        "    stop:0 %1, stop:0.5 rgba(233, 69, 96, 0.7), stop:1 %1); "
+        "  background-color: %1; "
         "  color: %2; "
-        "  border: 3px solid %3; "
-        "  border-radius: 10px; "
+        "  border: 1px solid %3; "
+        "  border-radius: 4px; "
         "  padding: 8px; "
         "}"
         "QPushButton:hover { "
-        "  background: qlineargradient(x1:0, y1:0, x2:1, y2:0, "
-        "    stop:0 %3, stop:0.5 rgba(255, 100, 120, 0.9), stop:1 %3); "
-        "  border-color: #FF6B6B; "
+        "  background-color: %4; "
+        "  border-color: %2; "
         "}"
         "QPushButton:pressed { "
-        "  background: %3; "
+        "  background-color: %3; "
         "}"
-    ).arg(THEME_BG_DARK, THEME_TEXT_PRIMARY, THEME_ACCENT_SECONDARY));
+    ).arg(THEME_BG_PANEL, THEME_TEXT_PRIMARY, THEME_BORDER, THEME_BG_DARK));
     m_exitButton->hide();  // 初始隱藏
     connect(m_exitButton, &QPushButton::clicked, this, &Qt_Chess::onExitClicked);
     boardButtonLayout->addWidget(m_exitButton);
@@ -779,50 +768,49 @@ void Qt_Chess::setupUI() {
     m_blackTimeProgressBar->setFixedWidth(100);  // 與時間標籤同寬
     m_blackTimeProgressBar->setMaximumHeight(8);
     m_blackTimeProgressBar->setStyleSheet(QString(
-        "QProgressBar { border: 2px solid %1; border-radius: 4px; background-color: %2; }"
-        "QProgressBar::chunk { background: qlineargradient(x1:0, y1:0, x2:1, y2:0, "
-        "  stop:0 %3, stop:1 %4); border-radius: 2px; }"
-    ).arg(THEME_BORDER, THEME_BG_DARK, THEME_ACCENT_PRIMARY, THEME_ACCENT_SUCCESS));
+        "QProgressBar { border: 1px solid %1; border-radius: 2px; background-color: %2; }"
+        "QProgressBar::chunk { background-color: %3; border-radius: 1px; }"
+    ).arg(THEME_BORDER, THEME_BG_DARK, THEME_ACCENT_PRIMARY));
     m_blackTimeProgressBar->hide();  // 初始隱藏
     rightTimePanelLayout->addWidget(m_blackTimeProgressBar, 0, Qt::AlignCenter);
 
-    // 黑方時間標籤 - 現代科技風格數位顯示
+    // 黑方時間標籤 - 簡約風格
     m_blackTimeLabel = new QLabel("--:--", m_rightTimePanel);
     m_blackTimeLabel->setFont(timeFont);
     m_blackTimeLabel->setAlignment(Qt::AlignCenter);
     m_blackTimeLabel->setStyleSheet(QString(
         "QLabel { "
-        "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 rgba(15, 52, 96, 0.95), stop:1 rgba(26, 26, 46, 0.95)); "
-        "  color: %1; "
+        "  background-color: %1; "
+        "  color: %2; "
         "  padding: 10px; "
-        "  border: 2px solid %2; "
-        "  border-radius: 8px; "
+        "  border: 1px solid %3; "
+        "  border-radius: 4px; "
         "  font-family: 'Consolas', 'Monaco', monospace; "
         "}"
-    ).arg(THEME_ACCENT_PRIMARY, THEME_BORDER));
+    ).arg(THEME_BG_PANEL, THEME_TEXT_PRIMARY, THEME_BORDER));
     m_blackTimeLabel->setFixedSize(110, 45);  // 稍大的固定大小
     m_blackTimeLabel->hide();  // 初始隱藏
     rightTimePanelLayout->addWidget(m_blackTimeLabel, 0, Qt::AlignCenter);
 
-    // 白方時間標籤 - 現代科技風格數位顯示
+    // 白方時間標籤 - 簡約風格
     m_whiteTimeLabel = new QLabel("--:--", m_rightTimePanel);
     m_whiteTimeLabel->setFont(timeFont);
     m_whiteTimeLabel->setAlignment(Qt::AlignCenter);
     m_whiteTimeLabel->setStyleSheet(QString(
         "QLabel { "
-        "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 rgba(15, 52, 96, 0.95), stop:1 rgba(26, 26, 46, 0.95)); "
-        "  color: %1; "
+        "  background-color: %1; "
+        "  color: %2; "
         "  padding: 10px; "
-        "  border: 2px solid %2; "
-        "  border-radius: 8px; "
+        "  border: 1px solid %3; "
+        "  border-radius: 4px; "
         "  font-family: 'Consolas', 'Monaco', monospace; "
         "}"
-    ).arg(THEME_ACCENT_SUCCESS, THEME_BORDER));
+    ).arg(THEME_BG_PANEL, THEME_TEXT_PRIMARY, THEME_BORDER));
     m_whiteTimeLabel->setFixedSize(110, 45);  // 稍大的固定大小
     m_whiteTimeLabel->hide();  // 初始隱藏
     rightTimePanelLayout->addWidget(m_whiteTimeLabel, 0, Qt::AlignCenter);
 
-    // 白方時間進度條 - 現代科技風格漸變
+    // 白方時間進度條 - 簡約風格
     m_whiteTimeProgressBar = new QProgressBar(m_rightTimePanel);
     m_whiteTimeProgressBar->setMinimum(0);
     m_whiteTimeProgressBar->setMaximum(100);
@@ -831,10 +819,9 @@ void Qt_Chess::setupUI() {
     m_whiteTimeProgressBar->setFixedWidth(100);  // 與時間標籤同寬
     m_whiteTimeProgressBar->setMaximumHeight(8);
     m_whiteTimeProgressBar->setStyleSheet(QString(
-        "QProgressBar { border: 2px solid %1; border-radius: 4px; background-color: %2; }"
-        "QProgressBar::chunk { background: qlineargradient(x1:0, y1:0, x2:1, y2:0, "
-        "  stop:0 %3, stop:1 %4); border-radius: 2px; }"
-    ).arg(THEME_BORDER, THEME_BG_DARK, THEME_ACCENT_SUCCESS, THEME_ACCENT_PRIMARY));
+        "QProgressBar { border: 1px solid %1; border-radius: 2px; background-color: %2; }"
+        "QProgressBar::chunk { background-color: %3; border-radius: 1px; }"
+    ).arg(THEME_BORDER, THEME_BG_DARK, THEME_ACCENT_PRIMARY));
     m_whiteTimeProgressBar->hide();  // 初始隱藏
     rightTimePanelLayout->addWidget(m_whiteTimeProgressBar, 0, Qt::AlignCenter);
 
@@ -956,8 +943,8 @@ void Qt_Chess::setupMainMenu() {
     menuLayout->setContentsMargins(20, 10, 20, 10);  // 減小邊距以適應小視窗
     menuLayout->setSpacing(10);  // 減小間距
     
-    // 標題標籤 - 現代科技風格
-    QLabel* titleLabel = new QLabel("♔ 國際象棋 - 科技對弈 ♚", m_mainMenuWidget);
+    // 標題標籤 - 簡約風格
+    QLabel* titleLabel = new QLabel("♔ 國際象棋 ♚", m_mainMenuWidget);
     titleLabel->setAlignment(Qt::AlignCenter);
     titleLabel->setWordWrap(true);  // 允許換行
     titleLabel->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Minimum);  // 允許壓縮
@@ -968,40 +955,36 @@ void Qt_Chess::setupMainMenu() {
     titleLabel->setStyleSheet(QString(
         "QLabel { "
         "  color: %1; "
-        "  padding: 10px; "  // 減小內邊距
-        "  background: qlineargradient(x1:0, y1:0, x2:1, y2:0, "
-        "    stop:0 transparent, stop:0.5 rgba(0, 255, 255, 0.3), stop:1 transparent); "
-        "  border-radius: 10px; "
+        "  padding: 10px; "
+        "  background-color: transparent; "
+        "  border-radius: 4px; "
         "}"
-    ).arg(THEME_ACCENT_PRIMARY));
+    ).arg(THEME_TEXT_PRIMARY));
     menuLayout->addWidget(titleLabel);
     
     menuLayout->addSpacing(10);  // 減小標題後的間距
     
-    // 按鈕樣式 - 現代科技風格（更緊湊以適應小視窗）
+    // 按鈕樣式 - 簡約風格（更緊湊以適應小視窗）
     QString buttonStyle = QString(
         "QPushButton { "
-        "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1, "
-        "    stop:0 %1, stop:1 %2); "
-        "  color: %3; "
-        "  padding: 12px; "  // 減小內邊距
-        "  font-size: 16pt; "  // 減小字體
-        "  font-weight: bold; "
-        "  border: 3px solid %4; "
-        "  border-radius: 10px; "
-        "  min-width: 250px; "  // 減小最小寬度
-        "  min-height: 40px; "  // 添加最小高度確保按鈕不會太小
+        "  background-color: %1; "
+        "  color: %2; "
+        "  padding: 12px; "
+        "  font-size: 16pt; "
+        "  border: 1px solid %3; "
+        "  border-radius: 4px; "
+        "  min-width: 250px; "
+        "  min-height: 40px; "
         "} "
         "QPushButton:hover { "
-        "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1, "
-        "    stop:0 %4, stop:1 %1); "
-        "  border: 3px solid %5; "
+        "  background-color: %4; "
+        "  border-color: %5; "
         "} "
         "QPushButton:pressed { "
-        "  background: %2; "
+        "  background-color: %3; "
         "}"
-    ).arg(THEME_BG_PANEL, THEME_BG_MEDIUM, THEME_TEXT_PRIMARY, 
-          THEME_ACCENT_PRIMARY, THEME_ACCENT_SUCCESS);
+    ).arg(THEME_BG_PANEL, THEME_TEXT_PRIMARY, THEME_BORDER, 
+          THEME_BG_DARK, THEME_ACCENT_PRIMARY);
     
     // 本地遊玩按鈕
     m_mainMenuLocalPlayButton = new QPushButton("🎮 本地遊玩", m_mainMenuWidget);
@@ -1045,18 +1028,18 @@ void Qt_Chess::setupTimeControlUI(QVBoxLayout* timeControlPanelLayout) {
     QFont labelFont;
     labelFont.setPointSize(10);
 
-    // 白方時間標籤和滑桿 - 現代科技風格
+    // 白方時間標籤和滑桿 - 簡約風格
     m_whiteTimeLimitTitleLabel = new QLabel("♔ 白方時間:", this);
     m_whiteTimeLimitTitleLabel->setFont(labelFont);
-    m_whiteTimeLimitTitleLabel->setStyleSheet(QString("QLabel { color: %1; font-weight: bold; }").arg(THEME_ACCENT_SUCCESS));
+    m_whiteTimeLimitTitleLabel->setStyleSheet(QString("QLabel { color: %1; }").arg(THEME_TEXT_PRIMARY));
     timeControlLayout->addWidget(m_whiteTimeLimitTitleLabel);
 
     m_whiteTimeLimitLabel = new QLabel("不限時", this);
     m_whiteTimeLimitLabel->setFont(labelFont);
     m_whiteTimeLimitLabel->setAlignment(Qt::AlignCenter);
     m_whiteTimeLimitLabel->setStyleSheet(QString(
-        "QLabel { color: %1; padding: 4px; background: rgba(0, 255, 136, 0.1); border-radius: 4px; }"
-    ).arg(THEME_ACCENT_SUCCESS));
+        "QLabel { color: %1; padding: 4px; background-color: %2; border: 1px solid %3; border-radius: 2px; }"
+    ).arg(THEME_TEXT_PRIMARY, THEME_BG_PANEL, THEME_BORDER));
     timeControlLayout->addWidget(m_whiteTimeLimitLabel);
 
     // 白方時間的水平滑桿 - 離散值
@@ -1070,18 +1053,18 @@ void Qt_Chess::setupTimeControlUI(QVBoxLayout* timeControlPanelLayout) {
     connect(m_whiteTimeLimitSlider, &QSlider::valueChanged, this, &Qt_Chess::onWhiteTimeLimitChanged);
     timeControlLayout->addWidget(m_whiteTimeLimitSlider);
 
-    // 黑方時間標籤和滑桿 - 現代科技風格
+    // 黑方時間標籤和滑桿 - 簡約風格
     m_blackTimeLimitTitleLabel = new QLabel("♚ 黑方時間:", this);
     m_blackTimeLimitTitleLabel->setFont(labelFont);
-    m_blackTimeLimitTitleLabel->setStyleSheet(QString("QLabel { color: %1; font-weight: bold; }").arg(THEME_ACCENT_PRIMARY));
+    m_blackTimeLimitTitleLabel->setStyleSheet(QString("QLabel { color: %1; }").arg(THEME_TEXT_PRIMARY));
     timeControlLayout->addWidget(m_blackTimeLimitTitleLabel);
 
     m_blackTimeLimitLabel = new QLabel("不限時", this);
     m_blackTimeLimitLabel->setFont(labelFont);
     m_blackTimeLimitLabel->setAlignment(Qt::AlignCenter);
     m_blackTimeLimitLabel->setStyleSheet(QString(
-        "QLabel { color: %1; padding: 4px; background: rgba(0, 217, 255, 0.1); border-radius: 4px; }"
-    ).arg(THEME_ACCENT_PRIMARY));
+        "QLabel { color: %1; padding: 4px; background-color: %2; border: 1px solid %3; border-radius: 2px; }"
+    ).arg(THEME_TEXT_PRIMARY, THEME_BG_PANEL, THEME_BORDER));
     timeControlLayout->addWidget(m_blackTimeLimitLabel);
 
     // 黑方時間的水平滑桿 - 離散值
@@ -1094,17 +1077,17 @@ void Qt_Chess::setupTimeControlUI(QVBoxLayout* timeControlPanelLayout) {
     connect(m_blackTimeLimitSlider, &QSlider::valueChanged, this, &Qt_Chess::onBlackTimeLimitChanged);
     timeControlLayout->addWidget(m_blackTimeLimitSlider);
 
-    // 增量標籤和滑桿 - 現代科技風格
+    // 增量標籤和滑桿 - 簡約風格
     m_incrementTitleLabel = new QLabel("⏳ 每著加秒:", this);
     m_incrementTitleLabel->setFont(labelFont);
-    m_incrementTitleLabel->setStyleSheet(QString("QLabel { color: %1; font-weight: bold; }").arg(THEME_ACCENT_SECONDARY));
+    m_incrementTitleLabel->setStyleSheet(QString("QLabel { color: %1; }").arg(THEME_TEXT_PRIMARY));
     timeControlLayout->addWidget(m_incrementTitleLabel);
 
     m_incrementLabel = new QLabel("0秒", this);
     m_incrementLabel->setFont(labelFont);
     m_incrementLabel->setAlignment(Qt::AlignCenter);
     m_incrementLabel->setStyleSheet(QString(
-        "QLabel { color: %1; padding: 4px; background: rgba(233, 69, 96, 0.1); border-radius: 4px; }"
+        "QLabel { color: %1; padding: 4px; background-color: %2; border: 1px solid %3; border-radius: 2px; }"
     ).arg(THEME_ACCENT_SECONDARY));
     timeControlLayout->addWidget(m_incrementLabel);
 
@@ -1535,119 +1518,103 @@ void Qt_Chess::updateTimeControlSizes() {
 }
 
 void Qt_Chess::applyModernStylesheet() {
-    // 現代科技風格全局樣式表（基於 chess.jpg 的霓虹電路板主題）
+    // 簡約風格全局樣式表（Minimalist Design Theme）
     QString styleSheet = QString(
-        // 主視窗背景 - 使用 chess.jpg 作為背景
+        // 主視窗背景 - 簡潔的純色背景
         "QMainWindow { "
-        "  background-image: url(:/resources/images/chess.jpg); "
-        "  background-position: center; "
-        "  background-repeat: no-repeat; "
-        "  background-attachment: fixed; "
+        "  background-color: %1; "
         "}"
         
-        // 中央部件 - 添加半透明深色遮罩以提高可讀性
+        // 中央部件 - 簡潔的淺色背景
         "QWidget#centralwidget { "
-        "  background: rgba(10, 22, 40, 0.85); "
+        "  background-color: %2; "
         "}"
         
         // 選單欄
         "QMenuBar { "
-        "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1, "
-        "    stop:0 %3, stop:1 %1); "
+        "  background-color: %3; "
         "  color: %4; "
-        "  border-bottom: 2px solid %5; "
+        "  border-bottom: 1px solid %6; "
         "  padding: 4px 8px; "
-        "  font-weight: bold; "
         "}"
         "QMenuBar::item { "
         "  padding: 6px 12px; "
         "  background: transparent; "
-        "  border-radius: 4px; "
+        "  border-radius: 2px; "
         "}"
         "QMenuBar::item:selected { "
-        "  background: rgba(0, 255, 255, 0.3); "
+        "  background-color: %1; "
         "  color: %5; "
         "}"
         "QMenuBar::item:pressed { "
-        "  background: rgba(255, 153, 85, 0.5); "
+        "  background-color: %6; "
         "}"
         
         // 下拉選單
         "QMenu { "
-        "  background-color: %1; "
-        "  border: 2px solid %5; "
-        "  border-radius: 8px; "
+        "  background-color: %3; "
+        "  border: 1px solid %6; "
+        "  border-radius: 2px; "
         "  padding: 4px; "
         "}"
         "QMenu::item { "
         "  padding: 8px 24px; "
         "  color: %4; "
-        "  border-radius: 4px; "
+        "  border-radius: 2px; "
         "}"
         "QMenu::item:selected { "
-        "  background: qlineargradient(x1:0, y1:0, x2:1, y2:0, "
-        "    stop:0 rgba(0, 255, 255, 0.4), stop:1 rgba(255, 153, 85, 0.4)); "
-        "  color: white; "
+        "  background-color: %1; "
+        "  color: %5; "
         "}"
         "QMenu::separator { "
-        "  height: 2px; "
+        "  height: 1px; "
         "  background: %6; "
         "  margin: 4px 8px; "
         "}"
         
         // 群組框
         "QGroupBox { "
-        "  font-weight: bold; "
         "  color: %5; "
-        "  border: 2px solid %6; "
-        "  border-radius: 10px; "
+        "  border: 1px solid %6; "
+        "  border-radius: 4px; "
         "  margin-top: 12px; "
         "  padding-top: 10px; "
-        "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1, "
-        "    stop:0 rgba(15, 41, 64, 0.9), stop:1 rgba(10, 22, 40, 0.9)); "
+        "  background-color: %3; "
         "}"
         "QGroupBox::title { "
         "  subcontrol-origin: margin; "
         "  subcontrol-position: top left; "
         "  padding: 4px 12px; "
         "  color: %5; "
-        "  background: %3; "
-        "  border: 1px solid %5; "
-        "  border-radius: 6px; "
+        "  background-color: %3; "
+        "  border: none; "
         "  left: 10px; "
         "}"
         
         // 按鈕
         "QPushButton { "
-        "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1, "
-        "    stop:0 %3, stop:1 %1); "
+        "  background-color: %3; "
         "  color: %4; "
-        "  border: 2px solid %6; "
-        "  border-radius: 8px; "
+        "  border: 1px solid %6; "
+        "  border-radius: 4px; "
         "  padding: 8px 16px; "
-        "  font-weight: bold; "
         "}"
         "QPushButton:hover { "
-        "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1, "
-        "    stop:0 %3, stop:0.5 rgba(0, 255, 255, 0.3), stop:1 %1); "
-        "  border: 2px solid %5; "
-        "  color: %5; "
+        "  background-color: %1; "
+        "  border: 1px solid %5; "
         "}"
         "QPushButton:pressed { "
-        "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1, "
-        "    stop:0 %1, stop:1 %3); "
-        "  border: 2px solid %7; "
+        "  background-color: %6; "
         "}"
         "QPushButton:disabled { "
-        "  background: rgba(30, 30, 50, 0.6); "
-        "  color: #666; "
-        "  border: 2px solid #444; "
+        "  background-color: %2; "
+        "  color: #999; "
+        "  border: 1px solid %6; "
         "}"
         "QPushButton:checked { "
-        "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1, "
-        "    stop:0 %5, stop:1 rgba(0, 255, 255, 0.6)); "
-        "  color: %1; "
-        "  border: 2px solid %5; "
+        "  background-color: %5; "
+        "  color: %3; "
+        "  border: 1px solid %5; "
         "}"
         
         // 標籤
@@ -1659,75 +1626,69 @@ void Qt_Chess::applyModernStylesheet() {
         // 滑桿
         "QSlider::groove:horizontal { "
         "  border: 1px solid %6; "
-        "  height: 8px; "
-        "  background: qlineargradient(x1:0, y1:0, x2:1, y2:0, "
-        "    stop:0 %1, stop:1 %3); "
-        "  border-radius: 4px; "
+        "  height: 4px; "
+        "  background-color: %1; "
+        "  border-radius: 2px; "
         "}"
         "QSlider::handle:horizontal { "
-        "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1, "
-        "    stop:0 %5, stop:1 rgba(0, 217, 255, 0.7)); "
-        "  border: 2px solid %5; "
-        "  width: 18px; "
+        "  background-color: %5; "
+        "  border: 1px solid %5; "
+        "  width: 16px; "
         "  margin: -6px 0; "
-        "  border-radius: 9px; "
+        "  border-radius: 8px; "
         "}"
         "QSlider::handle:horizontal:hover { "
-        "  background: %5; "
-        "  border: 2px solid white; "
+        "  background-color: %4; "
+        "  border: 1px solid %4; "
         "}"
         "QSlider::sub-page:horizontal { "
-        "  background: qlineargradient(x1:0, y1:0, x2:1, y2:0, "
-        "    stop:0 %5, stop:1 %7); "
-        "  border-radius: 4px; "
+        "  background-color: %5; "
+        "  border-radius: 2px; "
         "}"
         
         // 列表視窗
         "QListWidget { "
-        "  background-color: rgba(26, 26, 46, 0.95); "
-        "  border: 2px solid %6; "
-        "  border-radius: 8px; "
+        "  background-color: %3; "
+        "  border: 1px solid %6; "
+        "  border-radius: 4px; "
         "  color: %4; "
-        "  alternate-background-color: rgba(15, 52, 96, 0.5); "
+        "  alternate-background-color: %2; "
         "}"
         "QListWidget::item { "
         "  padding: 6px; "
-        "  border-radius: 4px; "
+        "  border-radius: 2px; "
         "}"
         "QListWidget::item:selected { "
-        "  background: qlineargradient(x1:0, y1:0, x2:1, y2:0, "
-        "    stop:0 rgba(0, 255, 255, 0.5), stop:1 rgba(255, 153, 85, 0.3)); "
-        "  color: white; "
+        "  background-color: %1; "
+        "  color: %5; "
         "}"
         "QListWidget::item:hover { "
-        "  background: rgba(0, 255, 255, 0.2); "
+        "  background-color: %2; "
         "}"
         
         // 進度條
         "QProgressBar { "
-        "  border: 2px solid %6; "
-        "  border-radius: 6px; "
-        "  background-color: rgba(10, 22, 40, 0.9); "
+        "  border: 1px solid %6; "
+        "  border-radius: 4px; "
+        "  background-color: %2; "
         "  text-align: center; "
         "  color: %4; "
         "}"
         "QProgressBar::chunk { "
-        "  background: qlineargradient(x1:0, y1:0, x2:1, y2:0, "
-        "    stop:0 %8, stop:1 %5); "
-        "  border-radius: 4px; "
+        "  background-color: %5; "
+        "  border-radius: 3px; "
         "}"
         
         // 狀態欄
         "QStatusBar { "
-        "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1, "
-        "    stop:0 %1, stop:1 %3); "
+        "  background-color: %3; "
         "  color: %4; "
-        "  border-top: 2px solid %5; "
+        "  border-top: 1px solid %6; "
         "}"
         
         // 訊息框
         "QMessageBox { "
-        "  background-color: %1; "
+        "  background-color: %3; "
         "}"
         "QMessageBox QLabel { "
         "  color: %4; "
@@ -1735,26 +1696,24 @@ void Qt_Chess::applyModernStylesheet() {
         
         // 對話框
         "QDialog { "
-        "  background: qlineargradient(x1:0, y1:0, x2:1, y2:1, "
-        "    stop:0 %1, stop:0.5 %2, stop:1 %1); "
+        "  background-color: %3; "
         "}"
         
         // 滾動條
         "QScrollBar:vertical { "
         "  border: none; "
-        "  background: %1; "
-        "  width: 12px; "
+        "  background-color: %2; "
+        "  width: 10px; "
         "  margin: 0; "
-        "  border-radius: 6px; "
+        "  border-radius: 5px; "
         "}"
         "QScrollBar::handle:vertical { "
-        "  background: qlineargradient(x1:0, y1:0, x2:1, y2:0, "
-        "    stop:0 %6, stop:1 %5); "
+        "  background-color: %6; "
         "  min-height: 30px; "
-        "  border-radius: 6px; "
+        "  border-radius: 5px; "
         "}"
         "QScrollBar::handle:vertical:hover { "
-        "  background: %5; "
+        "  background-color: %5; "
         "}"
         "QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical { "
         "  height: 0; "
