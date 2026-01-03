@@ -2551,7 +2551,7 @@ void Qt_Chess::onSquareClicked(int displayRow, int displayCol) {
             
             // 骰子模式：標記已移動的棋子類型
             if (m_diceModeEnabled && m_isOnlineGame) {
-                // 本地標記該棋子類型已使用一次
+                // 本地標記該棋子類型已使用一次（markPieceTypeAsMoved 會自動調用 updateDiceDisplay）
                 if (movedPieceType != PieceType::None) {
                     markPieceTypeAsMoved(movedPieceType);
                 }
@@ -3660,7 +3660,7 @@ void Qt_Chess::mouseReleaseEvent(QMouseEvent *event) {
                 
                 // 骰子模式：標記已移動的棋子類型
                 if (m_diceModeEnabled && m_isOnlineGame) {
-                    // 本地標記該棋子類型已使用一次
+                    // 本地標記該棋子類型已使用一次（markPieceTypeAsMoved 會自動調用 updateDiceDisplay）
                     if (movedPieceType != PieceType::None) {
                         markPieceTypeAsMoved(movedPieceType);
                     }
@@ -6189,7 +6189,7 @@ void Qt_Chess::onOpponentMove(const QPoint& from, const QPoint& to, PieceType pr
         
         // 骰子模式：標記對手已移動的棋子類型
         if (m_diceModeEnabled && m_isOnlineGame) {
-            // 標記該棋子類型已使用一次（這會更新顯示中的灰階效果）
+            // 標記該棋子類型已使用一次（markPieceTypeAsMoved 會自動調用 updateDiceDisplay，更新灰階效果）
             if (opponentMovedPieceType != PieceType::None) {
                 markPieceTypeAsMoved(opponentMovedPieceType);
             }
@@ -8725,7 +8725,10 @@ void Qt_Chess::onDiceStateReceived(int movesRemaining) {
         rollDiceForTurn();
     } else {
         // 不是輪到我，或者還有剩餘移動次數
-        // 伺服器的 movesRemaining 用於同步檢查，本地已通過 markPieceTypeAsMoved 追蹤具體棋子類型
+        // 注意：移除了之前基於位置的骰子標記邏輯（標記前N個為已使用），
+        // 因為這會導致錯誤的灰階顯示（例如：移動馬時會灰階馬和兵）。
+        // 現在改用 markPieceTypeAsMoved() 在本地追蹤具體的棋子類型，
+        // 伺服器的 movesRemaining 僅用於同步檢查。
         
         qDebug() << "[Qt_Chess::onDiceStateReceived] Dice state synced. Remaining moves:" << m_diceMovesRemaining;
         
