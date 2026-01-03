@@ -2458,6 +2458,13 @@ void Qt_Chess::onSquareClicked(int displayRow, int displayCol) {
         // 在執行移動之前檢測移動類型
         bool isCapture = isCaptureMove(m_selectedSquare, clickedSquare);
         bool isCastling = isCastlingMove(m_selectedSquare, clickedSquare);
+        
+        // 骰子模式：在移動前記錄棋子類型
+        PieceType movedPieceType = PieceType::None;
+        if (m_diceModeEnabled && m_isOnlineGame) {
+            const ChessPiece& pieceToMove = m_chessBoard.getPiece(m_selectedSquare.y(), m_selectedSquare.x());
+            movedPieceType = pieceToMove.getType();
+        }
 
         // 嘗試移動選中的棋子
         if (m_chessBoard.movePiece(m_selectedSquare, clickedSquare)) {
@@ -2542,11 +2549,14 @@ void Qt_Chess::onSquareClicked(int displayRow, int displayCol) {
                 m_networkManager->sendMove(m_lastMoveFrom, m_lastMoveTo, promType, finalPosition);
             }
             
-            // 骰子模式：不在本地標記，依賴伺服器的 diceState 更新
-            // 伺服器會通過 onDiceStateReceived 同步骰子狀態
+            // 骰子模式：標記已移動的棋子類型
             if (m_diceModeEnabled && m_isOnlineGame) {
+                // 本地標記該棋子類型已使用一次（markPieceTypeAsMoved 會自動調用 updateDiceDisplay）
+                if (movedPieceType != PieceType::None) {
+                    markPieceTypeAsMoved(movedPieceType);
+                }
+                
                 // 檢查是否所有骰出的棋子都已移動（基於當前的m_diceMovesRemaining）
-                // 注意：m_diceMovesRemaining會通過onDiceStateReceived從伺服器更新
                 if (allRolledPiecesMoved()) {
                     qDebug() << "[Qt_Chess] All rolled pieces moved, switching turn";
                     // 所有骰子都移動完畢，正常切換回合（棋盤會自動切換玩家）
@@ -2558,7 +2568,6 @@ void Qt_Chess::onSquareClicked(int displayRow, int displayCol) {
                     m_chessBoard.setCurrentPlayer(previousPlayer);
                     qDebug() << "[Qt_Chess] Dice moves remaining:" << m_diceMovesRemaining << ", keeping same player";
                     
-                    updateDiceDisplay();
                     updateStatus();
                 }
             }
@@ -3557,6 +3566,13 @@ void Qt_Chess::mouseReleaseEvent(QMouseEvent *event) {
             // 在執行移動之前檢測移動類型
             bool isCapture = isCaptureMove(m_dragStartSquare, logicalDropSquare);
             bool isCastling = isCastlingMove(m_dragStartSquare, logicalDropSquare);
+            
+            // 骰子模式：在移動前記錄棋子類型
+            PieceType movedPieceType = PieceType::None;
+            if (m_diceModeEnabled && m_isOnlineGame) {
+                const ChessPiece& pieceToMove = m_chessBoard.getPiece(m_dragStartSquare.y(), m_dragStartSquare.x());
+                movedPieceType = pieceToMove.getType();
+            }
 
             // 嘗試移動棋子
             if (m_chessBoard.movePiece(m_dragStartSquare, logicalDropSquare)) {
@@ -3642,11 +3658,14 @@ void Qt_Chess::mouseReleaseEvent(QMouseEvent *event) {
                     m_networkManager->sendMove(m_lastMoveFrom, m_lastMoveTo, promType, finalPosition);
                 }
                 
-                // 骰子模式：不在本地標記，依賴伺服器的 diceState 更新
-                // 伺服器會通過 onDiceStateReceived 同步骰子狀態
+                // 骰子模式：標記已移動的棋子類型
                 if (m_diceModeEnabled && m_isOnlineGame) {
+                    // 本地標記該棋子類型已使用一次（markPieceTypeAsMoved 會自動調用 updateDiceDisplay）
+                    if (movedPieceType != PieceType::None) {
+                        markPieceTypeAsMoved(movedPieceType);
+                    }
+                    
                     // 檢查是否所有骰出的棋子都已移動（基於當前的m_diceMovesRemaining）
-                    // 注意：m_diceMovesRemaining會通過onDiceStateReceived從伺服器更新
                     if (allRolledPiecesMoved()) {
                         qDebug() << "[Qt_Chess] All rolled pieces moved (drag), switching turn";
                         // 所有骰子都移動完畢，正常切換回合（棋盤會自動切換玩家）
@@ -3658,7 +3677,6 @@ void Qt_Chess::mouseReleaseEvent(QMouseEvent *event) {
                         m_chessBoard.setCurrentPlayer(previousPlayer);
                         qDebug() << "[Qt_Chess] Dice moves remaining (drag):" << m_diceMovesRemaining << ", keeping same player";
                         
-                        updateDiceDisplay();
                         updateStatus();
                     }
                 }
@@ -6152,6 +6170,13 @@ void Qt_Chess::onOpponentMove(const QPoint& from, const QPoint& to, PieceType pr
     qDebug() << "[Qt_Chess::onOpponentMove] Received opponent move: from" << from << "to" << to
              << "| FinalPosition:" << finalPosition;
     
+    // 骰子模式：在移動前記錄對手移動的棋子類型
+    PieceType opponentMovedPieceType = PieceType::None;
+    if (m_diceModeEnabled && m_isOnlineGame) {
+        const ChessPiece& pieceToMove = m_chessBoard.getPiece(from.y(), from.x());
+        opponentMovedPieceType = pieceToMove.getType();
+    }
+    
     // 對手的移動 - 直接執行移動，movePiece 會自動切換回合
     PieceColor currentPlayerBefore = m_chessBoard.getCurrentPlayer();
     
@@ -6161,6 +6186,14 @@ void Qt_Chess::onOpponentMove(const QPoint& from, const QPoint& to, PieceType pr
     if (m_chessBoard.movePiece(from, to)) {
         PieceColor currentPlayerAfter = m_chessBoard.getCurrentPlayer();
         qDebug() << "[Qt_Chess::onOpponentMove] Move successful, current player after move:" << (int)currentPlayerAfter;
+        
+        // 骰子模式：標記對手已移動的棋子類型
+        if (m_diceModeEnabled && m_isOnlineGame) {
+            // 標記該棋子類型已使用一次（markPieceTypeAsMoved 會自動調用 updateDiceDisplay，更新灰階效果）
+            if (opponentMovedPieceType != PieceType::None) {
+                markPieceTypeAsMoved(opponentMovedPieceType);
+            }
+        }
         
         // 在骰子模式下，伺服器會通過diceStateReceived信號告訴我們剩餘移動次數
         // 如果還有剩餘移動，movePiece會切換玩家，但我們需要切回去
@@ -8692,18 +8725,14 @@ void Qt_Chess::onDiceStateReceived(int movesRemaining) {
         rollDiceForTurn();
     } else {
         // 不是輪到我，或者還有剩餘移動次數
-        // 計算已使用的骰子數量
-        int piecesUsed = 3 - movesRemaining;
+        // 注意：移除了之前基於位置的骰子標記邏輯（標記前N個為已使用），
+        // 因為這會導致錯誤的灰階顯示（例如：移動馬時會灰階馬和兵）。
+        // 現在改用 markPieceTypeAsMoved() 在本地追蹤具體的棋子類型，
+        // 伺服器的 movesRemaining 僅用於同步檢查。
         
-        // 更新骰子類型計數器，標記前N個為已使用（灰階）
-        for (int i = 0; i < piecesUsed && i < static_cast<int>(m_rolledPieceTypeCounts.size()); ++i) {
-            m_rolledPieceTypeCounts[i] = 0;  // 標記為已使用
-        }
+        qDebug() << "[Qt_Chess::onDiceStateReceived] Dice state synced. Remaining moves:" << m_diceMovesRemaining;
         
-        qDebug() << "[Qt_Chess::onDiceStateReceived] Updated dice counts. Pieces used:" << piecesUsed 
-                 << "| Remaining moves:" << m_diceMovesRemaining;
-        
-        // 更新顯示（雙方都要更新，以顯示灰階效果）
+        // 更新顯示（顯示當前骰子狀態）
         updateDiceDisplay();
         updateStatus();
     }
