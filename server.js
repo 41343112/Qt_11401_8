@@ -61,7 +61,14 @@ function handlePlayerLeaveRoom(ws, roomId) {
 
 wss.on('connection', ws => {
     ws.on('message', message => {
-        const msg = JSON.parse(message);
+        let msg;
+        try {
+            msg = JSON.parse(message);
+        } catch (error) {
+            console.error('[Server] JSON parse error:', error.message);
+            ws.send(JSON.stringify({ action: "error", message: "無效的訊息格式" }));
+            return;
+        }
 
         // 創建房間
         if(msg.action === "createRoom"){
@@ -77,7 +84,16 @@ wss.on('connection', ws => {
         // 加入房間
         else if(msg.action === "joinRoom"){
             const roomId = msg.room;
+            if(!roomId || typeof roomId !== 'string'){
+                ws.send(JSON.stringify({ action: "error", message: "無效的房間號" }));
+                return;
+            }
             if(rooms[roomId]){
+                // 檢查房間是否已滿（限制2人）
+                if(rooms[roomId].length >= 2){
+                    ws.send(JSON.stringify({ action: "error", message: "房間已滿" }));
+                    return;
+                }
                 rooms[roomId].push(ws);
                 ws.send(JSON.stringify({ action: "joinedRoom", room: roomId }));
                 
@@ -158,6 +174,30 @@ wss.on('connection', ws => {
         // 廣播落子訊息並更新計時器
         else if(msg.action === "move"){
             const roomId = msg.room;
+            
+            // 驗證房間和發送者
+            if(!rooms[roomId] || !rooms[roomId].includes(ws)) {
+                console.log('[Server] ERROR: Invalid room or sender not in room');
+                ws.send(JSON.stringify({ action: "error", message: "無效的房間或未加入該房間" }));
+                return;
+            }
+            
+            // 驗證移動數據的存在性和類型
+            if(typeof msg.fromRow !== 'number' || typeof msg.fromCol !== 'number' ||
+               typeof msg.toRow !== 'number' || typeof msg.toCol !== 'number') {
+                console.log('[Server] ERROR: Invalid move data types');
+                ws.send(JSON.stringify({ action: "error", message: "無效的移動數據格式" }));
+                return;
+            }
+            
+            // 驗證座標範圍（0-7）
+            if(msg.fromRow < 0 || msg.fromRow >= 8 || msg.fromCol < 0 || msg.fromCol >= 8 ||
+               msg.toRow < 0 || msg.toRow >= 8 || msg.toCol < 0 || msg.toCol >= 8) {
+                console.log('[Server] ERROR: Move coordinates out of bounds');
+                ws.send(JSON.stringify({ action: "error", message: "移動座標超出範圍" }));
+                return;
+            }
+            
             console.log('[Server] Move received for room:', roomId, 'from:', msg.fromRow, msg.fromCol, 'to:', msg.toRow, msg.toCol);
             console.log('[Server] gameTimers exists:', !!gameTimers[roomId], 'rooms exists:', !!rooms[roomId]);
             
