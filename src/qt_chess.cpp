@@ -6531,6 +6531,13 @@ void Qt_Chess::onStartGameReceived(int whiteTimeMs, int blackTimeMs, int increme
         // UI顯示旋轉：將棋盤順時針旋轉90度
         rotateBoardDisplay(true);
         
+        // 如果是房客（連接端），額外旋轉180度（總共270度）
+        if (m_networkManager && m_networkManager->getRole() == NetworkRole::Guest) {
+            rotateBoardDisplay(true);  // 再旋轉90度（累計180度）
+            rotateBoardDisplay(true);  // 再旋轉90度（累計270度）
+            qDebug() << "[Qt_Chess::onStartGameReceived] Guest: Applied additional 180 degree rotation (total 270 degrees)";
+        }
+        
         // 開始時應用重力，讓所有棋子往右掉（棋盤轉90度效果）
         applyGravity();
     } else {
