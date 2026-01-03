@@ -259,6 +259,10 @@ Qt_Chess::Qt_Chess(QWidget *parent)
     , m_diceModeEnabled(false)
     , m_diceDisplayPanel(nullptr)
     , m_diceMovesRemaining(0)
+    , m_diceCheckInterrupted(false)
+    , m_diceInterruptedPlayer(PieceColor::None)
+    , m_diceRespondingToCheck(false)
+    , m_diceSavedMovesRemaining(0)
     , m_teleportPortal1(-1, -1)
     , m_teleportPortal2(-1, -1)
     , m_bgmPlayer(nullptr)
@@ -1818,6 +1822,12 @@ void Qt_Chess::resetGameState() {
     m_rolledPieceTypes.clear();
     m_rolledPieceTypeCounts.clear();
     m_diceMovesRemaining = 0;
+    m_diceCheckInterrupted = false;
+    m_diceInterruptedPlayer = PieceColor::None;
+    m_diceRespondingToCheck = false;
+    m_diceSavedPieceTypes.clear();
+    m_diceSavedPieceTypeCounts.clear();
+    m_diceSavedMovesRemaining = 0;
     if (m_diceDisplayPanel) {
         m_diceDisplayPanel->hide();
     }
@@ -2542,22 +2552,103 @@ void Qt_Chess::onSquareClicked(int displayRow, int displayCol) {
 
             updateStatus();
             
-            // 如果是線上模式，發送移動給對手（包含最終位置）
+            // 骰子模式：檢查是否會造成將軍中斷（在發送移動之前）
+            bool willCauseCheckInterruption = false;
+            int diceMovesSaved = 0;
+            if (m_diceModeEnabled && m_isOnlineGame) {
+                PieceColor opponentColor = m_chessBoard.getCurrentPlayer();
+                bool opponentInCheck = m_chessBoard.isInCheck(opponentColor);
+                bool opponentInCheckmate = m_chessBoard.isCheckmate(opponentColor);
+                
+                qDebug() << "[Qt_Chess] Check interruption check: opponentInCheck=" << opponentInCheck
+                         << "opponentInCheckmate=" << opponentInCheckmate
+                         << "allRolledPiecesMoved=" << allRolledPiecesMoved();
+                
+                // 只有在將軍但非將殺的情況下才中斷
+                // 如果是將殺，不中斷，讓遊戲正常結束
+                if (opponentInCheck && !opponentInCheckmate && !allRolledPiecesMoved()) {
+                    willCauseCheckInterruption = true;
+                    // 計算完成當前移動後的剩餘移動次數
+                    diceMovesSaved = m_diceMovesRemaining - 1;
+                    qDebug() << "[Qt_Chess] Move will cause check interruption, saving" << diceMovesSaved << "moves";
+                } else if (opponentInCheck && opponentInCheckmate) {
+                    qDebug() << "[Qt_Chess] Checkmate detected, no interruption - game should end";
+                }
+            }
+            
+            // 如果是線上模式，發送移動給對手（包含最終位置和將軍中斷信息）
             if (m_isOnlineGame && m_networkManager) {
                 qDebug() << "[Qt_Chess] Sending move to opponent: from" << m_lastMoveFrom << "to" << m_lastMoveTo
-                         << "| FinalPosition:" << finalPosition;
-                m_networkManager->sendMove(m_lastMoveFrom, m_lastMoveTo, promType, finalPosition);
+                         << "| FinalPosition:" << finalPosition
+                         << "| CheckInterruption:" << willCauseCheckInterruption;
+                m_networkManager->sendMove(m_lastMoveFrom, m_lastMoveTo, promType, finalPosition, willCauseCheckInterruption, diceMovesSaved);
             }
             
             // 骰子模式：標記已移動的棋子類型
             if (m_diceModeEnabled && m_isOnlineGame) {
+                // 如果玩家正在應對將軍，完成移動後清除該標記
+                if (m_diceRespondingToCheck) {
+                    qDebug() << "[Qt_Chess] Player responded to check, clearing responding flag";
+                    m_diceRespondingToCheck = false;
+                }
+                
                 // 本地標記該棋子類型已使用一次（markPieceTypeAsMoved 會自動調用 updateDiceDisplay）
                 if (movedPieceType != PieceType::None) {
                     markPieceTypeAsMoved(movedPieceType);
                 }
                 
-                // 檢查是否所有骰出的棋子都已移動（基於當前的m_diceMovesRemaining）
-                if (allRolledPiecesMoved()) {
+                // 檢查對方王是否被將軍（但不是將死）
+                PieceColor opponentColor = m_chessBoard.getCurrentPlayer();
+                bool opponentInCheck = m_chessBoard.isInCheck(opponentColor);
+                bool opponentInCheckmate = m_chessBoard.isCheckmate(opponentColor);
+                
+                // 如果是將殺，發送遊戲結束訊息給對手
+                if (opponentInCheckmate) {
+                    qDebug() << "[Qt_Chess] Checkmate detected in dice mode!";
+                    // 設置遊戲結果
+                    if (opponentColor == PieceColor::White) {
+                        m_chessBoard.setGameResult(GameResult::BlackWins);
+                    } else {
+                        m_chessBoard.setGameResult(GameResult::WhiteWins);
+                    }
+                    // 發送遊戲結束訊息
+                    if (m_networkManager) {
+                        QString result = (opponentColor == PieceColor::White) ? "0-1" : "1-0";
+                        m_networkManager->sendGameOver(result);
+                    }
+                    handleGameEnd();
+                    QString winner = (opponentColor == PieceColor::White) ? "黑方" : "白方";
+                    QMessageBox::information(this, "遊戲結束", QString("將死！%1獲勝！").arg(winner));
+                } else if (opponentInCheck && !opponentInCheckmate && !allRolledPiecesMoved()) {
+                // 如果對方被將軍但不是將死，且當前玩家還有骰子沒移動完，才需要中斷
+                // 注意：這裡不應該再設置 m_diceRespondingToCheck，因為已經在上面統一處理了
+                    qDebug() << "[Qt_Chess] Dice mode: Opponent in check but not checkmate, interrupting turn";
+                    
+                    // 保存當前骰子狀態
+                    m_diceCheckInterrupted = true;
+                    m_diceInterruptedPlayer = (opponentColor == PieceColor::White) ? PieceColor::Black : PieceColor::White;
+                    m_diceSavedPieceTypes = m_rolledPieceTypes;
+                    m_diceSavedPieceTypeCounts = m_rolledPieceTypeCounts;
+                    m_diceSavedMovesRemaining = m_diceMovesRemaining;
+                    
+                    qDebug() << "[Qt_Chess] Saved dice state: " << m_diceSavedMovesRemaining << " moves remaining";
+                    
+                    // 注意：將軍中斷信息已經在 sendMove() 中發送，不需要單獨發送
+                    
+                    // 清空當前骰子狀態（對手需要先應對將軍）
+                    m_rolledPieceTypes.clear();
+                    m_rolledPieceTypeCounts.clear();
+                    m_diceMovesRemaining = 0;
+                    
+                    // 設置對手正在應對將軍標記（允許對手移動任何棋子）
+                    m_diceRespondingToCheck = true;
+                    
+                    updateDiceDisplay();
+                    
+                    // 回合已經自動切換到對手，保持這個狀態讓對手解決將軍
+                    updateStatus();
+                    
+                } else if (allRolledPiecesMoved()) {
                     qDebug() << "[Qt_Chess] All rolled pieces moved, switching turn";
                     // 所有骰子都移動完畢，正常切換回合（棋盤會自動切換玩家）
                 } else {
@@ -3651,22 +3742,102 @@ void Qt_Chess::mouseReleaseEvent(QMouseEvent *event) {
                 updateStatus();
                 clearHighlights();
                 
-                // 如果是線上模式，發送移動給對手（包含最終位置）
+                // 骰子模式：檢查是否會造成將軍中斷（在發送移動之前）
+                bool willCauseCheckInterruption = false;
+                int diceMovesSaved = 0;
+                if (m_diceModeEnabled && m_isOnlineGame) {
+                    PieceColor opponentColor = m_chessBoard.getCurrentPlayer();
+                    bool opponentInCheck = m_chessBoard.isInCheck(opponentColor);
+                    bool opponentInCheckmate = m_chessBoard.isCheckmate(opponentColor);
+                    
+                    qDebug() << "[Qt_Chess] Check interruption check (drag): opponentInCheck=" << opponentInCheck
+                             << "opponentInCheckmate=" << opponentInCheckmate
+                             << "allRolledPiecesMoved=" << allRolledPiecesMoved();
+                    
+                    // 只有在將軍但非將殺的情況下才中斷
+                    // 如果是將殺，不中斷，讓遊戲正常結束
+                    if (opponentInCheck && !opponentInCheckmate && !allRolledPiecesMoved()) {
+                        willCauseCheckInterruption = true;
+                        // 計算完成當前移動後的剩餘移動次數
+                        diceMovesSaved = m_diceMovesRemaining - 1;
+                        qDebug() << "[Qt_Chess] Move (drag) will cause check interruption, saving" << diceMovesSaved << "moves";
+                    } else if (opponentInCheck && opponentInCheckmate) {
+                        qDebug() << "[Qt_Chess] Checkmate detected (drag), no interruption - game should end";
+                    }
+                }
+                
+                // 如果是線上模式，發送移動給對手（包含最終位置和將軍中斷信息）
                 if (m_isOnlineGame && m_networkManager) {
                     qDebug() << "[Qt_Chess] Sending move to opponent (drag): from" << m_lastMoveFrom << "to" << m_lastMoveTo
-                             << "| FinalPosition:" << finalPosition;
-                    m_networkManager->sendMove(m_lastMoveFrom, m_lastMoveTo, promType, finalPosition);
+                             << "| FinalPosition:" << finalPosition
+                             << "| CheckInterruption:" << willCauseCheckInterruption;
+                    m_networkManager->sendMove(m_lastMoveFrom, m_lastMoveTo, promType, finalPosition, willCauseCheckInterruption, diceMovesSaved);
                 }
                 
                 // 骰子模式：標記已移動的棋子類型
                 if (m_diceModeEnabled && m_isOnlineGame) {
+                    // 如果玩家正在應對將軍，完成移動後清除該標記
+                    if (m_diceRespondingToCheck) {
+                        qDebug() << "[Qt_Chess] Player responded to check (drag), clearing responding flag";
+                        m_diceRespondingToCheck = false;
+                    }
+                    
                     // 本地標記該棋子類型已使用一次（markPieceTypeAsMoved 會自動調用 updateDiceDisplay）
                     if (movedPieceType != PieceType::None) {
                         markPieceTypeAsMoved(movedPieceType);
                     }
                     
-                    // 檢查是否所有骰出的棋子都已移動（基於當前的m_diceMovesRemaining）
-                    if (allRolledPiecesMoved()) {
+                    // 檢查對方王是否被將軍（但不是將死）
+                    PieceColor opponentColor = m_chessBoard.getCurrentPlayer();
+                    bool opponentInCheck = m_chessBoard.isInCheck(opponentColor);
+                    bool opponentInCheckmate = m_chessBoard.isCheckmate(opponentColor);
+                    
+                    // 如果是將殺，發送遊戲結束訊息給對手
+                    if (opponentInCheckmate) {
+                        qDebug() << "[Qt_Chess] Checkmate detected in dice mode (drag)!";
+                        // 設置遊戲結果
+                        if (opponentColor == PieceColor::White) {
+                            m_chessBoard.setGameResult(GameResult::BlackWins);
+                        } else {
+                            m_chessBoard.setGameResult(GameResult::WhiteWins);
+                        }
+                        // 發送遊戲結束訊息
+                        if (m_networkManager) {
+                            QString result = (opponentColor == PieceColor::White) ? "0-1" : "1-0";
+                            m_networkManager->sendGameOver(result);
+                        }
+                        handleGameEnd();
+                        QString winner = (opponentColor == PieceColor::White) ? "黑方" : "白方";
+                        QMessageBox::information(this, "遊戲結束", QString("將死！%1獲勝！").arg(winner));
+                    } else if (opponentInCheck && !opponentInCheckmate && !allRolledPiecesMoved()) {
+                    // 如果對方被將軍但不是將死，且當前玩家還有骰子沒移動完
+                        qDebug() << "[Qt_Chess] Dice mode (drag): Opponent in check but not checkmate, interrupting turn";
+                        
+                        // 保存當前骰子狀態
+                        m_diceCheckInterrupted = true;
+                        m_diceInterruptedPlayer = (opponentColor == PieceColor::White) ? PieceColor::Black : PieceColor::White;
+                        m_diceSavedPieceTypes = m_rolledPieceTypes;
+                        m_diceSavedPieceTypeCounts = m_rolledPieceTypeCounts;
+                        m_diceSavedMovesRemaining = m_diceMovesRemaining;
+                        
+                        qDebug() << "[Qt_Chess] Saved dice state (drag): " << m_diceSavedMovesRemaining << " moves remaining";
+                        
+                        // 注意：將軍中斷信息已經在 sendMove() 中發送，不需要單獨發送
+                        
+                        // 清空當前骰子狀態（對手需要先應對將軍）
+                        m_rolledPieceTypes.clear();
+                        m_rolledPieceTypeCounts.clear();
+                        m_diceMovesRemaining = 0;
+                        
+                        // 設置對手正在應對將軍標記（允許對手移動任何棋子）
+                        m_diceRespondingToCheck = true;
+                        
+                        updateDiceDisplay();
+                        
+                        // 回合已經自動切換到對手，保持這個狀態讓對手解決將軍
+                        updateStatus();
+                        
+                    } else if (allRolledPiecesMoved()) {
                         qDebug() << "[Qt_Chess] All rolled pieces moved (drag), switching turn";
                         // 所有骰子都移動完畢，正常切換回合（棋盤會自動切換玩家）
                     } else {
@@ -6193,6 +6364,19 @@ void Qt_Chess::onOpponentMove(const QPoint& from, const QPoint& to, PieceType pr
             if (opponentMovedPieceType != PieceType::None) {
                 markPieceTypeAsMoved(opponentMovedPieceType);
             }
+            
+            // 檢查對手的移動是否將我方的王將軍
+            PieceColor myColor = m_networkManager->getPlayerColor();
+            bool imInCheck = m_chessBoard.isInCheck(myColor);
+            bool imInCheckmate = m_chessBoard.isCheckmate(myColor);
+            
+            if (imInCheck && !imInCheckmate) {
+                // 對手將我方王將軍
+                // 注意：不要在這裡設置 m_diceRespondingToCheck，
+                // 因為我們還不知道這是中斷（對手還有骰子）還是正常換邊（對手用完骰子）
+                // 等收到 onDiceStateReceived 時再決定
+                qDebug() << "[Qt_Chess::onOpponentMove] My king is in check, will determine response type in onDiceStateReceived";
+            }
         }
         
         // 在骰子模式下，伺服器會通過diceStateReceived信號告訴我們剩餘移動次數
@@ -6200,15 +6384,48 @@ void Qt_Chess::onOpponentMove(const QPoint& from, const QPoint& to, PieceType pr
         // 注意：這裡不需要手動管理，因為伺服器會發送正確的dice狀態
         // 但我們需要確保棋盤的currentPlayer與伺服器狀態一致
         if (m_diceModeEnabled && m_isOnlineGame) {
-            // 在骰子模式下，依賴伺服器的diceState來判斷是否應該切換玩家
-            // 如果對手還有骰子移動剩餘（m_diceMovesRemaining > 0），則不應切換
-            // 但movePiece已經切換了，所以需要切回去
             PieceColor myColor = m_networkManager->getPlayerColor();
             PieceColor opponentColor = (myColor == PieceColor::White) ? PieceColor::Black : PieceColor::White;
             
+            // 檢查是否有被中斷的骰子回合需要恢復
+            if (m_diceCheckInterrupted && m_diceInterruptedPlayer == myColor) {
+                // 對手已經移動解決了將軍，現在檢查我方是否還被將軍
+                bool stillInCheck = m_chessBoard.isInCheck(myColor);
+                
+                if (!stillInCheck) {
+                    // 將軍已解除，恢復被中斷的玩家回合
+                    qDebug() << "[Qt_Chess::onOpponentMove] Check resolved, restoring interrupted player's turn";
+                    
+                    // 通知伺服器將軍已解除，恢復骰子回合
+                    if (m_networkManager) {
+                        m_networkManager->sendDiceCheckResolved();
+                    }
+                    
+                    // 恢復骰子狀態
+                    m_rolledPieceTypes = m_diceSavedPieceTypes;
+                    m_rolledPieceTypeCounts = m_diceSavedPieceTypeCounts;
+                    m_diceMovesRemaining = m_diceSavedMovesRemaining;
+                    
+                    // 清除中斷標記和應對將軍標記
+                    m_diceCheckInterrupted = false;
+                    m_diceInterruptedPlayer = PieceColor::None;
+                    m_diceRespondingToCheck = false;
+                    m_diceSavedPieceTypes.clear();
+                    m_diceSavedPieceTypeCounts.clear();
+                    m_diceSavedMovesRemaining = 0;
+                    
+                    // 切換回合到被中斷的玩家
+                    m_chessBoard.setCurrentPlayer(myColor);
+                    
+                    qDebug() << "[Qt_Chess::onOpponentMove] Restored dice state: " << m_diceMovesRemaining << " moves remaining";
+                    
+                    updateDiceDisplay();
+                    updateStatus();
+                }
+            }
             // 如果m_diceMovesRemaining > 0，表示對手還有移動剩餘
             // 此時currentPlayerAfter已經切換到我了，需要切回對手
-            if (m_diceMovesRemaining > 0 && currentPlayerAfter == myColor) {
+            else if (m_diceMovesRemaining > 0 && currentPlayerAfter == myColor) {
                 qDebug() << "[Qt_Chess::onOpponentMove] Dice mode: opponent has" << m_diceMovesRemaining 
                          << "moves remaining, keeping opponent's turn";
                 m_chessBoard.setCurrentPlayer(opponentColor);
@@ -6256,8 +6473,30 @@ void Qt_Chess::onOpponentMove(const QPoint& from, const QPoint& to, PieceType pr
         playSoundForMove(isCapture, isCastling);
         
         // 檢查將軍
-        if (m_chessBoard.isInCheck(m_chessBoard.getCurrentPlayer())) {
+        PieceColor currentPlayer = m_chessBoard.getCurrentPlayer();
+        bool myKingInCheck = m_chessBoard.isInCheck(currentPlayer);
+        bool myKingInCheckmate = m_chessBoard.isCheckmate(currentPlayer);
+        
+        if (myKingInCheck) {
             m_checkSound.play();
+            
+            // 骰子模式：如果對手在骰子回合中將我將軍（但不是將死），需要中斷對手回合
+            if (m_diceModeEnabled && m_isOnlineGame && !myKingInCheckmate) {
+                PieceColor opponentColor = (currentPlayer == PieceColor::White) ? PieceColor::Black : PieceColor::White;
+                
+                // 檢查對手是否還有骰子沒移動完（通過m_diceMovesRemaining判斷）
+                // 注意：這裡的m_diceMovesRemaining是對手的剩餘移動次數
+                if (m_diceMovesRemaining > 0) {
+                    qDebug() << "[Qt_Chess::onOpponentMove] Opponent put me in check during dice turn, interrupting opponent";
+                    
+                    // 保存對手的骰子狀態（需要通過信號從對手那裡獲取，這裡只能清空本地狀態）
+                    // 實際上對手的骰子狀態應該由伺服器管理
+                    // 這裡我們只需要確保回合切換到我來應對將軍
+                    
+                    // 回合應該已經在movePiece中切換到我了，保持這個狀態
+                    qDebug() << "[Qt_Chess::onOpponentMove] Turn should now be mine to respond to check";
+                }
+            }
         }
         
         // 應用時間增量
@@ -6603,6 +6842,12 @@ void Qt_Chess::onStartGameReceived(int whiteTimeMs, int blackTimeMs, int increme
         m_rolledPieceTypes.clear();
         m_rolledPieceTypeCounts.clear();
         m_diceMovesRemaining = 0;
+        m_diceCheckInterrupted = false;
+        m_diceInterruptedPlayer = PieceColor::None;
+        m_diceRespondingToCheck = false;
+        m_diceSavedPieceTypes.clear();
+        m_diceSavedPieceTypeCounts.clear();
+        m_diceSavedMovesRemaining = 0;
         if (m_diceDisplayPanel) {
             m_diceDisplayPanel->hide();
         }
@@ -8696,20 +8941,41 @@ void Qt_Chess::onDiceRolled(const std::vector<int>& rolls, const QString& curren
 }
 
 // 處理從伺服器收到的骰子狀態更新
-void Qt_Chess::onDiceStateReceived(int movesRemaining) {
+void Qt_Chess::onDiceStateReceived(int movesRemaining, bool hasInterruption) {
     if (!m_diceModeEnabled || !m_isOnlineGame) {
         return;
     }
     
     qDebug() << "[Qt_Chess::onDiceStateReceived] Server dice movesRemaining:" << movesRemaining 
+             << "| hasInterruption:" << hasInterruption
              << "| Current local value:" << m_diceMovesRemaining;
     
     // 同步伺服器的骰子剩餘移動次數
     m_diceMovesRemaining = movesRemaining;
     
+    // 檢查是否在將軍狀態下
+    PieceColor myColor = m_networkManager->getPlayerColor();
+    bool imInCheck = m_chessBoard.isInCheck(myColor);
+    bool imInCheckmate = m_chessBoard.isCheckmate(myColor);
+    
+    // 如果我被將軍但不是將死，且 movesRemaining = 0，且伺服器有中斷狀態
+    // 這表示這是一個中斷：對手在骰子回合中間將軍，我需要應對
+    if (imInCheck && !imInCheckmate && movesRemaining == 0 && hasInterruption && isOnlineTurn()) {
+        // 這是中斷：對手在骰子回合中間將軍
+        qDebug() << "[Qt_Chess::onDiceStateReceived] Check interruption detected (hasInterruption=true), setting responding flag";
+        m_diceRespondingToCheck = true;
+        // 清空骰子狀態（將軍時不受骰子限制）
+        m_rolledPieceTypes.clear();
+        m_rolledPieceTypeCounts.clear();
+        updateDiceDisplay();
+    }
+    // 如果 movesRemaining = 0 但 hasInterruption = false，這是正常換邊
+    // 讓下面的邏輯骰新骰子
+    
     // 骰子模式：如果對手已完成所有移動（movesRemaining == 0）且輪到本地玩家，骰出新的棋子
     // 這裡才是正確的時機，因為我們已經收到了伺服器的骰子狀態更新
-    if (m_diceModeEnabled && m_isOnlineGame && isOnlineTurn() && m_diceMovesRemaining <= 0) {
+    // 但是：如果正在應對將軍（m_diceRespondingToCheck），則不要骰新骰子！防守方只能移動一步
+    if (m_diceModeEnabled && m_isOnlineGame && isOnlineTurn() && m_diceMovesRemaining <= 0 && !m_diceRespondingToCheck) {
         qDebug() << "[Qt_Chess::onDiceStateReceived] It's now my turn and all moves complete, clearing old dice and rolling new dice";
         
         // 清除舊的骰子：重置所有骰子計數器
@@ -8817,6 +9083,11 @@ void Qt_Chess::updateDiceDisplay() {
 bool Qt_Chess::isPieceTypeInRolledList(PieceType type) const {
     if (!m_diceModeEnabled) {
         return true;  // 如果未啟用骰子模式，所有棋子都可以移動
+    }
+    
+    // 如果玩家正在應對將軍，允許移動任何棋子
+    if (m_diceRespondingToCheck) {
+        return true;
     }
     
     for (size_t i = 0; i < m_rolledPieceTypes.size(); ++i) {

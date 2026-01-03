@@ -125,12 +125,13 @@ void NetworkManager::closeConnection()
     m_opponentColor = PieceColor::None;
 }
 
-void NetworkManager::sendMove(const QPoint& from, const QPoint& to, PieceType promotionType, QPoint finalPosition)
+void NetworkManager::sendMove(const QPoint& from, const QPoint& to, PieceType promotionType, QPoint finalPosition, bool causesCheckInterruption, int savedDiceMoves)
 {
     qDebug() << "[NetworkManager::sendMove] Sending move from" << from << "to" << to 
              << "| Role:" << (m_role == NetworkRole::Host ? "Host" : "Guest")
              << "| Socket connected:" << (m_webSocket && m_webSocket->state() == QAbstractSocket::ConnectedState)
-             << "| FinalPosition:" << finalPosition;
+             << "| FinalPosition:" << finalPosition
+             << "| CheckInterruption:" << causesCheckInterruption;
     
     if (m_roomNumber.isEmpty()) {
         qDebug() << "[NetworkManager::sendMove] ERROR: Room number is empty, cannot send move";
@@ -156,6 +157,12 @@ void NetworkManager::sendMove(const QPoint& from, const QPoint& to, PieceType pr
         finalPosJson["x"] = finalPosition.x();
         finalPosJson["y"] = finalPosition.y();
         message["finalPosition"] = finalPosJson;
+    }
+    
+    // 添加骰子模式將軍中斷信息
+    if (causesCheckInterruption && savedDiceMoves > 0) {
+        message["diceCheckInterruption"] = true;
+        message["savedDiceMoves"] = savedDiceMoves;
     }
     
     sendMessage(message);
@@ -285,6 +292,39 @@ void NetworkManager::requestDiceRoll(int numMovablePieces)
     sendMessage(message);
     
     qDebug() << "[NetworkManager::requestDiceRoll] Requesting dice roll for" << numMovablePieces << "movable pieces";
+}
+
+void NetworkManager::sendDiceCheckInterruption(int savedMovesRemaining)
+{
+    if (m_roomNumber.isEmpty()) {
+        qDebug() << "[NetworkManager::sendDiceCheckInterruption] ERROR: Room number is empty";
+        return;
+    }
+    
+    QJsonObject message;
+    message["action"] = "diceCheckInterruption";
+    message["room"] = m_roomNumber;
+    message["savedMovesRemaining"] = savedMovesRemaining;
+    
+    sendMessage(message);
+    
+    qDebug() << "[NetworkManager::sendDiceCheckInterruption] Sent dice check interruption with" << savedMovesRemaining << "moves saved";
+}
+
+void NetworkManager::sendDiceCheckResolved()
+{
+    if (m_roomNumber.isEmpty()) {
+        qDebug() << "[NetworkManager::sendDiceCheckResolved] ERROR: Room number is empty";
+        return;
+    }
+    
+    QJsonObject message;
+    message["action"] = "diceCheckResolved";
+    message["room"] = m_roomNumber;
+    
+    sendMessage(message);
+    
+    qDebug() << "[NetworkManager::sendDiceCheckResolved] Sent dice check resolved notification";
 }
 
 void NetworkManager::setPlayerColors(PieceColor playerColor)
@@ -558,11 +598,13 @@ void NetworkManager::processMessage(const QJsonObject& message)
         if (message.contains("diceState")) {
             QJsonObject diceState = message["diceState"].toObject();
             int movesRemaining = diceState["movesRemaining"].toInt();
+            bool hasInterruption = diceState["hasInterruption"].toBool();  // 伺服器告訴我們是否有中斷狀態
             
-            qDebug() << "[NetworkManager] Dice state update - movesRemaining:" << movesRemaining;
+            qDebug() << "[NetworkManager] Dice state update - movesRemaining:" << movesRemaining 
+                     << "hasInterruption:" << hasInterruption;
             
             // 通知主程式更新骰子剩餘移動次數
-            emit diceStateReceived(movesRemaining);
+            emit diceStateReceived(movesRemaining, hasInterruption);
         }
     }
     else if (actionStr == "surrender") {
