@@ -5118,10 +5118,28 @@ void Qt_Chess::updateCapturedPiecesDisplay() {
 
             // 創建並放置棋子標籤
             QLabel* label = new QLabel(panel);
-            label->setText(piece.getSymbol());
-            QFont pieceFont;
-            pieceFont.setPointSize(16);
-            label->setFont(pieceFont);
+            
+            // 根據使用者設定顯示圖示或符號
+            if (m_pieceIconSettings.useCustomIcons) {
+                QPixmap pixmap = getCachedPieceIcon(piece.getType(), piece.getColor());
+                if (!pixmap.isNull()) {
+                    // 使用自訂圖示
+                    label->setPixmap(pixmap.scaled(pieceSize, pieceSize, Qt::KeepAspectRatio, Qt::SmoothTransformation));
+                } else {
+                    // 如果圖示無法載入則回退到符號
+                    label->setText(piece.getSymbol());
+                    QFont pieceFont;
+                    pieceFont.setPointSize(16);
+                    label->setFont(pieceFont);
+                }
+            } else {
+                // 使用 Unicode 符號
+                label->setText(piece.getSymbol());
+                QFont pieceFont;
+                pieceFont.setPointSize(16);
+                label->setFont(pieceFont);
+            }
+            
             label->setFixedSize(pieceSize, pieceSize);
             label->setAlignment(Qt::AlignCenter);
             label->move(xPos, yPos);
