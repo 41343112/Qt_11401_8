@@ -6528,23 +6528,10 @@ void Qt_Chess::onStartGameReceived(int whiteTimeMs, int blackTimeMs, int increme
         m_gravityModeEnabled = true;
         qDebug() << "[Qt_Chess::onStartGameReceived] Gravity mode enabled";
         
-        // UI顯示旋轉：將棋盤順時針旋轉90度
-        rotateBoardDisplay(true);
-        
-        // 如果是房客（連接端），額外旋轉180度（總共270度）
-        if (m_networkManager && m_networkManager->getRole() == NetworkRole::Guest) {
-            rotateBoardDisplay(true);  // 再旋轉90度（累計180度）
-            rotateBoardDisplay(true);  // 再旋轉90度（累計270度）
-            qDebug() << "[Qt_Chess::onStartGameReceived] Guest: Applied additional 180 degree rotation (total 270 degrees)";
-        }
-        
         // 開始時應用重力，讓所有棋子往右掉（棋盤轉90度效果）
         applyGravity();
     } else {
         m_gravityModeEnabled = false;
-        
-        // 恢復正常顯示
-        rotateBoardDisplay(false);
     }
     
     // 檢查是否啟用傳送陣模式
@@ -6608,6 +6595,19 @@ void Qt_Chess::onStartGameReceived(int whiteTimeMs, int blackTimeMs, int increme
     updateBoard();
     updateStatus();
     updateTimeDisplays();
+    
+    // 如果啟用地吸引力模式，在更新棋盤後應用旋轉
+    if (m_gravityModeEnabled) {
+        // UI顯示旋轉：將棋盤順時針旋轉90度
+        rotateBoardDisplay(true);
+        
+        // 如果是房客（連接端），額外旋轉180度（總共270度）
+        if (m_networkManager && m_networkManager->getRole() == NetworkRole::Guest) {
+            rotateBoardDisplay(true);  // 再旋轉90度（累計180度）
+            rotateBoardDisplay(true);  // 再旋轉90度（累計270度）
+            qDebug() << "[Qt_Chess::onStartGameReceived] Guest: Applied additional 180 degree rotation (total 270 degrees)";
+        }
+    }
     
     // 如果啟用了時間控制，啟動計時器並顯示時間
     if (m_timeControlEnabled) {
