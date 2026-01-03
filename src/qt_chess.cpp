@@ -9184,8 +9184,8 @@ void Qt_Chess::updateDiceDisplay() {
                     default: pieceTypeName = "?"; break;
                 }
                 
-                // 顯示棋子類型和剩餘次數
-                QString displayText = QString("%1\n(剩%2)").arg(pieceTypeName).arg(remainingMoves);
+                // 顯示棋子類型（移除剩餘次數顯示）
+                QString displayText = QString("%1").arg(pieceTypeName);
                 label->setText(displayText);
                 
                 // 判斷是否應該灰階顯示：
