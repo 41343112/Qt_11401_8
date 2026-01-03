@@ -158,6 +158,12 @@ bool ChessBoard::isValidMove(const QPoint& from, const QPoint& to) const {
     // 檢查是否為當前玩家的棋子
     if (piece.getColor() != m_currentPlayer) return false;
     
+    // 不能吃掉對方的王（國王不能被吃）
+    const ChessPiece& targetPiece = m_board[to.y()][to.x()];
+    if (targetPiece.getType() == PieceType::King) {
+        return false;
+    }
+    
     // 特殊處理王車易位
     if (piece.getType() == PieceType::King && abs(to.x() - from.x()) == 2) {
         return canCastle(from, to);
