@@ -9222,13 +9222,35 @@ void Qt_Chess::markPieceTypeAsMoved(PieceType type) {
     }
 }
 
-// 檢查是否所有骰出的棋子都已移動
+// 檢查是否所有骰出的棋子都已移動（所有骰子都是灰階）
 bool Qt_Chess::allRolledPiecesMoved() const {
     if (!m_diceModeEnabled) {
         return false;
     }
     
-    return m_diceMovesRemaining <= 0;
+    // 檢查所有骰子是否都是灰階狀態
+    // 骰子灰階的條件：remainingMoves <= 0 或該類型棋子無法移動
+    PieceColor diceOwnerColor = m_chessBoard.getCurrentPlayer();
+    
+    // 需要至少有一個骰子才能判斷
+    if (m_rolledPieceTypes.empty()) {
+        return true;  // 沒有骰子表示已完成
+    }
+    
+    // 檢查每個骰子是否都是灰階
+    for (size_t i = 0; i < m_rolledPieceTypes.size(); ++i) {
+        PieceType type = m_rolledPieceTypes[i];
+        int remainingMoves = m_rolledPieceTypeCounts[i];
+        bool canMove = canPieceTypeMove(type, diceOwnerColor);
+        
+        // 如果這個骰子不是灰階（還可以移動），返回 false
+        if (remainingMoves > 0 && canMove) {
+            return false;
+        }
+    }
+    
+    // 所有骰子都是灰階
+    return true;
 }
 
 // 檢查該位置的棋子是否可以被骰出（有合法移動）
