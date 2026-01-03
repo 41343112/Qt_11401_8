@@ -2602,7 +2602,8 @@ void Qt_Chess::onSquareClicked(int displayRow, int displayCol) {
                 bool opponentInCheck = m_chessBoard.isInCheck(opponentColor);
                 bool opponentInCheckmate = m_chessBoard.isCheckmate(opponentColor);
                 
-                // 如果對方被將軍但不是將死，且當前玩家還有骰子沒移動完
+                // 如果對方被將軍但不是將死，且當前玩家還有骰子沒移動完，才需要中斷
+                // 注意：這裡不應該再設置 m_diceRespondingToCheck，因為已經在上面統一處理了
                 if (opponentInCheck && !opponentInCheckmate && !allRolledPiecesMoved()) {
                     qDebug() << "[Qt_Chess] Dice mode: Opponent in check but not checkmate, interrupting turn";
                     
@@ -6336,14 +6337,11 @@ void Qt_Chess::onOpponentMove(const QPoint& from, const QPoint& to, PieceType pr
             bool imInCheckmate = m_chessBoard.isCheckmate(myColor);
             
             if (imInCheck && !imInCheckmate) {
-                // 對手將我方王將軍，我需要應對將軍（允許移動任何棋子）
-                qDebug() << "[Qt_Chess::onOpponentMove] My king is in check, setting responding flag";
-                m_diceRespondingToCheck = true;
-                // 清空骰子狀態（將軍時不受骰子限制）
-                m_rolledPieceTypes.clear();
-                m_rolledPieceTypeCounts.clear();
-                m_diceMovesRemaining = 0;
-                updateDiceDisplay();
+                // 對手將我方王將軍
+                // 注意：不要在這裡設置 m_diceRespondingToCheck，
+                // 因為我們還不知道這是中斷（對手還有骰子）還是正常換邊（對手用完骰子）
+                // 等收到 onDiceStateReceived 時再決定
+                qDebug() << "[Qt_Chess::onOpponentMove] My king is in check, will determine response type in onDiceStateReceived";
             }
         }
         
@@ -8919,6 +8917,32 @@ void Qt_Chess::onDiceStateReceived(int movesRemaining) {
     
     // 同步伺服器的骰子剩餘移動次數
     m_diceMovesRemaining = movesRemaining;
+    
+    // 檢查是否在將軍狀態下
+    PieceColor myColor = m_networkManager->getPlayerColor();
+    bool imInCheck = m_chessBoard.isInCheck(myColor);
+    bool imInCheckmate = m_chessBoard.isCheckmate(myColor);
+    
+    // 如果我被將軍但不是將死，且 movesRemaining = 0，需要判斷是中斷還是正常換邊
+    // 如果是中斷：設置 m_diceRespondingToCheck = true，不骰骰子
+    // 如果是正常換邊：不設置 flag，讓下面的邏輯骰新骰子
+    if (imInCheck && !imInCheckmate && movesRemaining == 0 && isOnlineTurn()) {
+        // 需要判斷：這是中斷（對手還有骰子）還是正常換邊（對手用完骰子）
+        // 判斷方法：如果我之前沒有骰子（m_rolledPieceTypes為空），說明是中斷
+        // 如果我之前有骰子，說明是正常換邊
+        if (m_rolledPieceTypes.empty()) {
+            // 這是中斷：對手在骰子回合中間將軍
+            qDebug() << "[Qt_Chess::onDiceStateReceived] Check interruption detected, setting responding flag";
+            m_diceRespondingToCheck = true;
+            // 清空骰子狀態（將軍時不受骰子限制）
+            m_rolledPieceTypeCounts.clear();
+            updateDiceDisplay();
+        } else {
+            // 這是正常換邊：對手用完3個骰子後將軍
+            // 不設置 responding flag，讓下面的邏輯骰新骰子
+            qDebug() << "[Qt_Chess::onDiceStateReceived] Normal turn with check, will roll new dice";
+        }
+    }
     
     // 骰子模式：如果對手已完成所有移動（movesRemaining == 0）且輪到本地玩家，骰出新的棋子
     // 這裡才是正確的時機，因為我們已經收到了伺服器的骰子狀態更新
