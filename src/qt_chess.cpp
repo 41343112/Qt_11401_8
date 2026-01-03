@@ -59,9 +59,9 @@ const int RELEASE_NOTES_PREVIEW_LENGTH = 200; // 更新說明預覽的字元數
 const QString WHITE_PIECE_COLOR = "#FFFFFF"; // 白色棋子顏色
 const QString BLACK_PIECE_COLOR = "#000000"; // 黑色棋子顏色
 
-// 上一步移動高亮顏色 - 歐式古典風格的金褐色調
-const QString LAST_MOVE_LIGHT_COLOR = "#D4AF7A";  // 淺色格子的高亮（淺金褐色）
-const QString LAST_MOVE_DARK_COLOR = "#B8956A";   // 深色格子的高亮（金褐色）
+// 上一步移動高亮顏色 - 歐式古典風格的明亮金褐色調（更明顯）
+const QString LAST_MOVE_LIGHT_COLOR = "#DAA520";  // 淺色格子的高亮（金色）
+const QString LAST_MOVE_DARK_COLOR = "#B8860B";   // 深色格子的高亮（深金色）
 
 // ===== 歐式古典風格主題顏色（European Classical Theme）=====
 const QString THEME_BG_DARK = "#E8DCC8";           // 米白色背景（羊皮紙色）
@@ -2152,12 +2152,12 @@ void Qt_Chess::highlightValidMoves() {
 
     if (!m_pieceSelected) return;
 
-    // 高亮選中的格子（m_selectedSquare 是邏輯坐標）- 歐式古典風格金褐色
+    // 高亮選中的格子（m_selectedSquare 是邏輯坐標）- 歐式古典風格明亮金色（更明顯）
     int displayRow = getDisplayRow(m_selectedSquare.y());
     int displayCol = getDisplayCol(m_selectedSquare.x());
     QString selectedTextColor = getPieceTextColor(m_selectedSquare.y(), m_selectedSquare.x());
     m_squares[displayRow][displayCol]->setStyleSheet(
-        QString("QPushButton { background-color: #D4AF7A; border: 2px solid %1; color: %2; }").arg(THEME_ACCENT_PRIMARY, selectedTextColor)
+        QString("QPushButton { background-color: #DAA520; border: 3px solid %1; color: %2; }").arg(THEME_ACCENT_PRIMARY, selectedTextColor)
         );
 
     // 高亮有效的移動
@@ -2173,16 +2173,16 @@ void Qt_Chess::highlightValidMoves() {
                 QString textColor = getPieceTextColor(logicalRow, logicalCol);
 
                 if (isCapture) {
-                    // 將吃子移動高亮為深金褐色
-                    QString color = isLight ? "#C19A6B" : "#A67C52";
+                    // 將吃子移動高亮為明亮金褐色（更明顯）
+                    QString color = isLight ? "#D2691E" : "#A0522D";
                     m_squares[displayRow][displayCol]->setStyleSheet(
-                        QString("QPushButton { background-color: %1; border: 2px solid %2; color: %3; }").arg(color, THEME_ACCENT_PRIMARY, textColor)
+                        QString("QPushButton { background-color: %1; border: 3px solid %2; color: %3; }").arg(color, THEME_ACCENT_PRIMARY, textColor)
                         );
                 } else {
-                    // 將非吃子移動高亮為淺金褐色
-                    QString color = isLight ? "#E8C89A" : "#D4AF7A";
+                    // 將非吃子移動高亮為明亮淺金褐色（更明顯）
+                    QString color = isLight ? "#F4C542" : "#DAA520";
                     m_squares[displayRow][displayCol]->setStyleSheet(
-                        QString("QPushButton { background-color: %1; border: 2px solid %2; color: %3; }").arg(color, THEME_ACCENT_SECONDARY, textColor)
+                        QString("QPushButton { background-color: %1; border: 3px solid %2; color: %3; }").arg(color, THEME_ACCENT_SECONDARY, textColor)
                         );
                 }
             }

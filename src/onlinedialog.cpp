@@ -1,5 +1,6 @@
 #include "onlinedialog.h"
 #include "qt_chess.h"  // For game mode constants
+#include "theme.h"
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QGroupBox>
@@ -15,10 +16,73 @@ OnlineDialog::OnlineDialog(QWidget *parent)
     setupUI();
     setWindowTitle(tr("選擇遊戲模式"));
     resize(400, 350);
+    
+    // 應用歐式古典風格
+    applyClassicalDialogStyle();
 }
 
 OnlineDialog::~OnlineDialog()
 {
+}
+
+void OnlineDialog::applyClassicalDialogStyle()
+{
+    // 歐式古典風格對話框樣式表
+    QString styleSheet = QString(
+        "QDialog { "
+        "  background-color: %1; "
+        "}"
+        "QGroupBox { "
+        "  font-weight: bold; "
+        "  color: %2; "
+        "  border: 2px solid %3; "
+        "  border-radius: 6px; "
+        "  margin-top: 12px; "
+        "  padding-top: 12px; "
+        "  background-color: %4; "
+        "}"
+        "QGroupBox::title { "
+        "  subcontrol-origin: margin; "
+        "  subcontrol-position: top left; "
+        "  padding: 4px 12px; "
+        "  color: %2; "
+        "  background-color: %4; "
+        "  border: 1px solid %3; "
+        "  border-radius: 4px; "
+        "  left: 10px; "
+        "}"
+        "QCheckBox { "
+        "  color: %5; "
+        "  font-size: 10pt; "
+        "  padding: 3px; "
+        "}"
+        "QCheckBox::indicator { width: 18px; height: 18px; }"
+        "QCheckBox::indicator:unchecked { "
+        "  border: 2px solid %3; border-radius: 3px; background-color: %1; "
+        "}"
+        "QCheckBox::indicator:checked { "
+        "  border: 2px solid %2; border-radius: 3px; "
+        "  background-color: %6; "
+        "}"
+        "QPushButton { "
+        "  background-color: %4; "
+        "  color: %5; "
+        "  border: 2px solid %3; "
+        "  border-radius: 6px; "
+        "  padding: 10px 20px; "
+        "  font-weight: 500; "
+        "}"
+        "QPushButton:hover { "
+        "  background-color: %7; "
+        "  border-color: %2; "
+        "  color: %2; "
+        "}"
+        "QPushButton:pressed { background-color: %3; }"
+    ).arg(Theme::BG_MEDIUM, Theme::ACCENT_PRIMARY, Theme::BORDER, 
+          Theme::BG_PANEL, Theme::TEXT_PRIMARY, Theme::ACCENT_SECONDARY, 
+          Theme::BG_DARK);
+    
+    setStyleSheet(styleSheet);
 }
 
 void OnlineDialog::setupUI()
@@ -27,24 +91,18 @@ void OnlineDialog::setupUI()
     
     // 遊戲模式選擇
     QGroupBox* gameModeGroup = new QGroupBox(tr("🎯 選擇遊戲模式（可複選）"), this);
-    gameModeGroup->setStyleSheet("QGroupBox { font-weight: bold; color: #2196F3; }");
     QVBoxLayout* gameModeLayout = new QVBoxLayout(gameModeGroup);
     
     m_standardModeCheckbox = new QCheckBox(tr("🌫️ 霧戰"), this);
-    m_standardModeCheckbox->setStyleSheet("QCheckBox { font-size: 10pt; padding: 3px; color: white; }");
     m_standardModeCheckbox->setChecked(true); // 默認勾選
     
     m_rapidModeCheckbox = new QCheckBox(tr("🌍 地吸引力"), this);
-    m_rapidModeCheckbox->setStyleSheet("QCheckBox { font-size: 10pt; padding: 3px; color: white; }");
     
     m_blitzModeCheckbox = new QCheckBox(tr("🔮 傳送陣"), this);
-    m_blitzModeCheckbox->setStyleSheet("QCheckBox { font-size: 10pt; padding: 3px; color: white; }");
     
     m_handicapModeCheckbox = new QCheckBox(tr("🎲 骰子"), this);
-    m_handicapModeCheckbox->setStyleSheet("QCheckBox { font-size: 10pt; padding: 3px; color: white; }");
     
     m_customRulesCheckbox = new QCheckBox(tr("💣 踩地雷"), this);
-    m_customRulesCheckbox->setStyleSheet("QCheckBox { font-size: 10pt; padding: 3px; color: white; }");
     
     gameModeLayout->addWidget(m_standardModeCheckbox);
     gameModeLayout->addWidget(m_rapidModeCheckbox);
@@ -61,9 +119,7 @@ void OnlineDialog::setupUI()
     buttonLayout->addStretch();
     
     m_okButton = new QPushButton(tr("確定"), this);
-    m_okButton->setStyleSheet("QPushButton { background-color: #2196F3; color: white; padding: 10px 20px; font-weight: bold; }");
     m_cancelButton = new QPushButton(tr("取消"), this);
-    m_cancelButton->setStyleSheet("QPushButton { padding: 10px 20px; }");
     
     buttonLayout->addWidget(m_okButton);
     buttonLayout->addWidget(m_cancelButton);
