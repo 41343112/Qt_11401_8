@@ -420,8 +420,13 @@ void NetworkManager::onError(QAbstractSocket::SocketError socketError)
     }
     
     qDebug() << "[NetworkManager] Socket error:" << errorString;
-    emit connectionError(errorString);
+    
+    // 清理狀態以避免不一致
     m_status = ConnectionStatus::Error;
+    m_roomNumber.clear();
+    m_role = NetworkRole::None;
+    
+    emit connectionError(errorString);
 }
 
 void NetworkManager::sendMessage(const QJsonObject& message)

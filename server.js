@@ -14,9 +14,32 @@ const gameTimers = {}; // gameTimers[roomId] = { timeA, timeB, currentPlayer, la
 // 骰子模式狀態 (Dice Mode State)
 const diceRolls = {}; // diceRolls[roomId] = { currentPlayer, rolls: [{row, col}], movesRemaining }
 
-// 生成 4 位數字房號
+// 速率限制狀態 (Rate Limiting)
+const rateLimits = new Map(); // ws -> { count, resetTime }
+
+// 速率限制檢查函數
+function checkRateLimit(ws) {
+    const now = Date.now();
+    const limit = rateLimits.get(ws) || { count: 0, resetTime: now + 1000 };
+    
+    if(now > limit.resetTime) {
+        // 重置計數器
+        limit.count = 1;
+        limit.resetTime = now + 1000;
+    } else {
+        limit.count++;
+        if(limit.count > 50) { // 每秒最多 50 條訊息
+            return false;
+        }
+    }
+    
+    rateLimits.set(ws, limit);
+    return true;
+}
+
+// 生成 6 位數字房號（增加到 900,000 個可能性以降低碰撞風險）
 function generateRoomId() {
-    return Math.floor(1000 + Math.random() * 9000).toString();
+    return Math.floor(100000 + Math.random() * 900000).toString();
 }
 
 // 處理玩家離開房間的共用邏輯
@@ -61,6 +84,13 @@ function handlePlayerLeaveRoom(ws, roomId) {
 
 wss.on('connection', ws => {
     ws.on('message', message => {
+        // 速率限制檢查
+        if(!checkRateLimit(ws)) {
+            console.log('[Server] Rate limit exceeded');
+            ws.send(JSON.stringify({ action: "error", message: "訊息發送過快，請稍後再試" }));
+            return;
+        }
+        
         let msg;
         try {
             msg = JSON.parse(message);
@@ -535,6 +565,8 @@ wss.on('connection', ws => {
         for(const roomId in rooms){
             handlePlayerLeaveRoom(ws, roomId);
         }
+        // 清理速率限制資料
+        rateLimits.delete(ws);
     });
 });
 
