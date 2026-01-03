@@ -2552,11 +2552,27 @@ void Qt_Chess::onSquareClicked(int displayRow, int displayCol) {
 
             updateStatus();
             
-            // 如果是線上模式，發送移動給對手（包含最終位置）
+            // 骰子模式：檢查是否會造成將軍中斷（在發送移動之前）
+            bool willCauseCheckInterruption = false;
+            int diceMovesSaved = 0;
+            if (m_diceModeEnabled && m_isOnlineGame) {
+                PieceColor opponentColor = m_chessBoard.getCurrentPlayer();
+                bool opponentInCheck = m_chessBoard.isInCheck(opponentColor);
+                bool opponentInCheckmate = m_chessBoard.isCheckmate(opponentColor);
+                
+                if (opponentInCheck && !opponentInCheckmate && !allRolledPiecesMoved()) {
+                    willCauseCheckInterruption = true;
+                    diceMovesSaved = m_diceMovesRemaining;
+                    qDebug() << "[Qt_Chess] Move will cause check interruption, saving" << diceMovesSaved << "moves";
+                }
+            }
+            
+            // 如果是線上模式，發送移動給對手（包含最終位置和將軍中斷信息）
             if (m_isOnlineGame && m_networkManager) {
                 qDebug() << "[Qt_Chess] Sending move to opponent: from" << m_lastMoveFrom << "to" << m_lastMoveTo
-                         << "| FinalPosition:" << finalPosition;
-                m_networkManager->sendMove(m_lastMoveFrom, m_lastMoveTo, promType, finalPosition);
+                         << "| FinalPosition:" << finalPosition
+                         << "| CheckInterruption:" << willCauseCheckInterruption;
+                m_networkManager->sendMove(m_lastMoveFrom, m_lastMoveTo, promType, finalPosition, willCauseCheckInterruption, diceMovesSaved);
             }
             
             // 骰子模式：標記已移動的棋子類型
@@ -2590,10 +2606,7 @@ void Qt_Chess::onSquareClicked(int displayRow, int displayCol) {
                     
                     qDebug() << "[Qt_Chess] Saved dice state: " << m_diceSavedMovesRemaining << " moves remaining";
                     
-                    // 通知伺服器骰子回合被中斷
-                    if (m_networkManager) {
-                        m_networkManager->sendDiceCheckInterruption(m_diceSavedMovesRemaining);
-                    }
+                    // 注意：將軍中斷信息已經在 sendMove() 中發送，不需要單獨發送
                     
                     // 清空當前骰子狀態（對手需要先應對將軍）
                     m_rolledPieceTypes.clear();
@@ -3702,11 +3715,27 @@ void Qt_Chess::mouseReleaseEvent(QMouseEvent *event) {
                 updateStatus();
                 clearHighlights();
                 
-                // 如果是線上模式，發送移動給對手（包含最終位置）
+                // 骰子模式：檢查是否會造成將軍中斷（在發送移動之前）
+                bool willCauseCheckInterruption = false;
+                int diceMovesSaved = 0;
+                if (m_diceModeEnabled && m_isOnlineGame) {
+                    PieceColor opponentColor = m_chessBoard.getCurrentPlayer();
+                    bool opponentInCheck = m_chessBoard.isInCheck(opponentColor);
+                    bool opponentInCheckmate = m_chessBoard.isCheckmate(opponentColor);
+                    
+                    if (opponentInCheck && !opponentInCheckmate && !allRolledPiecesMoved()) {
+                        willCauseCheckInterruption = true;
+                        diceMovesSaved = m_diceMovesRemaining;
+                        qDebug() << "[Qt_Chess] Move (drag) will cause check interruption, saving" << diceMovesSaved << "moves";
+                    }
+                }
+                
+                // 如果是線上模式，發送移動給對手（包含最終位置和將軍中斷信息）
                 if (m_isOnlineGame && m_networkManager) {
                     qDebug() << "[Qt_Chess] Sending move to opponent (drag): from" << m_lastMoveFrom << "to" << m_lastMoveTo
-                             << "| FinalPosition:" << finalPosition;
-                    m_networkManager->sendMove(m_lastMoveFrom, m_lastMoveTo, promType, finalPosition);
+                             << "| FinalPosition:" << finalPosition
+                             << "| CheckInterruption:" << willCauseCheckInterruption;
+                    m_networkManager->sendMove(m_lastMoveFrom, m_lastMoveTo, promType, finalPosition, willCauseCheckInterruption, diceMovesSaved);
                 }
                 
                 // 骰子模式：標記已移動的棋子類型
@@ -3740,10 +3769,7 @@ void Qt_Chess::mouseReleaseEvent(QMouseEvent *event) {
                         
                         qDebug() << "[Qt_Chess] Saved dice state (drag): " << m_diceSavedMovesRemaining << " moves remaining";
                         
-                        // 通知伺服器骰子回合被中斷
-                        if (m_networkManager) {
-                            m_networkManager->sendDiceCheckInterruption(m_diceSavedMovesRemaining);
-                        }
+                        // 注意：將軍中斷信息已經在 sendMove() 中發送，不需要單獨發送
                         
                         // 清空當前骰子狀態（對手需要先應對將軍）
                         m_rolledPieceTypes.clear();

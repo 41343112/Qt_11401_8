@@ -59,7 +59,7 @@ public:
     ConnectionStatus getStatus() const { return m_status; }
     
     // 遊戲同步
-    void sendMove(const QPoint& from, const QPoint& to, PieceType promotionType = PieceType::None, QPoint finalPosition = QPoint(-1, -1));
+    void sendMove(const QPoint& from, const QPoint& to, PieceType promotionType = PieceType::None, QPoint finalPosition = QPoint(-1, -1), bool causesCheckInterruption = false, int savedDiceMoves = 0);
     void sendGameStart(PieceColor playerColor);
     void sendStartGame(int whiteTimeMs, int blackTimeMs, int incrementMs, PieceColor hostColor, const QMap<QString, bool>& gameModes = QMap<QString, bool>(), const std::vector<QPoint>& minePositions = std::vector<QPoint>());  // 房主通知開始遊戲（包含時間設定、顏色選擇、遊戲模式和地雷位置）
     void sendTimeSettings(int whiteTimeMs, int blackTimeMs, int incrementMs);  // 房主發送時間設定更新

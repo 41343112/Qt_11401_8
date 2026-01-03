@@ -125,12 +125,13 @@ void NetworkManager::closeConnection()
     m_opponentColor = PieceColor::None;
 }
 
-void NetworkManager::sendMove(const QPoint& from, const QPoint& to, PieceType promotionType, QPoint finalPosition)
+void NetworkManager::sendMove(const QPoint& from, const QPoint& to, PieceType promotionType, QPoint finalPosition, bool causesCheckInterruption, int savedDiceMoves)
 {
     qDebug() << "[NetworkManager::sendMove] Sending move from" << from << "to" << to 
              << "| Role:" << (m_role == NetworkRole::Host ? "Host" : "Guest")
              << "| Socket connected:" << (m_webSocket && m_webSocket->state() == QAbstractSocket::ConnectedState)
-             << "| FinalPosition:" << finalPosition;
+             << "| FinalPosition:" << finalPosition
+             << "| CheckInterruption:" << causesCheckInterruption;
     
     if (m_roomNumber.isEmpty()) {
         qDebug() << "[NetworkManager::sendMove] ERROR: Room number is empty, cannot send move";
@@ -156,6 +157,12 @@ void NetworkManager::sendMove(const QPoint& from, const QPoint& to, PieceType pr
         finalPosJson["x"] = finalPosition.x();
         finalPosJson["y"] = finalPosition.y();
         message["finalPosition"] = finalPosJson;
+    }
+    
+    // 添加骰子模式將軍中斷信息
+    if (causesCheckInterruption && savedDiceMoves > 0) {
+        message["diceCheckInterruption"] = true;
+        message["savedDiceMoves"] = savedDiceMoves;
     }
     
     sendMessage(message);

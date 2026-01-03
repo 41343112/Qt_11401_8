@@ -183,20 +183,38 @@ wss.on('connection', ws => {
                 
                 const playerWhoJustMoved = timer.currentPlayer;
                 
-                // 檢查是否在骰子模式中還有剩餘移動
+                // 檢查是否在骰子模式中還有剩餘移動，或者移動造成將軍中斷
                 let shouldSwitchPlayer = true;
+                let checkInterruptionOccurred = false;
+                
                 if(diceRolls[roomId]) {
                     console.log('[Server] Dice mode: checking if should switch player. Moves remaining before:', diceRolls[roomId].movesRemaining);
-                    // 先扣除這次移動
-                    if(diceRolls[roomId].movesRemaining > 0) {
-                        diceRolls[roomId].movesRemaining--;
-                    }
-                    // 檢查扣除後是否還有剩餘移動
-                    if(diceRolls[roomId].movesRemaining > 0) {
-                        shouldSwitchPlayer = false;
-                        console.log('[Server] Dice moves remaining:', diceRolls[roomId].movesRemaining, '- NOT switching player');
+                    
+                    // 檢查是否有將軍中斷標記
+                    if(msg.diceCheckInterruption && msg.savedDiceMoves > 0) {
+                        console.log('[Server] Dice check interruption detected! Saved moves:', msg.savedDiceMoves);
+                        checkInterruptionOccurred = true;
+                        
+                        // 保存被中斷的玩家和剩餘移動次數
+                        diceRolls[roomId].interruptedPlayer = playerWhoJustMoved;
+                        diceRolls[roomId].savedMovesRemaining = msg.savedDiceMoves;
+                        diceRolls[roomId].movesRemaining = 0;  // 設為0以強制切換回合
+                        
+                        // 強制切換到對手
+                        shouldSwitchPlayer = true;
+                        console.log('[Server] Forcing turn switch for check interruption');
                     } else {
-                        console.log('[Server] All dice moved - will switch player');
+                        // 正常骰子邏輯：先扣除這次移動
+                        if(diceRolls[roomId].movesRemaining > 0) {
+                            diceRolls[roomId].movesRemaining--;
+                        }
+                        // 檢查扣除後是否還有剩餘移動
+                        if(diceRolls[roomId].movesRemaining > 0) {
+                            shouldSwitchPlayer = false;
+                            console.log('[Server] Dice moves remaining:', diceRolls[roomId].movesRemaining, '- NOT switching player');
+                        } else {
+                            console.log('[Server] All dice moved - will switch player');
+                        }
                     }
                 }
                 
