@@ -3158,9 +3158,15 @@ void Qt_Chess::onStartButtonClicked() {
         // 當遊戲開始時，將右側伸展設為 1
         setRightPanelStretch(1);
         
-        // 播放遊戲開始動畫
-        m_pendingGameStart = isComputerTurn();  // 標記是否需要在動畫後請求引擎走棋
-        playGameStartAnimation();
+        // 遊戲開始後立即執行邏輯（移除動畫）
+        if (m_gameStarted) {
+            startBackgroundMusic();
+        }
+        
+        // 如果是電腦先走（玩家執黑），請求引擎走棋
+        if (isComputerTurn()) {
+            QTimer::singleShot(300, this, &Qt_Chess::requestEngineMove);
+        }
     } else if (!m_timeControlEnabled && !m_gameStarted) {
         // 重置棋盤到初始狀態（即使沒有時間控制）
         resetBoardState();
@@ -3264,9 +3270,15 @@ void Qt_Chess::onStartButtonClicked() {
         // 當遊戲開始時，將右側伸展設為 1
         setRightPanelStretch(1);
         
-        // 播放遊戲開始動畫
-        m_pendingGameStart = isComputerTurn();  // 標記是否需要在動畫後請求引擎走棋
-        playGameStartAnimation();
+        // 遊戲開始後立即執行邏輯（移除動畫）
+        if (m_gameStarted) {
+            startBackgroundMusic();
+        }
+        
+        // 如果是電腦先走（玩家執黑），請求引擎走棋
+        if (isComputerTurn()) {
+            QTimer::singleShot(300, this, &Qt_Chess::requestEngineMove);
+        }
     } else if (m_isOnlineGame) {
         // 線上模式但不符合上述條件時（例如 m_timerStarted 已為 true），
         // 需要重置棋盤並延遲啟用走棋以確保對手已準備好接收移動
@@ -3359,9 +3371,15 @@ void Qt_Chess::onStartButtonClicked() {
         // 當遊戲開始時，將右側伸展設為 1
         setRightPanelStretch(1);
         
-        // 播放遊戲開始動畫
-        m_pendingGameStart = isComputerTurn();
-        playGameStartAnimation();
+        // 遊戲開始後立即執行邏輯（移除動畫）
+        if (m_gameStarted) {
+            startBackgroundMusic();
+        }
+        
+        // 如果是電腦先走（玩家執黑），請求引擎走棋
+        if (isComputerTurn()) {
+            QTimer::singleShot(300, this, &Qt_Chess::requestEngineMove);
+        }
     }
 }
 
@@ -6912,9 +6930,15 @@ void Qt_Chess::onStartGameReceived(int whiteTimeMs, int blackTimeMs, int increme
         if (m_blackTimeProgressBar) m_blackTimeProgressBar->hide();
     }
     
-    // 播放遊戲開始動畫
-    m_pendingGameStart = isComputerTurn();
-    playGameStartAnimation();
+    // 遊戲開始後立即執行邏輯（移除動畫）
+    if (m_gameStarted) {
+        startBackgroundMusic();
+    }
+    
+    // 如果是電腦先走（玩家執黑），請求引擎走棋
+    if (isComputerTurn()) {
+        QTimer::singleShot(300, this, &Qt_Chess::requestEngineMove);
+    }
     
     // 強制更新UI，確保時間標籤和棋盤正確顯示
     if (m_boardWidget) {
