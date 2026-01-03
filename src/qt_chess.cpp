@@ -1088,7 +1088,7 @@ void Qt_Chess::setupTimeControlUI(QVBoxLayout* timeControlPanelLayout) {
     m_incrementLabel->setAlignment(Qt::AlignCenter);
     m_incrementLabel->setStyleSheet(QString(
         "QLabel { color: %1; padding: 4px; background-color: %2; border: 1px solid %3; border-radius: 2px; }"
-    ).arg(THEME_ACCENT_SECONDARY));
+    ).arg(THEME_TEXT_PRIMARY, THEME_BG_PANEL, THEME_BORDER));
     timeControlLayout->addWidget(m_incrementLabel);
 
     // 增量的水平滑桿 - 填充可用寬度
@@ -1108,22 +1108,22 @@ void Qt_Chess::setupTimeControlUI(QVBoxLayout* timeControlPanelLayout) {
     QHBoxLayout* colorButtonsLayout = new QHBoxLayout(m_colorSelectionWidget);
     colorButtonsLayout->setContentsMargins(0, 5, 0, 5);
     
-    // 統一的按鈕樣式 - 現代科技風格（霓虹粉色選中效果）
+    // 統一的按鈕樣式 - 簡約風格
     QString colorButtonStyle = QString(
         "QPushButton { "
-        "  border: 2px solid %1; border-radius: 6px; padding: 6px; "
-        "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 %2, stop:1 %3); "
-        "  color: %4; font-weight: bold; "
+        "  border: 1px solid %1; border-radius: 4px; padding: 6px; "
+        "  background-color: %2; "
+        "  color: %3; "
         "}"
         "QPushButton:checked { "
-        "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 %5, stop:1 rgba(233, 69, 96, 0.6)); "
-        "  color: white; border-color: %5; "
+        "  background-color: %4; "
+        "  color: %2; border-color: %4; "
         "}"
         "QPushButton:hover { "
-        "  border-color: %5; "
-        "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 %2, stop:0.5 rgba(233, 69, 96, 0.2), stop:1 %3); "
+        "  border-color: %4; "
+        "  background-color: %5; "
         "}"
-    ).arg(THEME_BORDER, THEME_BG_PANEL, THEME_BG_DARK, THEME_TEXT_PRIMARY, THEME_ACCENT_SECONDARY);
+    ).arg(THEME_BORDER, THEME_BG_PANEL, THEME_TEXT_PRIMARY, THEME_ACCENT_PRIMARY, THEME_BG_DARK);
     
     // 執白按鈕
     m_whiteButton = new QPushButton("♔ 執白", this);
@@ -1175,15 +1175,15 @@ void Qt_Chess::setupTimeControlUI(QVBoxLayout* timeControlPanelLayout) {
     m_roomInfoLabel->setFont(labelFont);
     m_roomInfoLabel->setAlignment(Qt::AlignCenter);
     m_roomInfoLabel->setWordWrap(true);
-    m_roomInfoLabel->setStyleSheet(QString("QLabel { color: %1; background: rgba(103, 232, 249, 0.15); "
-        "padding: 8px; border-radius: 4px; font-weight: bold; }").arg(THEME_ACCENT_PRIMARY));
+    m_roomInfoLabel->setStyleSheet(QString("QLabel { color: %1; background-color: %2; "
+        "padding: 8px; border: 1px solid %3; border-radius: 2px; }").arg(THEME_TEXT_PRIMARY, THEME_BG_PANEL, THEME_BORDER));
     m_roomInfoLabel->hide();  // 初始隱藏
     timeControlLayout->addWidget(m_roomInfoLabel);
     
     // 難度設定
     m_difficultyLabel = new QLabel("🎯 電腦難度:", this);
     m_difficultyLabel->setFont(labelFont);
-    m_difficultyLabel->setStyleSheet(QString("QLabel { color: %1; font-weight: bold; }").arg(THEME_ACCENT_WARNING));
+    m_difficultyLabel->setStyleSheet(QString("QLabel { color: %1; }").arg(THEME_TEXT_PRIMARY));
     timeControlLayout->addWidget(m_difficultyLabel);
     
     // 初始值為 0（初學者），顯示 ELO 和中文難度名稱
@@ -1192,8 +1192,8 @@ void Qt_Chess::setupTimeControlUI(QVBoxLayout* timeControlPanelLayout) {
     m_difficultyValueLabel = new QLabel(QString("%1 (ELO %2)").arg(initialDiffName).arg(initialElo), this);
     m_difficultyValueLabel->setFont(labelFont);
     m_difficultyValueLabel->setAlignment(Qt::AlignCenter);
-    m_difficultyValueLabel->setStyleSheet(QString("QLabel { color: %1; font-weight: bold; padding: 4px; "
-        "background: rgba(255, 217, 61, 0.15); border-radius: 4px; }").arg(THEME_ACCENT_WARNING));
+    m_difficultyValueLabel->setStyleSheet(QString("QLabel { color: %1; padding: 4px; "
+        "background-color: %2; border: 1px solid %3; border-radius: 2px; }").arg(THEME_TEXT_PRIMARY, THEME_BG_PANEL, THEME_BORDER));
     timeControlLayout->addWidget(m_difficultyValueLabel);
     
     m_difficultySlider = new QSlider(Qt::Horizontal, this);
@@ -1205,21 +1205,19 @@ void Qt_Chess::setupTimeControlUI(QVBoxLayout* timeControlPanelLayout) {
     connect(m_difficultySlider, &QSlider::valueChanged, this, &Qt_Chess::onDifficultyChanged);
     timeControlLayout->addWidget(m_difficultySlider);
     
-    // 電腦思考中的提示標籤（初始隱藏）- 現代科技風格動畫效果
+    // 電腦思考中的提示標籤（初始隱藏）- 簡約風格
     m_thinkingLabel = new QLabel("🔄 電腦思考中...", this);
     m_thinkingLabel->setFont(labelFont);
     m_thinkingLabel->setAlignment(Qt::AlignCenter);
     m_thinkingLabel->setStyleSheet(QString(
         "QLabel { "
         "  color: %1; "
-        "  font-weight: bold; "
         "  padding: 8px; "
-        "  background: qlineargradient(x1:0, y1:0, x2:1, y2:0, "
-        "    stop:0 rgba(233, 69, 96, 0.3), stop:0.5 rgba(0, 217, 255, 0.3), stop:1 rgba(233, 69, 96, 0.3)); "
-        "  border: 2px solid %1; "
-        "  border-radius: 8px; "
+        "  background-color: %2; "
+        "  border: 1px solid %3; "
+        "  border-radius: 4px; "
         "}"
-    ).arg(THEME_ACCENT_SECONDARY));
+    ).arg(THEME_TEXT_PRIMARY, THEME_BG_PANEL, THEME_BORDER));
     m_thinkingLabel->hide();
     timeControlLayout->addWidget(m_thinkingLabel);
     
