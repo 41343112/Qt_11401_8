@@ -1383,6 +1383,11 @@ void Qt_Chess::setupTimeControlUI(QVBoxLayout* timeControlPanelLayout) {
     // 初始化 game timer
     m_gameTimer = new QTimer(this);
     connect(m_gameTimer, &QTimer::timeout, this, &Qt_Chess::onGameTimerTick);
+    
+    // 初始化連線計時器
+    m_connectionTimer = new QTimer(this);
+    m_connectionWaitSeconds = 0;
+    connect(m_connectionTimer, &QTimer::timeout, this, &Qt_Chess::onConnectionTimerTick);
 }
 
 void Qt_Chess::setupEngineUI(QVBoxLayout* layout) {
@@ -4437,6 +4442,31 @@ void Qt_Chess::stopTimer() {
     }
 }
 
+void Qt_Chess::onConnectionTimerTick() {
+    m_connectionWaitSeconds++;
+    
+    // 更新連線狀態顯示，加入倒數秒數
+    if (m_waitingForOpponent) {
+        m_connectionStatusLabel->setText(QString("🔄 等待對手加入... (%1秒)").arg(m_connectionWaitSeconds));
+    } else if (m_isOnlineGame && !m_networkManager->isConnected()) {
+        m_connectionStatusLabel->setText(QString("🔄 正在連接... (%1秒)").arg(m_connectionWaitSeconds));
+    }
+}
+
+void Qt_Chess::startConnectionTimer() {
+    m_connectionWaitSeconds = 0;
+    if (m_connectionTimer && !m_connectionTimer->isActive()) {
+        m_connectionTimer->start(1000); // 每秒更新一次
+    }
+}
+
+void Qt_Chess::stopConnectionTimer() {
+    if (m_connectionTimer && m_connectionTimer->isActive()) {
+        m_connectionTimer->stop();
+    }
+    m_connectionWaitSeconds = 0;
+}
+
 void Qt_Chess::applyIncrement() {
     if (!m_timeControlEnabled || m_incrementMs <= 0) return;
 
@@ -6033,9 +6063,12 @@ void Qt_Chess::onCreateRoomButtonClicked() {
         m_isOnlineGame = true;
         m_waitingForOpponent = true;
         
-        m_connectionStatusLabel->setText("🔄 等待對手加入...");
+        m_connectionStatusLabel->setText("🔄 等待對手加入... (0秒)");
         m_connectionStatusLabel->show();
         m_roomInfoLabel->show();
+        
+        // 啟動連線計時器
+        startConnectionTimer();
         
         // 隱藏退出遊戲按鈕（等待期間使用退出房間按鈕）
         if (m_exitButton) {
@@ -6106,8 +6139,11 @@ void Qt_Chess::onJoinRoomButtonClicked() {
         m_currentGameMode = GameMode::OnlineGame;
         m_isOnlineGame = true;
         
-        m_connectionStatusLabel->setText("🔄 正在連接...");
+        m_connectionStatusLabel->setText("🔄 正在連接... (0秒)");
         m_connectionStatusLabel->show();
+        
+        // 啟動連線計時器
+        startConnectionTimer();
         
         // 隱藏退出遊戲按鈕（連接期間使用取消連接按鈕）
         if (m_exitButton) {
@@ -6150,6 +6186,9 @@ void Qt_Chess::onJoinRoomButtonClicked() {
 }
 
 void Qt_Chess::onNetworkConnected() {
+    // 停止連線計時器
+    stopConnectionTimer();
+    
     m_connectionStatusLabel->setText("✅ 已連接");
     updateConnectionStatus();
 }
@@ -6182,6 +6221,9 @@ void Qt_Chess::onNetworkError(const QString& error) {
     if (m_exitButton) {
         m_exitButton->show();
     }
+    
+    // 停止連線計時器
+    stopConnectionTimer();
     
     // 禁用開始按鈕（因為沒有有效連接）
     if (m_startButton) {
@@ -6229,6 +6271,9 @@ void Qt_Chess::onRoomCreated(const QString& roomNumber) {
 
 void Qt_Chess::onOpponentJoined() {
     m_waitingForOpponent = false;
+    
+    // 停止連線計時器
+    stopConnectionTimer();
     
     // 檢查角色：只有房主有開始按鈕，房客等待房主開始
     bool isHost = (m_networkManager->getRole() == NetworkRole::Host);
@@ -7573,6 +7618,7 @@ void Qt_Chess::onExitRoomClicked() {
     // if (response == QMessageBox::Yes) {
         // 首先停止計時器，避免計時器在清理過程中觸發
         stopTimer();
+        stopConnectionTimer();  // 停止連線計時器
         m_timerStarted = false;
         
         // 設定標記，表示正在退出線上模式

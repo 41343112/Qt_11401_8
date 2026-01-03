@@ -262,6 +262,8 @@ private:
     PieceColor m_onlineHostSelectedColor;  // 房主選擇的顏色（線上模式）
     qint64 m_lastDrawRequestTime;        // 上次請求和棋的時間（毫秒）
     QMap<QString, bool> m_selectedGameModes;  // 選擇的遊戲模式
+    QTimer* m_connectionTimer;           // 連線倒數計時器
+    int m_connectionWaitSeconds;         // 連線等待秒數
     
     // 霧戰模式相關 (Fog of War Mode)
     bool m_fogOfWarEnabled;              // 是否啟用霧戰模式
@@ -407,8 +409,11 @@ private:
     void onBlackTimeLimitChanged(int value);
     void onIncrementChanged(int value);
     void onGameTimerTick();
+    void onConnectionTimerTick();            // 連線倒數計時器
     void startTimer();
     void stopTimer();
+    void startConnectionTimer();             // 啟動連線計時器
+    void stopConnectionTimer();              // 停止連線計時器
     void applyIncrement();
     void loadTimeControlSettings();
     void saveTimeControlSettings();
