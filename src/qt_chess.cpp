@@ -6313,6 +6313,22 @@ void Qt_Chess::onOpponentMove(const QPoint& from, const QPoint& to, PieceType pr
             if (opponentMovedPieceType != PieceType::None) {
                 markPieceTypeAsMoved(opponentMovedPieceType);
             }
+            
+            // 檢查對手的移動是否將我方的王將軍
+            PieceColor myColor = m_networkManager->getPlayerColor();
+            bool imInCheck = m_chessBoard.isInCheck(myColor);
+            bool imInCheckmate = m_chessBoard.isCheckmate(myColor);
+            
+            if (imInCheck && !imInCheckmate) {
+                // 對手將我方王將軍，我需要應對將軍（允許移動任何棋子）
+                qDebug() << "[Qt_Chess::onOpponentMove] My king is in check, setting responding flag";
+                m_diceRespondingToCheck = true;
+                // 清空骰子狀態（將軍時不受骰子限制）
+                m_rolledPieceTypes.clear();
+                m_rolledPieceTypeCounts.clear();
+                m_diceMovesRemaining = 0;
+                updateDiceDisplay();
+            }
         }
         
         // 在骰子模式下，伺服器會通過diceStateReceived信號告訴我們剩餘移動次數
