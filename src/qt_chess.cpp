@@ -2560,11 +2560,19 @@ void Qt_Chess::onSquareClicked(int displayRow, int displayCol) {
                 bool opponentInCheck = m_chessBoard.isInCheck(opponentColor);
                 bool opponentInCheckmate = m_chessBoard.isCheckmate(opponentColor);
                 
+                qDebug() << "[Qt_Chess] Check interruption check: opponentInCheck=" << opponentInCheck
+                         << "opponentInCheckmate=" << opponentInCheckmate
+                         << "allRolledPiecesMoved=" << allRolledPiecesMoved();
+                
+                // 只有在將軍但非將殺的情況下才中斷
+                // 如果是將殺，不中斷，讓遊戲正常結束
                 if (opponentInCheck && !opponentInCheckmate && !allRolledPiecesMoved()) {
                     willCauseCheckInterruption = true;
                     // 計算完成當前移動後的剩餘移動次數
                     diceMovesSaved = m_diceMovesRemaining - 1;
                     qDebug() << "[Qt_Chess] Move will cause check interruption, saving" << diceMovesSaved << "moves";
+                } else if (opponentInCheck && opponentInCheckmate) {
+                    qDebug() << "[Qt_Chess] Checkmate detected, no interruption - game should end";
                 }
             }
             
@@ -3724,11 +3732,19 @@ void Qt_Chess::mouseReleaseEvent(QMouseEvent *event) {
                     bool opponentInCheck = m_chessBoard.isInCheck(opponentColor);
                     bool opponentInCheckmate = m_chessBoard.isCheckmate(opponentColor);
                     
+                    qDebug() << "[Qt_Chess] Check interruption check (drag): opponentInCheck=" << opponentInCheck
+                             << "opponentInCheckmate=" << opponentInCheckmate
+                             << "allRolledPiecesMoved=" << allRolledPiecesMoved();
+                    
+                    // 只有在將軍但非將殺的情況下才中斷
+                    // 如果是將殺，不中斷，讓遊戲正常結束
                     if (opponentInCheck && !opponentInCheckmate && !allRolledPiecesMoved()) {
                         willCauseCheckInterruption = true;
                         // 計算完成當前移動後的剩餘移動次數
                         diceMovesSaved = m_diceMovesRemaining - 1;
                         qDebug() << "[Qt_Chess] Move (drag) will cause check interruption, saving" << diceMovesSaved << "moves";
+                    } else if (opponentInCheck && opponentInCheckmate) {
+                        qDebug() << "[Qt_Chess] Checkmate detected (drag), no interruption - game should end";
                     }
                 }
                 
