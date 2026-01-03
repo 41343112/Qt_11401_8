@@ -9026,9 +9026,35 @@ void Qt_Chess::onDiceRolled(const std::vector<int>& rolls, const QString& curren
     m_rolledPieceTypeCounts.clear();
     
     // 根據伺服器提供的隨機索引選擇棋子類型
+    // 新規則：王每次只能骰出一次
+    bool kingAlreadyRolled = false;
     for (size_t i = 0; i < rolls.size() && i < 3; ++i) {
         int index = rolls[i] % static_cast<int>(availableTypes.size());  // 確保索引有效
-        m_rolledPieceTypes.push_back(availableTypes[index]);
+        PieceType selectedType = availableTypes[index];
+        
+        // 如果這是王，並且已經骰過王了，跳過並選擇下一個類型
+        if (selectedType == PieceType::King && kingAlreadyRolled) {
+            // 尋找第一個不是王的類型
+            bool foundAlternative = false;
+            for (size_t j = 0; j < availableTypes.size(); ++j) {
+                if (availableTypes[j] != PieceType::King) {
+                    selectedType = availableTypes[j];
+                    foundAlternative = true;
+                    qDebug() << "[Qt_Chess::onDiceRolled] King already rolled, using alternative:" << static_cast<int>(selectedType);
+                    break;
+                }
+            }
+            // 如果只有王可以選（極端情況），還是使用王
+            if (!foundAlternative) {
+                qDebug() << "[Qt_Chess::onDiceRolled] Only King available, using King despite already rolled";
+            }
+        }
+        
+        if (selectedType == PieceType::King) {
+            kingAlreadyRolled = true;
+        }
+        
+        m_rolledPieceTypes.push_back(selectedType);
         m_rolledPieceTypeCounts.push_back(1);  // 每個類型可以移動1次
     }
     
