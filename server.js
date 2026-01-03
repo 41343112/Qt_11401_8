@@ -297,7 +297,8 @@ wss.on('connection', ws => {
                 // 如果是骰子模式，添加骰子狀態
                 if(diceRolls[roomId]) {
                     moveMessage.diceState = {
-                        movesRemaining: diceRolls[roomId].movesRemaining
+                        movesRemaining: diceRolls[roomId].movesRemaining,
+                        hasInterruption: !!diceRolls[roomId].interruptedPlayer  // 告訴客戶端是否有中斷狀態
                     };
                 }
                 

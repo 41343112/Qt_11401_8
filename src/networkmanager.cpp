@@ -598,11 +598,13 @@ void NetworkManager::processMessage(const QJsonObject& message)
         if (message.contains("diceState")) {
             QJsonObject diceState = message["diceState"].toObject();
             int movesRemaining = diceState["movesRemaining"].toInt();
+            bool hasInterruption = diceState["hasInterruption"].toBool();  // 伺服器告訴我們是否有中斷狀態
             
-            qDebug() << "[NetworkManager] Dice state update - movesRemaining:" << movesRemaining;
+            qDebug() << "[NetworkManager] Dice state update - movesRemaining:" << movesRemaining 
+                     << "hasInterruption:" << hasInterruption;
             
             // 通知主程式更新骰子剩餘移動次數
-            emit diceStateReceived(movesRemaining);
+            emit diceStateReceived(movesRemaining, hasInterruption);
         }
     }
     else if (actionStr == "surrender") {

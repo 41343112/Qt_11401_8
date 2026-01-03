@@ -8907,12 +8907,13 @@ void Qt_Chess::onDiceRolled(const std::vector<int>& rolls, const QString& curren
 }
 
 // 處理從伺服器收到的骰子狀態更新
-void Qt_Chess::onDiceStateReceived(int movesRemaining) {
+void Qt_Chess::onDiceStateReceived(int movesRemaining, bool hasInterruption) {
     if (!m_diceModeEnabled || !m_isOnlineGame) {
         return;
     }
     
     qDebug() << "[Qt_Chess::onDiceStateReceived] Server dice movesRemaining:" << movesRemaining 
+             << "| hasInterruption:" << hasInterruption
              << "| Current local value:" << m_diceMovesRemaining;
     
     // 同步伺服器的骰子剩餘移動次數
@@ -8923,26 +8924,19 @@ void Qt_Chess::onDiceStateReceived(int movesRemaining) {
     bool imInCheck = m_chessBoard.isInCheck(myColor);
     bool imInCheckmate = m_chessBoard.isCheckmate(myColor);
     
-    // 如果我被將軍但不是將死，且 movesRemaining = 0，需要判斷是中斷還是正常換邊
-    // 如果是中斷：設置 m_diceRespondingToCheck = true，不骰骰子
-    // 如果是正常換邊：不設置 flag，讓下面的邏輯骰新骰子
-    if (imInCheck && !imInCheckmate && movesRemaining == 0 && isOnlineTurn()) {
-        // 需要判斷：這是中斷（對手還有骰子）還是正常換邊（對手用完骰子）
-        // 判斷方法：如果我之前沒有骰子（m_rolledPieceTypes為空），說明是中斷
-        // 如果我之前有骰子，說明是正常換邊
-        if (m_rolledPieceTypes.empty()) {
-            // 這是中斷：對手在骰子回合中間將軍
-            qDebug() << "[Qt_Chess::onDiceStateReceived] Check interruption detected, setting responding flag";
-            m_diceRespondingToCheck = true;
-            // 清空骰子狀態（將軍時不受骰子限制）
-            m_rolledPieceTypeCounts.clear();
-            updateDiceDisplay();
-        } else {
-            // 這是正常換邊：對手用完3個骰子後將軍
-            // 不設置 responding flag，讓下面的邏輯骰新骰子
-            qDebug() << "[Qt_Chess::onDiceStateReceived] Normal turn with check, will roll new dice";
-        }
+    // 如果我被將軍但不是將死，且 movesRemaining = 0，且伺服器有中斷狀態
+    // 這表示這是一個中斷：對手在骰子回合中間將軍，我需要應對
+    if (imInCheck && !imInCheckmate && movesRemaining == 0 && hasInterruption && isOnlineTurn()) {
+        // 這是中斷：對手在骰子回合中間將軍
+        qDebug() << "[Qt_Chess::onDiceStateReceived] Check interruption detected (hasInterruption=true), setting responding flag";
+        m_diceRespondingToCheck = true;
+        // 清空骰子狀態（將軍時不受骰子限制）
+        m_rolledPieceTypes.clear();
+        m_rolledPieceTypeCounts.clear();
+        updateDiceDisplay();
     }
+    // 如果 movesRemaining = 0 但 hasInterruption = false，這是正常換邊
+    // 讓下面的邏輯骰新骰子
     
     // 骰子模式：如果對手已完成所有移動（movesRemaining == 0）且輪到本地玩家，骰出新的棋子
     // 這裡才是正確的時機，因為我們已經收到了伺服器的骰子狀態更新
