@@ -5933,6 +5933,7 @@ void Qt_Chess::initializeNetwork() {
     connect(m_networkManager, &NetworkManager::surrenderReceived, this, &Qt_Chess::onSurrenderReceived);
     connect(m_networkManager, &NetworkManager::drawOfferReceived, this, &Qt_Chess::onDrawOfferReceived);
     connect(m_networkManager, &NetworkManager::drawResponseReceived, this, &Qt_Chess::onDrawResponseReceived);
+    connect(m_networkManager, &NetworkManager::gameOverReceived, this, &Qt_Chess::onGameOverReceived);
     connect(m_networkManager, &NetworkManager::opponentDisconnected, this, &Qt_Chess::onOpponentDisconnected);
     connect(m_networkManager, &NetworkManager::diceRolled, this, &Qt_Chess::onDiceRolled);  // 骰子模式
     connect(m_networkManager, &NetworkManager::diceStateReceived, this, &Qt_Chess::onDiceStateReceived);  // 骰子狀態同步
@@ -7112,6 +7113,41 @@ void Qt_Chess::onSurrenderReceived() {
     QString opponentName = (opponentColor == PieceColor::White) ? "白方" : "黑方";
     QString winner = (opponentColor == PieceColor::White) ? "黑方" : "白方";
     QMessageBox::information(this, "對手投降", QString("%1投降！%2獲勝！").arg(opponentName).arg(winner));
+}
+
+void Qt_Chess::onGameOverReceived(const QString& result) {
+    // 收到對手發送的遊戲結束訊息（通常是將殺）
+    qDebug() << "[Qt_Chess::onGameOverReceived] Received game over from opponent:" << result;
+    
+    // 解析遊戲結果 (result 格式: "1-0" 表示白方勝, "0-1" 表示黑方勝)
+    GameResult gameResult;
+    QString message;
+    
+    if (result == "1-0") {
+        // 白方勝
+        gameResult = GameResult::WhiteWins;
+        message = "將死！白方獲勝！";
+    } else if (result == "0-1") {
+        // 黑方勝
+        gameResult = GameResult::BlackWins;
+        message = "將死！黑方獲勝！";
+    } else if (result == "1/2-1/2") {
+        // 和棋
+        gameResult = GameResult::Draw;
+        message = "對局和棋！";
+    } else {
+        qDebug() << "[Qt_Chess::onGameOverReceived] Unknown result format:" << result;
+        return;
+    }
+    
+    // 設置遊戲結果
+    m_chessBoard.setGameResult(gameResult);
+    
+    // 處理遊戲結束
+    handleGameEnd();
+    
+    // 顯示訊息
+    QMessageBox::information(this, "遊戲結束", message);
 }
 
 void Qt_Chess::onDrawOfferReceived() {
