@@ -2602,9 +2602,26 @@ void Qt_Chess::onSquareClicked(int displayRow, int displayCol) {
                 bool opponentInCheck = m_chessBoard.isInCheck(opponentColor);
                 bool opponentInCheckmate = m_chessBoard.isCheckmate(opponentColor);
                 
+                // 如果是將殺，發送遊戲結束訊息給對手
+                if (opponentInCheckmate) {
+                    qDebug() << "[Qt_Chess] Checkmate detected in dice mode!";
+                    // 設置遊戲結果
+                    if (opponentColor == PieceColor::White) {
+                        m_chessBoard.setGameResult(GameResult::BlackWins);
+                    } else {
+                        m_chessBoard.setGameResult(GameResult::WhiteWins);
+                    }
+                    // 發送遊戲結束訊息
+                    if (m_networkManager) {
+                        QString result = (opponentColor == PieceColor::White) ? "0-1" : "1-0";
+                        m_networkManager->sendGameOver(result);
+                    }
+                    handleGameEnd();
+                    QString winner = (opponentColor == PieceColor::White) ? "黑方" : "白方";
+                    QMessageBox::information(this, "遊戲結束", QString("將死！%1獲勝！").arg(winner));
+                } else if (opponentInCheck && !opponentInCheckmate && !allRolledPiecesMoved()) {
                 // 如果對方被將軍但不是將死，且當前玩家還有骰子沒移動完，才需要中斷
                 // 注意：這裡不應該再設置 m_diceRespondingToCheck，因為已經在上面統一處理了
-                if (opponentInCheck && !opponentInCheckmate && !allRolledPiecesMoved()) {
                     qDebug() << "[Qt_Chess] Dice mode: Opponent in check but not checkmate, interrupting turn";
                     
                     // 保存當前骰子狀態
@@ -3775,8 +3792,25 @@ void Qt_Chess::mouseReleaseEvent(QMouseEvent *event) {
                     bool opponentInCheck = m_chessBoard.isInCheck(opponentColor);
                     bool opponentInCheckmate = m_chessBoard.isCheckmate(opponentColor);
                     
+                    // 如果是將殺，發送遊戲結束訊息給對手
+                    if (opponentInCheckmate) {
+                        qDebug() << "[Qt_Chess] Checkmate detected in dice mode (drag)!";
+                        // 設置遊戲結果
+                        if (opponentColor == PieceColor::White) {
+                            m_chessBoard.setGameResult(GameResult::BlackWins);
+                        } else {
+                            m_chessBoard.setGameResult(GameResult::WhiteWins);
+                        }
+                        // 發送遊戲結束訊息
+                        if (m_networkManager) {
+                            QString result = (opponentColor == PieceColor::White) ? "0-1" : "1-0";
+                            m_networkManager->sendGameOver(result);
+                        }
+                        handleGameEnd();
+                        QString winner = (opponentColor == PieceColor::White) ? "黑方" : "白方";
+                        QMessageBox::information(this, "遊戲結束", QString("將死！%1獲勝！").arg(winner));
+                    } else if (opponentInCheck && !opponentInCheckmate && !allRolledPiecesMoved()) {
                     // 如果對方被將軍但不是將死，且當前玩家還有骰子沒移動完
-                    if (opponentInCheck && !opponentInCheckmate && !allRolledPiecesMoved()) {
                         qDebug() << "[Qt_Chess] Dice mode (drag): Opponent in check but not checkmate, interrupting turn";
                         
                         // 保存當前骰子狀態
