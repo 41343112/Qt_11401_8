@@ -2028,6 +2028,11 @@ void Qt_Chess::updateSquareColor(int displayRow, int displayCol) {
 }
 
 void Qt_Chess::updateStatus() {
+    // 如果遊戲已結束，不再檢查或顯示遊戲結束對話框（避免重複顯示）
+    if (!m_gameStarted) {
+        return;
+    }
+    
     PieceColor currentPlayer = m_chessBoard.getCurrentPlayer();
     QString playerName = (currentPlayer == PieceColor::White) ? "白方" : "黑方";
 
@@ -7118,6 +7123,12 @@ void Qt_Chess::onSurrenderReceived() {
 void Qt_Chess::onGameOverReceived(const QString& result) {
     // 收到對手發送的遊戲結束訊息（通常是將殺）
     qDebug() << "[Qt_Chess::onGameOverReceived] Received game over from opponent:" << result;
+    
+    // 檢查遊戲是否已經結束（可能已經通過 updateStatus 檢測到將殺）
+    if (!m_gameStarted) {
+        qDebug() << "[Qt_Chess::onGameOverReceived] Game already ended, skipping duplicate handling";
+        return;
+    }
     
     // 解析遊戲結果 (result 格式: "1-0" 表示白方勝, "0-1" 表示黑方勝)
     GameResult gameResult;
