@@ -6528,16 +6528,10 @@ void Qt_Chess::onStartGameReceived(int whiteTimeMs, int blackTimeMs, int increme
         m_gravityModeEnabled = true;
         qDebug() << "[Qt_Chess::onStartGameReceived] Gravity mode enabled";
         
-        // UI顯示旋轉：將棋盤順時針旋轉90度
-        rotateBoardDisplay(true);
-        
         // 開始時應用重力，讓所有棋子往下掉
         applyGravity();
     } else {
         m_gravityModeEnabled = false;
-        
-        // 恢復正常顯示
-        rotateBoardDisplay(false);
     }
     
     // 檢查是否啟用傳送陣模式
