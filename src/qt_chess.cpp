@@ -6805,7 +6805,7 @@ void Qt_Chess::onStartGameReceived(int whiteTimeMs, int blackTimeMs, int increme
     
     // ===== 啟動遊戲 =====
     m_gameStarted = true;  // 設定為 true，允許走棋
-    m_timerStarted = true;
+    m_timerStarted = false;  // 不立即啟動計時器，等待第一步棋
     
     // 重置和棋請求按鈕狀態
     if (m_requestDrawButton) {
