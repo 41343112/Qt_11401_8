@@ -2604,20 +2604,28 @@ void Qt_Chess::onSquareClicked(int displayRow, int displayCol) {
                 // 如果是將殺，發送遊戲結束訊息給對手
                 if (opponentInCheckmate) {
                     qDebug() << "[Qt_Chess] Checkmate detected in dice mode!";
-                    // 設置遊戲結果
-                    if (opponentColor == PieceColor::White) {
-                        m_chessBoard.setGameResult(GameResult::BlackWins);
+                    
+                    // 檢查遊戲結果是否已經設置（updateStatus 可能已經處理過）
+                    GameResult currentResult = m_chessBoard.getGameResult();
+                    if (currentResult == GameResult::InProgress) {
+                        // 遊戲結果還未設置，我們來設置
+                        if (opponentColor == PieceColor::White) {
+                            m_chessBoard.setGameResult(GameResult::BlackWins);
+                        } else {
+                            m_chessBoard.setGameResult(GameResult::WhiteWins);
+                        }
+                        handleGameEnd();
+                        QString winner = (opponentColor == PieceColor::White) ? "黑方" : "白方";
+                        QMessageBox::information(this, "遊戲結束", QString("將死！%1獲勝！").arg(winner));
                     } else {
-                        m_chessBoard.setGameResult(GameResult::WhiteWins);
+                        qDebug() << "[Qt_Chess] Checkmate already handled by updateStatus(), skipping duplicate dialog";
                     }
-                    // 發送遊戲結束訊息
+                    
+                    // 無論是否已處理，都要發送遊戲結束訊息給對手
                     if (m_networkManager) {
                         QString result = (opponentColor == PieceColor::White) ? "0-1" : "1-0";
                         m_networkManager->sendGameOver(result);
                     }
-                    handleGameEnd();
-                    QString winner = (opponentColor == PieceColor::White) ? "黑方" : "白方";
-                    QMessageBox::information(this, "遊戲結束", QString("將死！%1獲勝！").arg(winner));
                 } else if (opponentInCheck && !opponentInCheckmate && m_diceMovesRemaining > 0) {
                 // 如果對方被將軍但不是將死，且當前玩家還有骰子沒移動完（基於移動次數計數器）
                 // 注意：這裡使用 m_diceMovesRemaining 而不是 allRolledPiecesMoved()，
@@ -3797,20 +3805,28 @@ void Qt_Chess::mouseReleaseEvent(QMouseEvent *event) {
                     // 如果是將殺，發送遊戲結束訊息給對手
                     if (opponentInCheckmate) {
                         qDebug() << "[Qt_Chess] Checkmate detected in dice mode (drag)!";
-                        // 設置遊戲結果
-                        if (opponentColor == PieceColor::White) {
-                            m_chessBoard.setGameResult(GameResult::BlackWins);
+                        
+                        // 檢查遊戲結果是否已經設置（updateStatus 可能已經處理過）
+                        GameResult currentResult = m_chessBoard.getGameResult();
+                        if (currentResult == GameResult::InProgress) {
+                            // 遊戲結果還未設置，我們來設置
+                            if (opponentColor == PieceColor::White) {
+                                m_chessBoard.setGameResult(GameResult::BlackWins);
+                            } else {
+                                m_chessBoard.setGameResult(GameResult::WhiteWins);
+                            }
+                            handleGameEnd();
+                            QString winner = (opponentColor == PieceColor::White) ? "黑方" : "白方";
+                            QMessageBox::information(this, "遊戲結束", QString("將死！%1獲勝！").arg(winner));
                         } else {
-                            m_chessBoard.setGameResult(GameResult::WhiteWins);
+                            qDebug() << "[Qt_Chess] Checkmate already handled by updateStatus() (drag), skipping duplicate dialog";
                         }
-                        // 發送遊戲結束訊息
+                        
+                        // 無論是否已處理，都要發送遊戲結束訊息給對手
                         if (m_networkManager) {
                             QString result = (opponentColor == PieceColor::White) ? "0-1" : "1-0";
                             m_networkManager->sendGameOver(result);
                         }
-                        handleGameEnd();
-                        QString winner = (opponentColor == PieceColor::White) ? "黑方" : "白方";
-                        QMessageBox::information(this, "遊戲結束", QString("將死！%1獲勝！").arg(winner));
                     } else if (opponentInCheck && !opponentInCheckmate && m_diceMovesRemaining > 0) {
                     // 如果對方被將軍但不是將死，且當前玩家還有骰子沒移動完（基於移動次數計數器）
                     // 注意：這裡使用 m_diceMovesRemaining 而不是 allRolledPiecesMoved()，
