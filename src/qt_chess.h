@@ -288,6 +288,7 @@ private:
     // 骰子模式將軍中斷相關 (Dice Mode Check Interruption)
     bool m_diceCheckInterrupted;         // 骰子模式是否因將軍而中斷
     PieceColor m_diceInterruptedPlayer;  // 被中斷的玩家顏色（需要恢復回合的玩家）
+    bool m_diceRespondingToCheck;        // 當前玩家是否正在應對將軍（允許移動任何棋子）
     std::vector<PieceType> m_diceSavedPieceTypes;  // 中斷前保存的骰子類型
     std::vector<int> m_diceSavedPieceTypeCounts;   // 中斷前保存的每種類型剩餘次數
     int m_diceSavedMovesRemaining;       // 中斷前保存的剩餘移動次數

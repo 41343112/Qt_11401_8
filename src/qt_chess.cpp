@@ -261,6 +261,7 @@ Qt_Chess::Qt_Chess(QWidget *parent)
     , m_diceMovesRemaining(0)
     , m_diceCheckInterrupted(false)
     , m_diceInterruptedPlayer(PieceColor::None)
+    , m_diceRespondingToCheck(false)
     , m_diceSavedMovesRemaining(0)
     , m_teleportPortal1(-1, -1)
     , m_teleportPortal2(-1, -1)
@@ -1823,6 +1824,7 @@ void Qt_Chess::resetGameState() {
     m_diceMovesRemaining = 0;
     m_diceCheckInterrupted = false;
     m_diceInterruptedPlayer = PieceColor::None;
+    m_diceRespondingToCheck = false;
     m_diceSavedPieceTypes.clear();
     m_diceSavedPieceTypeCounts.clear();
     m_diceSavedMovesRemaining = 0;
@@ -2559,6 +2561,12 @@ void Qt_Chess::onSquareClicked(int displayRow, int displayCol) {
             
             // 骰子模式：標記已移動的棋子類型
             if (m_diceModeEnabled && m_isOnlineGame) {
+                // 如果玩家正在應對將軍，完成移動後清除該標記
+                if (m_diceRespondingToCheck) {
+                    qDebug() << "[Qt_Chess] Player responded to check, clearing responding flag";
+                    m_diceRespondingToCheck = false;
+                }
+                
                 // 本地標記該棋子類型已使用一次（markPieceTypeAsMoved 會自動調用 updateDiceDisplay）
                 if (movedPieceType != PieceType::None) {
                     markPieceTypeAsMoved(movedPieceType);
@@ -2586,6 +2594,10 @@ void Qt_Chess::onSquareClicked(int displayRow, int displayCol) {
                     m_rolledPieceTypes.clear();
                     m_rolledPieceTypeCounts.clear();
                     m_diceMovesRemaining = 0;
+                    
+                    // 設置對手正在應對將軍標記（允許對手移動任何棋子）
+                    m_diceRespondingToCheck = true;
+                    
                     updateDiceDisplay();
                     
                     // 回合已經自動切換到對手，保持這個狀態讓對手解決將軍
@@ -3694,6 +3706,12 @@ void Qt_Chess::mouseReleaseEvent(QMouseEvent *event) {
                 
                 // 骰子模式：標記已移動的棋子類型
                 if (m_diceModeEnabled && m_isOnlineGame) {
+                    // 如果玩家正在應對將軍，完成移動後清除該標記
+                    if (m_diceRespondingToCheck) {
+                        qDebug() << "[Qt_Chess] Player responded to check (drag), clearing responding flag";
+                        m_diceRespondingToCheck = false;
+                    }
+                    
                     // 本地標記該棋子類型已使用一次（markPieceTypeAsMoved 會自動調用 updateDiceDisplay）
                     if (movedPieceType != PieceType::None) {
                         markPieceTypeAsMoved(movedPieceType);
@@ -3721,6 +3739,10 @@ void Qt_Chess::mouseReleaseEvent(QMouseEvent *event) {
                         m_rolledPieceTypes.clear();
                         m_rolledPieceTypeCounts.clear();
                         m_diceMovesRemaining = 0;
+                        
+                        // 設置對手正在應對將軍標記（允許對手移動任何棋子）
+                        m_diceRespondingToCheck = true;
+                        
                         updateDiceDisplay();
                         
                         // 回合已經自動切換到對手，保持這個狀態讓對手解決將軍
@@ -6277,9 +6299,10 @@ void Qt_Chess::onOpponentMove(const QPoint& from, const QPoint& to, PieceType pr
                     m_rolledPieceTypeCounts = m_diceSavedPieceTypeCounts;
                     m_diceMovesRemaining = m_diceSavedMovesRemaining;
                     
-                    // 清除中斷標記
+                    // 清除中斷標記和應對將軍標記
                     m_diceCheckInterrupted = false;
                     m_diceInterruptedPlayer = PieceColor::None;
+                    m_diceRespondingToCheck = false;
                     m_diceSavedPieceTypes.clear();
                     m_diceSavedPieceTypeCounts.clear();
                     m_diceSavedMovesRemaining = 0;
@@ -6714,6 +6737,7 @@ void Qt_Chess::onStartGameReceived(int whiteTimeMs, int blackTimeMs, int increme
         m_diceMovesRemaining = 0;
         m_diceCheckInterrupted = false;
         m_diceInterruptedPlayer = PieceColor::None;
+        m_diceRespondingToCheck = false;
         m_diceSavedPieceTypes.clear();
         m_diceSavedPieceTypeCounts.clear();
         m_diceSavedMovesRemaining = 0;
@@ -8931,6 +8955,11 @@ void Qt_Chess::updateDiceDisplay() {
 bool Qt_Chess::isPieceTypeInRolledList(PieceType type) const {
     if (!m_diceModeEnabled) {
         return true;  // 如果未啟用骰子模式，所有棋子都可以移動
+    }
+    
+    // 如果玩家正在應對將軍，允許移動任何棋子
+    if (m_diceRespondingToCheck) {
+        return true;
     }
     
     for (size_t i = 0; i < m_rolledPieceTypes.size(); ++i) {
