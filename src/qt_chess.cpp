@@ -6800,16 +6800,10 @@ void Qt_Chess::onStartGameReceived(int whiteTimeMs, int blackTimeMs, int increme
         m_gravityModeEnabled = true;
         qDebug() << "[Qt_Chess::onStartGameReceived] Gravity mode enabled";
         
-        // UI顯示旋轉：將棋盤順時針旋轉90度
-        rotateBoardDisplay(true);
-        
         // 開始時應用重力，讓所有棋子往右掉（棋盤轉90度效果）
         applyGravity();
     } else {
         m_gravityModeEnabled = false;
-        
-        // 恢復正常顯示
-        rotateBoardDisplay(false);
     }
     
     // 檢查是否啟用傳送陣模式
@@ -6879,6 +6873,50 @@ void Qt_Chess::onStartGameReceived(int whiteTimeMs, int blackTimeMs, int increme
     updateBoard();
     updateStatus();
     updateTimeDisplays();
+    
+    // 如果啟用地吸引力模式，在更新棋盤後應用旋轉
+    if (m_gravityModeEnabled) {
+        // 檢查是否為房客（連接端）需要270度旋轉
+        bool isGuest = m_networkManager && m_networkManager->getRole() == NetworkRole::Guest;
+        
+        if (isGuest) {
+            // 房客需要270度旋轉（= -90度 = 3×90度）
+            // 由於 rotateBoardDisplay 的實現限制，我們需要手動實現270度旋轉
+            // 270度順時針 = 90度逆時針
+            // 公式：newRow = 7 - oldCol, newCol = oldRow
+            if (m_boardWidget) {
+                QGridLayout* gridLayout = qobject_cast<QGridLayout*>(m_boardWidget->layout());
+                if (gridLayout) {
+                    qDebug() << "[Qt_Chess::onStartGameReceived] Guest: Applying 270-degree rotation";
+                    
+                    // 創建臨時數組保存當前佈局
+                    std::vector<std::vector<QPushButton*>> tempSquares(8, std::vector<QPushButton*>(8));
+                    
+                    for (int row = 0; row < 8; ++row) {
+                        for (int col = 0; col < 8; ++col) {
+                            tempSquares[row][col] = m_squares[row][col];
+                            gridLayout->removeWidget(m_squares[row][col]);
+                        }
+                    }
+                    
+                    // 270度順時針旋轉
+                    for (int oldRow = 0; oldRow < 8; ++oldRow) {
+                        for (int oldCol = 0; oldCol < 8; ++oldCol) {
+                            int newRow = 7 - oldCol;
+                            int newCol = oldRow;
+                            gridLayout->addWidget(tempSquares[oldRow][oldCol], newRow, newCol);
+                        }
+                    }
+                    
+                    gridLayout->update();
+                    m_boardWidget->update();
+                }
+            }
+        } else {
+            // 房主：標準90度旋轉
+            rotateBoardDisplay(true);
+        }
+    }
     
     // 如果啟用了時間控制，啟動計時器並顯示時間
     if (m_timeControlEnabled) {
