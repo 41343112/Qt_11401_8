@@ -4448,7 +4448,7 @@ void Qt_Chess::onConnectionTimerTick() {
     // 更新連線狀態顯示，加入倒數秒數
     if (m_waitingForOpponent) {
         m_connectionStatusLabel->setText(QString("🔄 等待對手加入... (%1秒)").arg(m_connectionWaitSeconds));
-    } else if (m_isOnlineGame && !m_networkManager->isConnected()) {
+    } else if (m_isOnlineGame && m_networkManager->getStatus() != ConnectionStatus::Connected) {
         m_connectionStatusLabel->setText(QString("🔄 正在連接... (%1秒)").arg(m_connectionWaitSeconds));
     }
 }
