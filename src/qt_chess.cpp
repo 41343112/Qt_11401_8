@@ -6163,6 +6163,11 @@ void Qt_Chess::onNetworkError(const QString& error) {
         m_exitRoomButton->hide();
     }
     
+    // 顯示退出遊戲按鈕（讓用戶可以退出線上模式）
+    if (m_exitButton) {
+        m_exitButton->show();
+    }
+    
     // 禁用開始按鈕（因為沒有有效連接）
     if (m_startButton) {
         m_startButton->setEnabled(false);
