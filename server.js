@@ -254,7 +254,7 @@ wss.on('connection', ws => {
                 // 加上緩衝時間以補償網路延遲，確保客戶端收到訊息時不會扣錯時間
                 timer.lastSwitchTime = currentTime + 1;  // 加 1 秒緩衝
                 
-                // 如果骰子模式所有移動完成，重置或恢復骰子狀態（在廣播之前）
+                // 如果骰子模式所有移動完成，檢查是否需要恢復中斷的玩家（在廣播之前）
                 if(diceRolls[roomId] && diceRolls[roomId].movesRemaining <= 0) {
                     // 檢查是否有被中斷的玩家需要恢復
                     if(diceRolls[roomId].interruptedPlayer && diceRolls[roomId].savedMovesRemaining > 0) {
@@ -270,10 +270,11 @@ wss.on('connection', ws => {
                         
                         console.log('[Server] Turn restored to:', timer.currentPlayer, 'with', diceRolls[roomId].movesRemaining, 'moves remaining');
                     } else {
-                        // 正常情況：重置骰子給下一個玩家
+                        // 正常情況：保持 movesRemaining = 0，讓新玩家在收到訊息後骰新骰子
+                        // 更新 currentPlayer 為新的當前玩家（已在上面切換）
                         diceRolls[roomId].currentPlayer = timer.currentPlayer;
-                        diceRolls[roomId].movesRemaining = 3;
-                        console.log('[Server] Dice reset for next player:', timer.currentPlayer);
+                        // 不要在這裡重置 movesRemaining，讓客戶端檢測到 0 後自己骰骰子
+                        console.log('[Server] Turn switched to:', timer.currentPlayer, 'movesRemaining stays 0 for dice roll');
                     }
                 }
                 
@@ -332,6 +333,10 @@ wss.on('connection', ws => {
                 }
                 
                 console.log('[Server] Generated rolls:', rolls, 'for player:', diceRolls[roomId].currentPlayer);
+                
+                // 更新骰子剩餘移動次數為3（新回合開始）
+                diceRolls[roomId].movesRemaining = 3;
+                console.log('[Server] Reset movesRemaining to 3 after dice roll');
                 
                 // 廣播給房間內所有玩家
                 const diceMessage = {
