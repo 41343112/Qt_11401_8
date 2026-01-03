@@ -59,20 +59,20 @@ const int RELEASE_NOTES_PREVIEW_LENGTH = 200; // 更新說明預覽的字元數
 const QString WHITE_PIECE_COLOR = "#FFFFFF"; // 白色棋子顏色
 const QString BLACK_PIECE_COLOR = "#000000"; // 黑色棋子顏色
 
-// 上一步移動高亮顏色 - 簡約風格的淺灰色調
-const QString LAST_MOVE_LIGHT_COLOR = "#D0D0D0";  // 淺色格子的高亮（淺灰）
-const QString LAST_MOVE_DARK_COLOR = "#B0B0B0";   // 深色格子的高亮（中灰）
+// 上一步移動高亮顏色 - 歐式古典風格的金褐色調
+const QString LAST_MOVE_LIGHT_COLOR = "#D4AF7A";  // 淺色格子的高亮（淺金褐色）
+const QString LAST_MOVE_DARK_COLOR = "#B8956A";   // 深色格子的高亮（金褐色）
 
-// ===== 簡約風格主題顏色（Minimalist Design Theme）=====
-const QString THEME_BG_DARK = "#F5F5F5";           // 淺灰背景
-const QString THEME_BG_MEDIUM = "#FAFAFA";         // 極淺灰背景
-const QString THEME_BG_PANEL = "#FFFFFF";          // 白色面板
-const QString THEME_ACCENT_PRIMARY = "#2C2C2C";    // 深灰（主要強調）
-const QString THEME_ACCENT_SECONDARY = "#666666";  // 中灰（次要強調）
-const QString THEME_ACCENT_SUCCESS = "#4A4A4A";    // 成功色（深中灰）
-const QString THEME_ACCENT_WARNING = "#757575";    // 警告色（中灰）
-const QString THEME_TEXT_PRIMARY = "#333333";      // 深灰文字
-const QString THEME_BORDER = "#E0E0E0";            // 淺灰邊框
+// ===== 歐式古典風格主題顏色（European Classical Theme）=====
+const QString THEME_BG_DARK = "#E8DCC8";           // 米白色背景（羊皮紙色）
+const QString THEME_BG_MEDIUM = "#F0E8D8";         // 淺米色背景
+const QString THEME_BG_PANEL = "#F5F0E5";          // 象牙白面板
+const QString THEME_ACCENT_PRIMARY = "#8B4513";    // 深褐色（主要強調）
+const QString THEME_ACCENT_SECONDARY = "#B8860B";  // 深金色（次要強調）
+const QString THEME_ACCENT_SUCCESS = "#6B4423";    // 深木色（成功色）
+const QString THEME_ACCENT_WARNING = "#CD853F";    // 秘魯褐色（警告色）
+const QString THEME_TEXT_PRIMARY = "#3E2723";      // 深褐色文字
+const QString THEME_BORDER = "#A0826D";            // 古銅色邊框
 
 // 視窗大小的佈局常數
 const int PANEL_SPACING = 10;          // 面板之間的間距
@@ -291,7 +291,7 @@ Qt_Chess::Qt_Chess(QWidget *parent)
     , m_backToMenuButton(nullptr)
 {
     ui->setupUi(this);
-    setWindowTitle("♔ 國際象棋 ♚");
+    setWindowTitle("♔ 國際象棋 - 歐式古典 ♚");
     resize(900, 660);  // 增加寬度以容納時間控制面板
 
     // 設置最小視窗大小以確保所有內容都能完整顯示而不被裁切
@@ -943,8 +943,8 @@ void Qt_Chess::setupMainMenu() {
     menuLayout->setContentsMargins(20, 10, 20, 10);  // 減小邊距以適應小視窗
     menuLayout->setSpacing(10);  // 減小間距
     
-    // 標題標籤 - 簡約風格
-    QLabel* titleLabel = new QLabel("♔ 國際象棋 ♚", m_mainMenuWidget);
+    // 標題標籤 - 歐式古典風格
+    QLabel* titleLabel = new QLabel("♔ 國際象棋 - 歐式古典 ♚", m_mainMenuWidget);
     titleLabel->setAlignment(Qt::AlignCenter);
     titleLabel->setWordWrap(true);  // 允許換行
     titleLabel->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Minimum);  // 允許壓縮
@@ -957,28 +957,30 @@ void Qt_Chess::setupMainMenu() {
         "  color: %1; "
         "  padding: 10px; "
         "  background-color: transparent; "
-        "  border-radius: 4px; "
+        "  border-radius: 5px; "
         "}"
-    ).arg(THEME_TEXT_PRIMARY));
+    ).arg(THEME_ACCENT_PRIMARY));
     menuLayout->addWidget(titleLabel);
     
     menuLayout->addSpacing(10);  // 減小標題後的間距
     
-    // 按鈕樣式 - 簡約風格（更緊湊以適應小視窗）
+    // 按鈕樣式 - 歐式古典風格（更緊湊以適應小視窗）
     QString buttonStyle = QString(
         "QPushButton { "
         "  background-color: %1; "
         "  color: %2; "
         "  padding: 12px; "
         "  font-size: 16pt; "
-        "  border: 1px solid %3; "
-        "  border-radius: 4px; "
+        "  font-weight: 500; "
+        "  border: 2px solid %3; "
+        "  border-radius: 6px; "
         "  min-width: 250px; "
         "  min-height: 40px; "
         "} "
         "QPushButton:hover { "
         "  background-color: %4; "
         "  border-color: %5; "
+        "  color: %5; "
         "} "
         "QPushButton:pressed { "
         "  background-color: %3; "
@@ -1508,14 +1510,14 @@ void Qt_Chess::updateTimeControlSizes() {
 }
 
 void Qt_Chess::applyModernStylesheet() {
-    // 簡約風格全局樣式表（Minimalist Design Theme）
+    // 歐式古典風格全局樣式表（European Classical Theme）
     QString styleSheet = QString(
-        // 主視窗背景 - 簡潔的純色背景
+        // 主視窗背景 - 羊皮紙色調
         "QMainWindow { "
         "  background-color: %1; "
         "}"
         
-        // 中央部件 - 簡潔的淺色背景
+        // 中央部件 - 淺米色背景
         "QWidget#centralwidget { "
         "  background-color: %2; "
         "}"
@@ -1524,13 +1526,13 @@ void Qt_Chess::applyModernStylesheet() {
         "QMenuBar { "
         "  background-color: %3; "
         "  color: %4; "
-        "  border-bottom: 1px solid %6; "
+        "  border-bottom: 2px solid %6; "
         "  padding: 4px 8px; "
         "}"
         "QMenuBar::item { "
         "  padding: 6px 12px; "
         "  background: transparent; "
-        "  border-radius: 2px; "
+        "  border-radius: 3px; "
         "}"
         "QMenuBar::item:selected { "
         "  background-color: %1; "
@@ -1543,33 +1545,34 @@ void Qt_Chess::applyModernStylesheet() {
         // 下拉選單
         "QMenu { "
         "  background-color: %3; "
-        "  border: 1px solid %6; "
-        "  border-radius: 2px; "
-        "  padding: 4px; "
+        "  border: 2px solid %6; "
+        "  border-radius: 4px; "
+        "  padding: 6px; "
         "}"
         "QMenu::item { "
         "  padding: 8px 24px; "
         "  color: %4; "
-        "  border-radius: 2px; "
+        "  border-radius: 3px; "
         "}"
         "QMenu::item:selected { "
         "  background-color: %1; "
         "  color: %5; "
         "}"
         "QMenu::separator { "
-        "  height: 1px; "
+        "  height: 2px; "
         "  background: %6; "
-        "  margin: 4px 8px; "
+        "  margin: 6px 8px; "
         "}"
         
         // 群組框
         "QGroupBox { "
         "  color: %5; "
-        "  border: 1px solid %6; "
-        "  border-radius: 4px; "
+        "  border: 2px solid %6; "
+        "  border-radius: 6px; "
         "  margin-top: 12px; "
-        "  padding-top: 10px; "
+        "  padding-top: 12px; "
         "  background-color: %3; "
+        "  font-weight: bold; "
         "}"
         "QGroupBox::title { "
         "  subcontrol-origin: margin; "
@@ -1577,21 +1580,24 @@ void Qt_Chess::applyModernStylesheet() {
         "  padding: 4px 12px; "
         "  color: %5; "
         "  background-color: %3; "
-        "  border: none; "
+        "  border: 1px solid %6; "
+        "  border-radius: 3px; "
         "  left: 10px; "
         "}"
         
-        // 按鈕
+        // 按鈕 - 歐式古典風格
         "QPushButton { "
         "  background-color: %3; "
         "  color: %4; "
-        "  border: 1px solid %6; "
-        "  border-radius: 4px; "
+        "  border: 2px solid %6; "
+        "  border-radius: 5px; "
         "  padding: 8px 16px; "
+        "  font-weight: 500; "
         "}"
         "QPushButton:hover { "
         "  background-color: %1; "
-        "  border: 1px solid %5; "
+        "  border: 2px solid %5; "
+        "  color: %5; "
         "}"
         "QPushButton:pressed { "
         "  background-color: %6; "
@@ -1599,12 +1605,12 @@ void Qt_Chess::applyModernStylesheet() {
         "QPushButton:disabled { "
         "  background-color: %2; "
         "  color: #999; "
-        "  border: 1px solid %6; "
+        "  border: 2px solid %6; "
         "}"
         "QPushButton:checked { "
         "  background-color: %5; "
         "  color: %3; "
-        "  border: 1px solid %5; "
+        "  border: 2px solid %5; "
         "}"
         
         // 標籤
@@ -1615,38 +1621,38 @@ void Qt_Chess::applyModernStylesheet() {
         
         // 滑桿
         "QSlider::groove:horizontal { "
-        "  border: 1px solid %6; "
-        "  height: 4px; "
+        "  border: 2px solid %6; "
+        "  height: 6px; "
         "  background-color: %1; "
-        "  border-radius: 2px; "
+        "  border-radius: 3px; "
         "}"
         "QSlider::handle:horizontal { "
         "  background-color: %5; "
-        "  border: 1px solid %5; "
-        "  width: 16px; "
-        "  margin: -6px 0; "
-        "  border-radius: 8px; "
+        "  border: 2px solid %5; "
+        "  width: 18px; "
+        "  margin: -7px 0; "
+        "  border-radius: 9px; "
         "}"
         "QSlider::handle:horizontal:hover { "
         "  background-color: %4; "
-        "  border: 1px solid %4; "
+        "  border: 2px solid %4; "
         "}"
         "QSlider::sub-page:horizontal { "
         "  background-color: %5; "
-        "  border-radius: 2px; "
+        "  border-radius: 3px; "
         "}"
         
         // 列表視窗
         "QListWidget { "
         "  background-color: %3; "
-        "  border: 1px solid %6; "
-        "  border-radius: 4px; "
+        "  border: 2px solid %6; "
+        "  border-radius: 5px; "
         "  color: %4; "
         "  alternate-background-color: %2; "
         "}"
         "QListWidget::item { "
         "  padding: 6px; "
-        "  border-radius: 2px; "
+        "  border-radius: 3px; "
         "}"
         "QListWidget::item:selected { "
         "  background-color: %1; "
@@ -1658,8 +1664,8 @@ void Qt_Chess::applyModernStylesheet() {
         
         // 進度條
         "QProgressBar { "
-        "  border: 1px solid %6; "
-        "  border-radius: 4px; "
+        "  border: 2px solid %6; "
+        "  border-radius: 5px; "
         "  background-color: %2; "
         "  text-align: center; "
         "  color: %4; "
@@ -1673,7 +1679,7 @@ void Qt_Chess::applyModernStylesheet() {
         "QStatusBar { "
         "  background-color: %3; "
         "  color: %4; "
-        "  border-top: 1px solid %6; "
+        "  border-top: 2px solid %6; "
         "}"
         
         // 訊息框
@@ -1693,14 +1699,14 @@ void Qt_Chess::applyModernStylesheet() {
         "QScrollBar:vertical { "
         "  border: none; "
         "  background-color: %2; "
-        "  width: 10px; "
+        "  width: 12px; "
         "  margin: 0; "
-        "  border-radius: 5px; "
+        "  border-radius: 6px; "
         "}"
         "QScrollBar::handle:vertical { "
         "  background-color: %6; "
         "  min-height: 30px; "
-        "  border-radius: 5px; "
+        "  border-radius: 6px; "
         "}"
         "QScrollBar::handle:vertical:hover { "
         "  background-color: %5; "
@@ -2100,9 +2106,9 @@ void Qt_Chess::handleMineExplosion(const QPoint& logicalPosition, bool isOpponen
             explodedSquare->setIconSize(squareSize);
         }
         
-        // 設置方格背景為深灰色
+        // 設置方格背景為深褐色（歐式風格）
         explodedSquare->setStyleSheet(
-            "QPushButton { background-color: #999999; border: 2px solid #666666; }"
+            "QPushButton { background-color: #8B6914; border: 2px solid #654321; }"
         );
         
         // 1.5秒後恢復正常顏色並清除圖示
@@ -2146,12 +2152,12 @@ void Qt_Chess::highlightValidMoves() {
 
     if (!m_pieceSelected) return;
 
-    // 高亮選中的格子（m_selectedSquare 是邏輯坐標）- 簡約風格淺灰色
+    // 高亮選中的格子（m_selectedSquare 是邏輯坐標）- 歐式古典風格金褐色
     int displayRow = getDisplayRow(m_selectedSquare.y());
     int displayCol = getDisplayCol(m_selectedSquare.x());
     QString selectedTextColor = getPieceTextColor(m_selectedSquare.y(), m_selectedSquare.x());
     m_squares[displayRow][displayCol]->setStyleSheet(
-        QString("QPushButton { background-color: #C5C5C5; border: 2px solid %1; color: %2; }").arg(THEME_ACCENT_PRIMARY, selectedTextColor)
+        QString("QPushButton { background-color: #D4AF7A; border: 2px solid %1; color: %2; }").arg(THEME_ACCENT_PRIMARY, selectedTextColor)
         );
 
     // 高亮有效的移動
@@ -2167,14 +2173,14 @@ void Qt_Chess::highlightValidMoves() {
                 QString textColor = getPieceTextColor(logicalRow, logicalCol);
 
                 if (isCapture) {
-                    // 將吃子移動高亮為中灰色
-                    QString color = isLight ? "#B0B0B0" : "#959595";
+                    // 將吃子移動高亮為深金褐色
+                    QString color = isLight ? "#C19A6B" : "#A67C52";
                     m_squares[displayRow][displayCol]->setStyleSheet(
                         QString("QPushButton { background-color: %1; border: 2px solid %2; color: %3; }").arg(color, THEME_ACCENT_PRIMARY, textColor)
                         );
                 } else {
-                    // 將非吃子移動高亮為淺灰色
-                    QString color = isLight ? "#D5D5D5" : "#BFBFBF";
+                    // 將非吃子移動高亮為淺金褐色
+                    QString color = isLight ? "#E8C89A" : "#D4AF7A";
                     m_squares[displayRow][displayCol]->setStyleSheet(
                         QString("QPushButton { background-color: %1; border: 2px solid %2; color: %3; }").arg(color, THEME_ACCENT_SECONDARY, textColor)
                         );
@@ -2211,7 +2217,7 @@ void Qt_Chess::applyCheckHighlight(const QPoint& excludeSquare) {
             int displayCol = getDisplayCol(logicalCol);
             QString textColor = getPieceTextColor(logicalRow, logicalCol);
             m_squares[displayRow][displayCol]->setStyleSheet(
-                QString("QPushButton { background-color: #C0C0C0; border: 2px solid #808080; color: %1; }").arg(textColor)
+                QString("QPushButton { background-color: #CD853F; border: 2px solid #8B4513; color: %1; }").arg(textColor)
             );
         }
     }

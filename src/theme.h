@@ -3,31 +3,31 @@
 
 #include <QString>
 
-// ===== 簡約風格主題顏色（Minimalist Design Theme）=====
+// ===== 歐式古典風格主題顏色（European Classical Theme）=====
 // 共用的主題配色常數，確保整個應用程式的視覺一致性
 
 namespace Theme {
-    // 背景顏色 - 簡約中性色調
-    const QString BG_DARK = "#F5F5F5";           // 淺灰背景
-    const QString BG_MEDIUM = "#FAFAFA";         // 極淺灰背景
-    const QString BG_PANEL = "#FFFFFF";          // 白色面板
+    // 背景顏色 - 歐式古典色調
+    const QString BG_DARK = "#E8DCC8";           // 米白色背景（羊皮紙色）
+    const QString BG_MEDIUM = "#F0E8D8";         // 淺米色背景
+    const QString BG_PANEL = "#F5F0E5";          // 象牙白面板
     
-    // 強調色 - 簡約黑灰色調
-    const QString ACCENT_PRIMARY = "#2C2C2C";    // 深灰（主要強調）
-    const QString ACCENT_SECONDARY = "#666666";  // 中灰（次要強調）
-    const QString ACCENT_SUCCESS = "#4A4A4A";    // 成功色（深中灰）
-    const QString ACCENT_WARNING = "#757575";    // 警告色（中灰）
+    // 強調色 - 歐式古典色調
+    const QString ACCENT_PRIMARY = "#8B4513";    // 深褐色（主要強調）
+    const QString ACCENT_SECONDARY = "#B8860B";  // 深金色（次要強調）
+    const QString ACCENT_SUCCESS = "#6B4423";    // 深木色（成功色）
+    const QString ACCENT_WARNING = "#CD853F";    // 秘魯褐色（警告色）
     
     // 文字顏色
-    const QString TEXT_PRIMARY = "#333333";      // 深灰文字
+    const QString TEXT_PRIMARY = "#3E2723";      // 深褐色文字
     
     // 邊框顏色
-    const QString BORDER = "#E0E0E0";            // 淺灰邊框
+    const QString BORDER = "#A0826D";            // 古銅色邊框
     
     // 懸停效果顏色
-    const QString HOVER_BORDER = "#B0B0B0";
-    const QString HOVER_BG = "rgba(200, 200, 200, 0.3)";
-    const QString PRESSED_BG = "rgba(150, 150, 150, 0.4)";
+    const QString HOVER_BORDER = "#8B4513";
+    const QString HOVER_BG = "rgba(139, 69, 19, 0.2)";
+    const QString PRESSED_BG = "rgba(107, 68, 35, 0.3)";
 }
 
 #endif // THEME_H
