@@ -2028,20 +2028,13 @@ void Qt_Chess::updateSquareColor(int displayRow, int displayCol) {
 }
 
 void Qt_Chess::updateStatus() {
-    // 如果遊戲已結束，不再檢查或顯示遊戲結束對話框（避免重複顯示）
-    if (!m_gameStarted) {
-        return;
-    }
-    
     PieceColor currentPlayer = m_chessBoard.getCurrentPlayer();
     QString playerName = (currentPlayer == PieceColor::White) ? "白方" : "黑方";
 
-    // 檢查是否已經有遊戲結果（例如，由地雷爆炸導致）
+    // 檢查是否已經有遊戲結果（避免重複處理）
     GameResult result = m_chessBoard.getGameResult();
-    if (result == GameResult::WhiteWins || result == GameResult::BlackWins) {
-        handleGameEnd();
-        QString winner = (result == GameResult::WhiteWins) ? "白方" : "黑方";
-        QMessageBox::information(this, "遊戲結束", QString("%1獲勝！").arg(winner));
+    if (result != GameResult::InProgress) {
+        // 遊戲結果已設置，不再重複檢查或顯示對話框
         return;
     }
 
@@ -7124,9 +7117,10 @@ void Qt_Chess::onGameOverReceived(const QString& result) {
     // 收到對手發送的遊戲結束訊息（通常是將殺）
     qDebug() << "[Qt_Chess::onGameOverReceived] Received game over from opponent:" << result;
     
-    // 檢查遊戲是否已經結束（可能已經通過 updateStatus 檢測到將殺）
-    if (!m_gameStarted) {
-        qDebug() << "[Qt_Chess::onGameOverReceived] Game already ended, skipping duplicate handling";
+    // 檢查遊戲結果是否已經設置（避免重複處理）
+    GameResult currentResult = m_chessBoard.getGameResult();
+    if (currentResult != GameResult::InProgress) {
+        qDebug() << "[Qt_Chess::onGameOverReceived] Game result already set, skipping duplicate handling";
         return;
     }
     
