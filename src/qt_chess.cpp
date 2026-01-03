@@ -8851,28 +8851,18 @@ std::vector<QPoint> Qt_Chess::getMovablePieces(PieceColor color) const {
 
 // 檢查該類型棋子是否存在且有合法移動
 bool Qt_Chess::canPieceTypeMove(PieceType type, PieceColor color) const {
-    // 遍歷棋盤，尋找指定類型和顏色的棋子
-    for (int row = 0; row < 8; ++row) {
-        for (int col = 0; col < 8; ++col) {
-            const ChessPiece& piece = m_chessBoard.getPiece(row, col);
-            // 檢查是否是目標類型和顏色的棋子
-            if (piece.getType() == type && piece.getColor() == color) {
-                QPoint from(col, row);
-                
-                // 檢查這個棋子是否有任何合法移動
-                for (int toRow = 0; toRow < 8; ++toRow) {
-                    for (int toCol = 0; toCol < 8; ++toCol) {
-                        QPoint to(toCol, toRow);
-                        if (m_chessBoard.isValidMove(from, to)) {
-                            return true;  // 找到一個合法移動，該類型棋子可以移動
-                        }
-                    }
-                }
-            }
+    // 獲取所有可移動的棋子
+    std::vector<QPoint> movablePieces = getMovablePieces(color);
+    
+    // 檢查是否有任何可移動的棋子屬於指定類型
+    for (const auto& pos : movablePieces) {
+        const ChessPiece& piece = m_chessBoard.getPiece(pos.y(), pos.x());
+        if (piece.getType() == type) {
+            return true;  // 找到該類型的可移動棋子
         }
     }
     
-    return false;  // 沒有找到該類型的棋子，或該類型的所有棋子都沒有合法移動
+    return false;  // 沒有找到該類型的可移動棋子
 }
 
 // 為當前回合骰出3個棋子類型
