@@ -285,6 +285,13 @@ private:
     QList<QLabel*> m_diceDisplayLabels;  // 顯示骰出棋子的標籤
     int m_diceMovesRemaining;            // 本回合剩餘可移動的骰子數量
     
+    // 骰子模式將軍中斷相關 (Dice Mode Check Interruption)
+    bool m_diceCheckInterrupted;         // 骰子模式是否因將軍而中斷
+    PieceColor m_diceInterruptedPlayer;  // 被中斷的玩家顏色（需要恢復回合的玩家）
+    std::vector<PieceType> m_diceSavedPieceTypes;  // 中斷前保存的骰子類型
+    std::vector<int> m_diceSavedPieceTypeCounts;   // 中斷前保存的每種類型剩餘次數
+    int m_diceSavedMovesRemaining;       // 中斷前保存的剩餘移動次數
+    
     // 地雷爆炸動畫 (Mine Explosion Animation)
     QSet<QPushButton*> m_explodingSquares;  // 正在顯示爆炸動畫的方格
     
