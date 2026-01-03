@@ -257,9 +257,14 @@ wss.on('connection', ws => {
                 // 如果骰子模式所有移動完成，檢查是否需要恢復中斷的玩家（在廣播之前）
                 if(diceRolls[roomId] && diceRolls[roomId].movesRemaining <= 0) {
                     // 檢查是否有被中斷的玩家需要恢復
-                    if(diceRolls[roomId].interruptedPlayer && diceRolls[roomId].savedMovesRemaining > 0) {
-                        // 有被中斷的玩家，恢復他們的回合而不是開始新回合
-                        console.log('[Server] Restoring interrupted player:', diceRolls[roomId].interruptedPlayer);
+                    // 重要：只在「防守方完成防禦」時恢復，不是在「攻擊方剛將軍」時
+                    // 判斷依據：interruptedPlayer存在 AND 當前移動的玩家不是interruptedPlayer（即防守方剛移動完）
+                    if(diceRolls[roomId].interruptedPlayer && 
+                       diceRolls[roomId].savedMovesRemaining > 0 &&
+                       playerWhoJustMoved !== diceRolls[roomId].interruptedPlayer &&
+                       !checkInterruptionOccurred) {
+                        // 防守方剛完成防禦，恢復被中斷的攻擊方的回合
+                        console.log('[Server] Defender just moved, restoring interrupted player:', diceRolls[roomId].interruptedPlayer);
                         timer.currentPlayer = diceRolls[roomId].interruptedPlayer;
                         diceRolls[roomId].currentPlayer = diceRolls[roomId].interruptedPlayer;
                         diceRolls[roomId].movesRemaining = diceRolls[roomId].savedMovesRemaining;
