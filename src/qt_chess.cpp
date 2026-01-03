@@ -6163,34 +6163,9 @@ void Qt_Chess::onNetworkError(const QString& error) {
         m_exitRoomButton->hide();
     }
     
-    // 恢復開始按鈕的原始功能和樣式
+    // 禁用開始按鈕（因為沒有有效連接）
     if (m_startButton) {
-        m_startButton->show();  // 確保按鈕顯示
-        m_startButton->setText("▶ 開始對弈");
-        m_startButton->setEnabled(true);
-        m_startButton->setStyleSheet(QString(
-            "QPushButton { "
-            "  background: qlineargradient(x1:0, y1:0, x2:1, y2:0, "
-            "    stop:0 %1, stop:0.5 rgba(0, 255, 136, 0.8), stop:1 %1); "
-            "  color: %2; "
-            "  border: 3px solid %1; "
-            "  border-radius: 12px; "
-            "  padding: 10px; "
-            "}"
-            "QPushButton:hover { "
-            "  background: qlineargradient(x1:0, y1:0, x2:1, y2:0, "
-            "    stop:0 %1, stop:0.3 rgba(0, 255, 136, 0.9), stop:0.7 rgba(0, 217, 255, 0.9), stop:1 %1); "
-            "  border-color: white; "
-            "}"
-            "QPushButton:pressed { "
-            "  background: %1; "
-            "}"
-            "QPushButton:disabled { "
-            "  background: rgba(50, 50, 70, 0.6); "
-            "  color: #666; "
-            "  border-color: #444; "
-            "}"
-        ).arg(THEME_ACCENT_SUCCESS, THEME_BG_DARK));
+        m_startButton->setEnabled(false);
     }
     
     // 恢復時間控制
@@ -6198,9 +6173,15 @@ void Qt_Chess::onNetworkError(const QString& error) {
     if (m_blackTimeLimitSlider) m_blackTimeLimitSlider->setEnabled(true);
     if (m_incrementSlider) m_incrementSlider->setEnabled(true);
     
-    // 返回雙人模式（模式選擇按鈕已移除）
-    m_currentGameMode = GameMode::HumanVsHuman;
-    m_connectionStatusLabel->hide();
+    // 顯示創建/加入房間按鈕，讓用戶可以重新嘗試
+    if (m_onlineButtonsWidget) {
+        m_onlineButtonsWidget->show();
+    }
+    
+    // 返回線上模式等待狀態
+    m_currentGameMode = GameMode::OnlineGame;
+    m_connectionStatusLabel->show();
+    m_connectionStatusLabel->setText("❌ 連線失敗，請重新選擇");
     m_roomInfoLabel->hide();
 }
 
