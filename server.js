@@ -449,6 +449,23 @@ wss.on('connection', ws => {
             }
         }
 
+        // 廣播遊戲結束訊息（將殺）
+        else if(msg.action === "gameOver"){
+            const roomId = msg.room;
+            console.log('[Server] Game over received for room:', roomId, 'result:', msg.result);
+            if(rooms[roomId]){
+                // 廣播給房間內所有其他玩家
+                rooms[roomId].forEach(client => {
+                    if(client !== ws && client.readyState === WebSocket.OPEN){
+                        console.log('[Server] Forwarding game over to opponent');
+                        client.send(JSON.stringify(msg));
+                    }
+                });
+            } else {
+                console.log('[Server] ERROR: Room not found for gameOver:', roomId);
+            }
+        }
+
         // 廣播和棋請求
         else if(msg.action === "drawOffer"){
             const roomId = msg.room;

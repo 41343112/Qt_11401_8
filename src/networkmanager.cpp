@@ -341,12 +341,14 @@ void NetworkManager::sendGameOver(const QString& result)
         return;
     }
     
+    // 使用伺服器期望的格式 (action 而不是 type)
     QJsonObject message;
-    message["type"] = messageTypeToString(MessageType::GameOver);
-    message["roomNumber"] = m_roomNumber;
+    message["action"] = "gameOver";  // 修正：使用 action 而不是 type
+    message["room"] = m_roomNumber;
     message["result"] = result;
     
     sendMessage(message);
+    qDebug() << "[NetworkManager::sendGameOver] Sent game over message with result:" << result;
 }
 
 void NetworkManager::sendChat(const QString& chatMessage)
@@ -611,6 +613,12 @@ void NetworkManager::processMessage(const QJsonObject& message)
         // 收到對手投降訊息（新格式）
         qDebug() << "[NetworkManager] Opponent surrendered";
         emit surrenderReceived();
+    }
+    else if (actionStr == "gameOver") {
+        // 收到對手發送的遊戲結束訊息（將殺）
+        QString result = message["result"].toString();
+        qDebug() << "[NetworkManager] Received game over from opponent with result:" << result;
+        emit gameOverReceived(result);
     }
     else if (actionStr == "drawOffer") {
         // 收到對手和棋請求
