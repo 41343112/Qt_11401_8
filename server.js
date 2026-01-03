@@ -318,6 +318,74 @@ wss.on('connection', ws => {
             }
         }
 
+        // 骰子模式：將軍中斷通知
+        else if(msg.action === "diceCheckInterruption"){
+            const roomId = msg.room;
+            console.log('[Server] Dice check interruption for room:', roomId, 'Saved moves:', msg.savedMovesRemaining);
+            
+            if(rooms[roomId] && diceRolls[roomId] && gameTimers[roomId]){
+                // 保存被中斷的玩家和剩餘移動次數
+                diceRolls[roomId].interruptedPlayer = diceRolls[roomId].currentPlayer;
+                diceRolls[roomId].savedMovesRemaining = msg.savedMovesRemaining;
+                diceRolls[roomId].movesRemaining = 0;  // 清空當前移動次數，允許對手移動
+                
+                // 強制切換到對手（被將軍的玩家）
+                const timer = gameTimers[roomId];
+                timer.currentPlayer = (timer.currentPlayer === "White") ? "Black" : "White";
+                diceRolls[roomId].currentPlayer = timer.currentPlayer;
+                
+                console.log('[Server] Turn switched to:', timer.currentPlayer, 'to respond to check');
+                
+                // 廣播給所有客戶端
+                rooms[roomId].forEach(client => {
+                    if(client.readyState === WebSocket.OPEN){
+                        client.send(JSON.stringify({
+                            action: "diceCheckInterrupted",
+                            room: roomId,
+                            currentPlayer: timer.currentPlayer
+                        }));
+                    }
+                });
+            }
+        }
+
+        // 骰子模式：將軍解除通知
+        else if(msg.action === "diceCheckResolved"){
+            const roomId = msg.room;
+            console.log('[Server] Dice check resolved for room:', roomId);
+            
+            if(rooms[roomId] && diceRolls[roomId] && gameTimers[roomId]){
+                // 恢復被中斷玩家的回合和剩餘移動次數
+                const interruptedPlayer = diceRolls[roomId].interruptedPlayer;
+                const savedMoves = diceRolls[roomId].savedMovesRemaining || 0;
+                
+                if(interruptedPlayer && savedMoves > 0){
+                    const timer = gameTimers[roomId];
+                    timer.currentPlayer = interruptedPlayer;
+                    diceRolls[roomId].currentPlayer = interruptedPlayer;
+                    diceRolls[roomId].movesRemaining = savedMoves;
+                    
+                    console.log('[Server] Turn restored to:', interruptedPlayer, 'with', savedMoves, 'moves remaining');
+                    
+                    // 清除中斷狀態
+                    delete diceRolls[roomId].interruptedPlayer;
+                    delete diceRolls[roomId].savedMovesRemaining;
+                    
+                    // 廣播給所有客戶端
+                    rooms[roomId].forEach(client => {
+                        if(client.readyState === WebSocket.OPEN){
+                            client.send(JSON.stringify({
+                                action: "diceCheckRestored",
+                                room: roomId,
+                                currentPlayer: timer.currentPlayer,
+                                movesRemaining: savedMoves
+                            }));
+                        }
+                    });
+                }
+            }
+        }
+
         // 離開房間（遊戲開始前）
         else if(msg.action === "leaveRoom"){
             const roomId = msg.room;

@@ -69,6 +69,8 @@ public:
     void sendGameOver(const QString& result);
     void sendChat(const QString& message);
     void requestDiceRoll(int numMovablePieces);  // 請求伺服器生成骰子（骰子模式）
+    void sendDiceCheckInterruption(int savedMovesRemaining);  // 通知伺服器骰子回合因將軍而中斷（骰子模式）
+    void sendDiceCheckResolved();  // 通知伺服器將軍已解除，恢復骰子回合（骰子模式）
     
     // 玩家顏色管理
     PieceColor getOpponentColor() const { return m_opponentColor; }

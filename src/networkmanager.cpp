@@ -287,6 +287,39 @@ void NetworkManager::requestDiceRoll(int numMovablePieces)
     qDebug() << "[NetworkManager::requestDiceRoll] Requesting dice roll for" << numMovablePieces << "movable pieces";
 }
 
+void NetworkManager::sendDiceCheckInterruption(int savedMovesRemaining)
+{
+    if (m_roomNumber.isEmpty()) {
+        qDebug() << "[NetworkManager::sendDiceCheckInterruption] ERROR: Room number is empty";
+        return;
+    }
+    
+    QJsonObject message;
+    message["action"] = "diceCheckInterruption";
+    message["room"] = m_roomNumber;
+    message["savedMovesRemaining"] = savedMovesRemaining;
+    
+    sendMessage(message);
+    
+    qDebug() << "[NetworkManager::sendDiceCheckInterruption] Sent dice check interruption with" << savedMovesRemaining << "moves saved";
+}
+
+void NetworkManager::sendDiceCheckResolved()
+{
+    if (m_roomNumber.isEmpty()) {
+        qDebug() << "[NetworkManager::sendDiceCheckResolved] ERROR: Room number is empty";
+        return;
+    }
+    
+    QJsonObject message;
+    message["action"] = "diceCheckResolved";
+    message["room"] = m_roomNumber;
+    
+    sendMessage(message);
+    
+    qDebug() << "[NetworkManager::sendDiceCheckResolved] Sent dice check resolved notification";
+}
+
 void NetworkManager::setPlayerColors(PieceColor playerColor)
 {
     // 設定玩家顏色和對手顏色

@@ -2590,6 +2590,11 @@ void Qt_Chess::onSquareClicked(int displayRow, int displayCol) {
                     
                     qDebug() << "[Qt_Chess] Saved dice state: " << m_diceSavedMovesRemaining << " moves remaining";
                     
+                    // 通知伺服器骰子回合被中斷
+                    if (m_networkManager) {
+                        m_networkManager->sendDiceCheckInterruption(m_diceSavedMovesRemaining);
+                    }
+                    
                     // 清空當前骰子狀態（對手需要先應對將軍）
                     m_rolledPieceTypes.clear();
                     m_rolledPieceTypeCounts.clear();
@@ -3734,6 +3739,11 @@ void Qt_Chess::mouseReleaseEvent(QMouseEvent *event) {
                         m_diceSavedMovesRemaining = m_diceMovesRemaining;
                         
                         qDebug() << "[Qt_Chess] Saved dice state (drag): " << m_diceSavedMovesRemaining << " moves remaining";
+                        
+                        // 通知伺服器骰子回合被中斷
+                        if (m_networkManager) {
+                            m_networkManager->sendDiceCheckInterruption(m_diceSavedMovesRemaining);
+                        }
                         
                         // 清空當前骰子狀態（對手需要先應對將軍）
                         m_rolledPieceTypes.clear();
@@ -6293,6 +6303,11 @@ void Qt_Chess::onOpponentMove(const QPoint& from, const QPoint& to, PieceType pr
                 if (!stillInCheck) {
                     // 將軍已解除，恢復被中斷的玩家回合
                     qDebug() << "[Qt_Chess::onOpponentMove] Check resolved, restoring interrupted player's turn";
+                    
+                    // 通知伺服器將軍已解除，恢復骰子回合
+                    if (m_networkManager) {
+                        m_networkManager->sendDiceCheckResolved();
+                    }
                     
                     // 恢復骰子狀態
                     m_rolledPieceTypes = m_diceSavedPieceTypes;
