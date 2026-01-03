@@ -1,4 +1,5 @@
 #include "onlinedialog.h"
+#include "qt_chess.h"  // For game mode constants
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QGroupBox>
@@ -79,19 +80,19 @@ QMap<QString, bool> OnlineDialog::getGameModes() const
     QMap<QString, bool> gameModes;
     
     if (m_standardModeCheckbox) {
-        gameModes["霧戰"] = m_standardModeCheckbox->isChecked();
+        gameModes[GAME_MODE_FOG_OF_WAR] = m_standardModeCheckbox->isChecked();
     }
     if (m_rapidModeCheckbox) {
-        gameModes["地吸引力"] = m_rapidModeCheckbox->isChecked();
+        gameModes[GAME_MODE_GRAVITY] = m_rapidModeCheckbox->isChecked();
     }
     if (m_blitzModeCheckbox) {
-        gameModes["傳送陣"] = m_blitzModeCheckbox->isChecked();
+        gameModes[GAME_MODE_TELEPORT] = m_blitzModeCheckbox->isChecked();
     }
     if (m_handicapModeCheckbox) {
-        gameModes["骰子"] = m_handicapModeCheckbox->isChecked();
+        gameModes[GAME_MODE_DICE] = m_handicapModeCheckbox->isChecked();
     }
     if (m_customRulesCheckbox) {
-        gameModes["踩地雷"] = m_customRulesCheckbox->isChecked();
+        gameModes[GAME_MODE_BOMB] = m_customRulesCheckbox->isChecked();
     }
     
     return gameModes;

@@ -10,6 +10,7 @@
 #include <QMouseEvent>
 #include <QKeyEvent>
 #include <QMap>
+#include <QSet>
 #include <QSoundEffect>
 #include <QMediaPlayer>
 #include <QAudioOutput>
@@ -48,6 +49,13 @@ constexpr qint64 DRAW_REQUEST_COOLDOWN_MS = 3000;  // 3 seconds cooldown for dra
 constexpr int ROOM_NUMBER_MIN = 1000;              // Minimum room number
 constexpr int ROOM_NUMBER_MAX = 9999;              // Maximum room number
 constexpr int ROOM_NUMBER_LENGTH = 4;              // Room number length
+
+// Game mode identifiers (used in network messages and UI)
+constexpr const char* GAME_MODE_FOG_OF_WAR = "霧戰";
+constexpr const char* GAME_MODE_GRAVITY = "地吸引力";
+constexpr const char* GAME_MODE_TELEPORT = "傳送陣";
+constexpr const char* GAME_MODE_DICE = "骰子";
+constexpr const char* GAME_MODE_BOMB = "踩地雷";
 
 class Qt_Chess : public QMainWindow
 {
@@ -190,6 +198,7 @@ private:
     // ========================================
     // 棋譜系統 (Move History System)
     // ========================================
+    QLabel* m_moveListTitle;
     QListWidget* m_moveListWidget;
     QPushButton* m_exportPGNButton;
     QPushButton* m_copyPGNButton;
@@ -254,6 +263,39 @@ private:
     qint64 m_lastDrawRequestTime;        // 上次請求和棋的時間（毫秒）
     QMap<QString, bool> m_selectedGameModes;  // 選擇的遊戲模式
     
+    // 霧戰模式相關 (Fog of War Mode)
+    bool m_fogOfWarEnabled;              // 是否啟用霧戰模式
+    std::vector<std::vector<bool>> m_visibleSquares;  // 可見方格（8x8）
+    
+    // 地吸引力模式相關 (Gravity Mode)
+    bool m_gravityModeEnabled;           // 是否啟用地吸引力模式
+    
+    // 傳送陣模式相關 (Teleportation Mode)
+    bool m_teleportModeEnabled;          // 是否啟用傳送陣模式
+    QPoint m_teleportPortal1;            // 傳送門位置1
+    QPoint m_teleportPortal2;            // 傳送門位置2
+    QPixmap m_teleportIconCache;         // 傳送門圖示快取
+    
+    // 骰子模式相關 (Dice Mode)
+    bool m_diceModeEnabled;              // 是否啟用骰子模式
+    std::vector<PieceType> m_rolledPieceTypes;  // 本回合骰出的3個棋子類型
+    std::vector<int> m_rolledPieceTypeCounts;   // 每種類型剩餘可移動次數
+    QWidget* m_diceDisplayPanel;         // 骰子顯示面板
+    QLabel* m_diceDisplayTitle;          // 骰子面板標題（顯示輪到誰）
+    QList<QLabel*> m_diceDisplayLabels;  // 顯示骰出棋子的標籤
+    int m_diceMovesRemaining;            // 本回合剩餘可移動的骰子數量
+    
+    // 骰子模式將軍中斷相關 (Dice Mode Check Interruption)
+    bool m_diceCheckInterrupted;         // 骰子模式是否因將軍而中斷
+    PieceColor m_diceInterruptedPlayer;  // 被中斷的玩家顏色（需要恢復回合的玩家）
+    bool m_diceRespondingToCheck;        // 當前玩家是否正在應對將軍（允許移動任何棋子）
+    std::vector<PieceType> m_diceSavedPieceTypes;  // 中斷前保存的骰子類型
+    std::vector<int> m_diceSavedPieceTypeCounts;   // 中斷前保存的每種類型剩餘次數
+    int m_diceSavedMovesRemaining;       // 中斷前保存的剩餘移動次數
+    
+    // 地雷爆炸動畫 (Mine Explosion Animation)
+    QSet<QPushButton*> m_explodingSquares;  // 正在顯示爆炸動畫的方格
+    
     // ========================================
     // 音效系統 (Sound System)
     // ========================================
@@ -262,6 +304,7 @@ private:
     QSoundEffect m_castlingSound;
     QSoundEffect m_checkSound;
     QSoundEffect m_checkmateSound;
+    QSoundEffect m_explosionSound;  // 地雷爆炸音效
     SoundSettingsDialog::SoundSettings m_soundSettings;
     
     // 背景音樂
@@ -353,6 +396,7 @@ private:
     void restorePieceToSquare(const QPoint& square);
     void resetBoardState();
     PieceType showPromotionDialog(PieceColor color);
+    void handleMineExplosion(const QPoint& logicalPosition, bool isOpponentMove = false);
     
     // ========================================
     // 時間控制系統 (Time Control System)
@@ -440,20 +484,51 @@ private:
     void onOpponentJoined();
     void onPlayerLeft();
     void onPromotedToHost();
-    void onOpponentMove(const QPoint& from, const QPoint& to, PieceType promotionType);
+    void onOpponentMove(const QPoint& from, const QPoint& to, PieceType promotionType, QPoint finalPosition);
     void onGameStartReceived(PieceColor playerColor);
-    void onStartGameReceived(int whiteTimeMs, int blackTimeMs, int incrementMs, PieceColor hostColor, qint64 serverTimeOffset);
+    void onStartGameReceived(int whiteTimeMs, int blackTimeMs, int incrementMs, PieceColor hostColor, qint64 serverTimeOffset, const QMap<QString, bool>& gameModes, const std::vector<QPoint>& minePositions);
     void onTimeSettingsReceived(int whiteTimeMs, int blackTimeMs, int incrementMs);
     void onTimerStateReceived(qint64 timeA, qint64 timeB, const QString& currentPlayer, qint64 lastSwitchTime);
     void onSurrenderReceived();
     void onDrawOfferReceived();
     void onDrawResponseReceived(bool accepted);
+    void onGameOverReceived(const QString& result);
     void onOpponentDisconnected();
+    void onDiceRolled(const std::vector<int>& rolls, const QString& currentPlayer);  // 骰子模式：收到骰子結果
+    void onDiceStateReceived(int movesRemaining, bool hasInterruption);  // 骰子模式：收到骰子狀態更新
     void onCancelRoomClicked();
     void onExitRoomClicked();
     void updateConnectionStatus();
     bool isOnlineTurn() const;
     void showRoomInfoDialog(const QString& roomNumber);
+    
+    // 霧戰模式 (Fog of War Mode)
+    void updateVisibleSquares();         // 更新可見方格
+    bool isSquareVisible(int row, int col) const;  // 檢查方格是否可見
+    void calculateVisibleSquares(PieceColor playerColor);  // 計算玩家可見的方格
+    
+    // 地吸引力模式 (Gravity Mode)
+    void applyGravity();                 // 應用地吸引力讓棋子下落
+    void rotateBoardDisplay(bool rotate);  // 旋轉棋盤UI顯示
+    
+    // 傳送陣模式 (Teleportation Mode)
+    void initializeTeleportPortals();    // 初始化傳送門位置
+    void resetTeleportPortals();         // 重置傳送門位置
+    bool isTeleportPortal(int row, int col) const;  // 檢查方格是否為傳送門
+    void handleTeleportation(const QPoint& from, const QPoint& to);  // 處理傳送
+    bool performTeleportationMove(const QPoint& from, const QPoint& to);  // 執行傳送動作（不重置傳送門）
+    QPoint handleTeleportationAndGetFinalPosition(const QPoint& from, const QPoint& to);  // 處理傳送並返回最終位置
+    void applyFinalPosition(const QPoint& to, const QPoint& finalPosition);  // 應用最終位置（用於接收對手的傳送結果）
+    
+    // 骰子模式 (Dice Mode)
+    void rollDiceForTurn();              // 為當前回合骰出3個棋子類型
+    void updateDiceDisplay();            // 更新骰子顯示面板
+    bool canRollPiece(const QPoint& pos) const;  // 檢查該位置的棋子是否可以被骰出
+    bool isPieceTypeInRolledList(PieceType type) const;  // 檢查棋子類型是否在骰出列表中
+    void markPieceTypeAsMoved(PieceType type);  // 標記骰出的棋子類型已移動一次
+    bool allRolledPiecesMoved() const;   // 檢查是否所有骰出的棋子都已移動
+    std::vector<QPoint> getMovablePieces(PieceColor color) const;  // 獲取當前可移動的棋子列表
+    bool canPieceTypeMove(PieceType type, PieceColor color) const;  // 檢查該類型棋子是否存在且有合法移動
     
     // ========================================
     // 音效系統 (Sound System)

@@ -1,7 +1,9 @@
 #include "chessboard.h"
+#include <QRandomGenerator>
+#include <algorithm>
 
 ChessBoard::ChessBoard()
-    : m_board(8, std::vector<ChessPiece>(8)), m_currentPlayer(PieceColor::White), m_enPassantTarget(-1, -1), m_gameResult(GameResult::InProgress)
+    : m_board(8, std::vector<ChessPiece>(8)), m_currentPlayer(PieceColor::White), m_enPassantTarget(-1, -1), m_gameResult(GameResult::InProgress), m_bombModeEnabled(false), m_lastMoveTriggeredMine(false)
 {
     initializeBoard();
 }
@@ -47,6 +49,9 @@ void ChessBoard::initializeBoard() {
     m_moveHistory.clear();
     m_gameResult = GameResult::InProgress;
     clearCapturedPieces();
+    
+    // 清除地雷
+    m_minePositions.clear();
 }
 
 const ChessPiece& ChessBoard::getPiece(int row, int col) const {
@@ -153,6 +158,12 @@ bool ChessBoard::isValidMove(const QPoint& from, const QPoint& to) const {
     // 檢查是否為當前玩家的棋子
     if (piece.getColor() != m_currentPlayer) return false;
     
+    // 不能吃掉對方的王（國王不能被吃）
+    const ChessPiece& targetPiece = m_board[to.y()][to.x()];
+    if (targetPiece.getType() == PieceType::King) {
+        return false;
+    }
+    
     // 特殊處理王車易位
     if (piece.getType() == PieceType::King && abs(to.x() - from.x()) == 2) {
         return canCastle(from, to);
@@ -169,6 +180,9 @@ bool ChessBoard::isValidMove(const QPoint& from, const QPoint& to) const {
 
 bool ChessBoard::movePiece(const QPoint& from, const QPoint& to) {
     if (!isValidMove(from, to)) return false;
+    
+    // 重置地雷觸發標誌
+    m_lastMoveTriggeredMine = false;
     
     ChessPiece& piece = m_board[from.y()][from.x()];
     PieceType pieceType = piece.getType();
@@ -243,6 +257,37 @@ bool ChessBoard::movePiece(const QPoint& from, const QPoint& to) {
     m_board[to.y()][to.x()] = piece;
     m_board[to.y()][to.x()].setMoved(true);
     m_board[from.y()][from.x()] = ChessPiece(PieceType::None, PieceColor::None);
+    
+    // 檢查地雷爆炸
+    if (m_bombModeEnabled && isMineAt(to)) {
+        // 踩到地雷：棋子被摧毀（從棋盤上移除）
+        ChessPiece explodedPiece = m_board[to.y()][to.x()];
+        m_board[to.y()][to.x()] = ChessPiece(PieceType::None, PieceColor::None);
+        
+        // 將被炸毀的棋子加入被吃掉的棋子列表（用於顯示）
+        if (explodedPiece.getColor() == PieceColor::White) {
+            m_capturedWhite.push_back(explodedPiece);
+        } else if (explodedPiece.getColor() == PieceColor::Black) {
+            m_capturedBlack.push_back(explodedPiece);
+        }
+        
+        m_lastMoveTriggeredMine = true;
+        
+        // 地雷爆炸後移除該地雷
+        auto it = std::find(m_minePositions.begin(), m_minePositions.end(), to);
+        if (it != m_minePositions.end()) {
+            m_minePositions.erase(it);
+        }
+        
+        // 如果國王被炸毀，遊戲立即結束，爆炸方輸
+        if (explodedPiece.getType() == PieceType::King) {
+            if (explodedPiece.getColor() == PieceColor::White) {
+                m_gameResult = GameResult::BlackWins;
+            } else {
+                m_gameResult = GameResult::WhiteWins;
+            }
+        }
+    }
     
     // 記錄移動（在切換玩家之前，因為 recordMove 需要檢查對手是否被將軍）
     recordMove(from, to, isCapture, isCastling, isEnPassant);
@@ -642,4 +687,66 @@ const std::vector<ChessPiece>& ChessBoard::getCapturedPieces(PieceColor color) c
 void ChessBoard::clearCapturedPieces() {
     m_capturedWhite.clear();
     m_capturedBlack.clear();
+}
+
+// 地雷模式實現 (Bomb Chess Mode Implementation)
+void ChessBoard::enableBombMode(bool enable) {
+    m_bombModeEnabled = enable;
+    if (!enable) {
+        m_minePositions.clear();
+    }
+    // 不再自動生成地雷位置
+    // 線上模式: 必須透過 setMinePositions() 設定（從伺服器同步）
+    // 單機模式: 可使用 placeMines() 本地生成（內部使用 generateRandomMinePositions()）
+}
+
+bool ChessBoard::isMineAt(const QPoint& pos) const {
+    if (!m_bombModeEnabled) {
+        return false;
+    }
+    
+    for (const QPoint& mine : m_minePositions) {
+        if (mine == pos) {
+            return true;
+        }
+    }
+    return false;
+}
+
+void ChessBoard::placeMines() {
+    m_minePositions = generateRandomMinePositions();
+}
+
+std::vector<QPoint> ChessBoard::generateRandomMinePositions() {
+    std::vector<QPoint> minePositions;
+    
+    // 地雷區域：第3-6行（索引2-5），第a-h列（索引0-7）
+    // 隨機放置4-5個地雷
+    std::vector<QPoint> availablePositions;
+    for (int row = 2; row <= 5; ++row) {
+        for (int col = 0; col < 8; ++col) {
+            availablePositions.push_back(QPoint(col, row));
+        }
+    }
+    
+    // 使用Qt的隨機數生成器
+    QRandomGenerator *rng = QRandomGenerator::global();
+    int numMines = 4 + (rng->bounded(2)); // 4或5個地雷
+    
+    // 隨機打亂位置列表 (Fisher-Yates 洗牌算法)
+    for (int i = availablePositions.size() - 1; i > 0; --i) {
+        int j = rng->bounded(i + 1);
+        std::swap(availablePositions[i], availablePositions[j]);
+    }
+    
+    // 選取前numMines個位置作為地雷
+    for (int i = 0; i < numMines && i < static_cast<int>(availablePositions.size()); ++i) {
+        minePositions.push_back(availablePositions[i]);
+    }
+    
+    return minePositions;
+}
+
+void ChessBoard::setMinePositions(const std::vector<QPoint>& positions) {
+    m_minePositions = positions;
 }

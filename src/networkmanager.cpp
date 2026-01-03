@@ -125,11 +125,13 @@ void NetworkManager::closeConnection()
     m_opponentColor = PieceColor::None;
 }
 
-void NetworkManager::sendMove(const QPoint& from, const QPoint& to, PieceType promotionType)
+void NetworkManager::sendMove(const QPoint& from, const QPoint& to, PieceType promotionType, QPoint finalPosition, bool causesCheckInterruption, int savedDiceMoves)
 {
     qDebug() << "[NetworkManager::sendMove] Sending move from" << from << "to" << to 
              << "| Role:" << (m_role == NetworkRole::Host ? "Host" : "Guest")
-             << "| Socket connected:" << (m_webSocket && m_webSocket->state() == QAbstractSocket::ConnectedState);
+             << "| Socket connected:" << (m_webSocket && m_webSocket->state() == QAbstractSocket::ConnectedState)
+             << "| FinalPosition:" << finalPosition
+             << "| CheckInterruption:" << causesCheckInterruption;
     
     if (m_roomNumber.isEmpty()) {
         qDebug() << "[NetworkManager::sendMove] ERROR: Room number is empty, cannot send move";
@@ -147,6 +149,20 @@ void NetworkManager::sendMove(const QPoint& from, const QPoint& to, PieceType pr
     
     if (promotionType != PieceType::None) {
         message["promotion"] = static_cast<int>(promotionType);
+    }
+    
+    // 添加最終位置（如果發生傳送）
+    if (finalPosition.x() >= 0 && finalPosition.y() >= 0) {
+        QJsonObject finalPosJson;
+        finalPosJson["x"] = finalPosition.x();
+        finalPosJson["y"] = finalPosition.y();
+        message["finalPosition"] = finalPosJson;
+    }
+    
+    // 添加骰子模式將軍中斷信息
+    if (causesCheckInterruption && savedDiceMoves > 0) {
+        message["diceCheckInterruption"] = true;
+        message["savedDiceMoves"] = savedDiceMoves;
     }
     
     sendMessage(message);
@@ -169,7 +185,7 @@ void NetworkManager::sendGameStart(PieceColor playerColor)
     sendMessage(message);
 }
 
-void NetworkManager::sendStartGame(int whiteTimeMs, int blackTimeMs, int incrementMs, PieceColor hostColor)
+void NetworkManager::sendStartGame(int whiteTimeMs, int blackTimeMs, int incrementMs, PieceColor hostColor, const QMap<QString, bool>& gameModes, const std::vector<QPoint>& minePositions)
 {
     if (m_roomNumber.isEmpty()) {
         qDebug() << "[NetworkManager::sendStartGame] ERROR: Room number is empty";
@@ -183,6 +199,26 @@ void NetworkManager::sendStartGame(int whiteTimeMs, int blackTimeMs, int increme
     message["blackTimeMs"] = blackTimeMs;
     message["incrementMs"] = incrementMs;
     message["hostColor"] = (hostColor == PieceColor::White) ? "White" : "Black";
+    
+    // 添加遊戲模式
+    QJsonObject gameModesJson;
+    for (auto it = gameModes.constBegin(); it != gameModes.constEnd(); ++it) {
+        gameModesJson[it.key()] = it.value();
+    }
+    message["gameModes"] = gameModesJson;
+    
+    // 添加地雷位置（如果有）
+    if (!minePositions.empty()) {
+        QJsonArray mineArray;
+        for (const QPoint& pos : minePositions) {
+            QJsonObject posObj;
+            posObj["x"] = pos.x();
+            posObj["y"] = pos.y();
+            mineArray.append(posObj);
+        }
+        message["minePositions"] = mineArray;
+    }
+    
     sendMessage(message);
 }
 
@@ -242,6 +278,55 @@ void NetworkManager::sendDrawResponse(bool accepted)
     sendMessage(message);
 }
 
+void NetworkManager::requestDiceRoll(int numMovablePieces)
+{
+    if (m_roomNumber.isEmpty()) {
+        qDebug() << "[NetworkManager::requestDiceRoll] ERROR: Room number is empty";
+        return;
+    }
+    
+    QJsonObject message;
+    message["action"] = "requestDice";
+    message["room"] = m_roomNumber;
+    message["numMovablePieces"] = numMovablePieces;
+    sendMessage(message);
+    
+    qDebug() << "[NetworkManager::requestDiceRoll] Requesting dice roll for" << numMovablePieces << "movable pieces";
+}
+
+void NetworkManager::sendDiceCheckInterruption(int savedMovesRemaining)
+{
+    if (m_roomNumber.isEmpty()) {
+        qDebug() << "[NetworkManager::sendDiceCheckInterruption] ERROR: Room number is empty";
+        return;
+    }
+    
+    QJsonObject message;
+    message["action"] = "diceCheckInterruption";
+    message["room"] = m_roomNumber;
+    message["savedMovesRemaining"] = savedMovesRemaining;
+    
+    sendMessage(message);
+    
+    qDebug() << "[NetworkManager::sendDiceCheckInterruption] Sent dice check interruption with" << savedMovesRemaining << "moves saved";
+}
+
+void NetworkManager::sendDiceCheckResolved()
+{
+    if (m_roomNumber.isEmpty()) {
+        qDebug() << "[NetworkManager::sendDiceCheckResolved] ERROR: Room number is empty";
+        return;
+    }
+    
+    QJsonObject message;
+    message["action"] = "diceCheckResolved";
+    message["room"] = m_roomNumber;
+    
+    sendMessage(message);
+    
+    qDebug() << "[NetworkManager::sendDiceCheckResolved] Sent dice check resolved notification";
+}
+
 void NetworkManager::setPlayerColors(PieceColor playerColor)
 {
     // 設定玩家顏色和對手顏色
@@ -256,12 +341,14 @@ void NetworkManager::sendGameOver(const QString& result)
         return;
     }
     
+    // 使用伺服器期望的格式 (action 而不是 type)
     QJsonObject message;
-    message["type"] = messageTypeToString(MessageType::GameOver);
-    message["roomNumber"] = m_roomNumber;
+    message["action"] = "gameOver";  // 修正：使用 action 而不是 type
+    message["room"] = m_roomNumber;
     message["result"] = result;
     
     sendMessage(message);
+    qDebug() << "[NetworkManager::sendGameOver] Sent game over message with result:" << result;
 }
 
 void NetworkManager::sendChat(const QString& chatMessage)
@@ -403,6 +490,18 @@ void NetworkManager::processMessage(const QJsonObject& message)
         PieceColor hostColor = (hostColorStr == "White") ? PieceColor::White : PieceColor::Black;
         qint64 serverTimestamp = message["serverTimestamp"].toVariant().toLongLong();
         
+        // 提取遊戲模式
+        QMap<QString, bool> gameModes;
+        if (message.contains("gameModes")) {
+            QJsonObject gameModesJson = message["gameModes"].toObject();
+            for (auto it = gameModesJson.constBegin(); it != gameModesJson.constEnd(); ++it) {
+                gameModes[it.key()] = it.value().toBool();
+            }
+        }
+        
+        // 提取地雷位置（如果有）
+        std::vector<QPoint> minePositions = parseMinePositions(message);
+        
         // 計算伺服器時間偏移（伺服器時間 - 本地時間）
         qint64 localTimestamp = QDateTime::currentMSecsSinceEpoch();
         qint64 serverTimeOffset = serverTimestamp - localTimestamp;
@@ -421,9 +520,11 @@ void NetworkManager::processMessage(const QJsonObject& message)
                  << "| Server time offset:" << serverTimeOffset << "ms"
                  << "| Host color:" << hostColorStr
                  << "| My role:" << (m_role == NetworkRole::Host ? "Host" : "Guest")
-                 << "| My color:" << (m_playerColor == PieceColor::White ? "White" : "Black");
+                 << "| My color:" << (m_playerColor == PieceColor::White ? "White" : "Black")
+                 << "| Game modes count:" << gameModes.size()
+                 << "| Mine positions count:" << minePositions.size();
         
-        emit startGameReceived(whiteTimeMs, blackTimeMs, incrementMs, hostColor, serverTimeOffset);
+        emit startGameReceived(whiteTimeMs, blackTimeMs, incrementMs, hostColor, serverTimeOffset, gameModes, minePositions);
         
         // 如果訊息包含計時器狀態，發送計時器更新
         if (message.contains("timerState")) {
@@ -468,8 +569,16 @@ void NetworkManager::processMessage(const QJsonObject& message)
             promotionType = static_cast<PieceType>(message["promotion"].toInt());
         }
         
-        qDebug() << "[NetworkManager::processMessage] Emitting opponentMove signal";
-        emit opponentMove(from, to, promotionType);
+        // 提取最終位置（如果發生傳送）
+        QPoint finalPosition(-1, -1);
+        if (message.contains("finalPosition")) {
+            QJsonObject finalPosJson = message["finalPosition"].toObject();
+            finalPosition = QPoint(finalPosJson["x"].toInt(), finalPosJson["y"].toInt());
+        }
+        
+        qDebug() << "[NetworkManager::processMessage] Emitting opponentMove signal"
+                 << "| FinalPosition:" << finalPosition;
+        emit opponentMove(from, to, promotionType, finalPosition);
         
         // 如果訊息包含計時器狀態，發送計時器更新
         if (message.contains("timerState")) {
@@ -486,11 +595,30 @@ void NetworkManager::processMessage(const QJsonObject& message)
             
             emit timerStateReceived(timeA, timeB, currentPlayer, lastSwitchTime);
         }
+        
+        // 如果訊息包含骰子狀態，處理骰子剩餘移動次數
+        if (message.contains("diceState")) {
+            QJsonObject diceState = message["diceState"].toObject();
+            int movesRemaining = diceState["movesRemaining"].toInt();
+            bool hasInterruption = diceState["hasInterruption"].toBool();  // 伺服器告訴我們是否有中斷狀態
+            
+            qDebug() << "[NetworkManager] Dice state update - movesRemaining:" << movesRemaining 
+                     << "hasInterruption:" << hasInterruption;
+            
+            // 通知主程式更新骰子剩餘移動次數
+            emit diceStateReceived(movesRemaining, hasInterruption);
+        }
     }
     else if (actionStr == "surrender") {
         // 收到對手投降訊息（新格式）
         qDebug() << "[NetworkManager] Opponent surrendered";
         emit surrenderReceived();
+    }
+    else if (actionStr == "gameOver") {
+        // 收到對手發送的遊戲結束訊息（將殺）
+        QString result = message["result"].toString();
+        qDebug() << "[NetworkManager] Received game over from opponent with result:" << result;
+        emit gameOverReceived(result);
     }
     else if (actionStr == "drawOffer") {
         // 收到對手和棋請求
@@ -502,6 +630,17 @@ void NetworkManager::processMessage(const QJsonObject& message)
         bool accepted = message["accepted"].toBool();
         qDebug() << "[NetworkManager] Opponent draw response:" << (accepted ? "accepted" : "declined");
         emit drawResponseReceived(accepted);
+    }
+    else if (actionStr == "diceRolled") {
+        // 收到伺服器的骰子結果
+        QJsonArray rollsArray = message["rolls"].toArray();
+        std::vector<int> rolls;
+        for (const QJsonValue& value : rollsArray) {
+            rolls.push_back(value.toInt());
+        }
+        QString currentPlayer = message["currentPlayer"].toString();
+        qDebug() << "[NetworkManager] Received dice rolls:" << rolls.size() << "rolls for player:" << currentPlayer;
+        emit diceRolled(rolls, currentPlayer);
     }
     else if (actionStr == "playerLeft") {
         // 對手離開房間（遊戲開始前）
@@ -577,6 +716,18 @@ void NetworkManager::processMessage(const QJsonObject& message)
             QString hostColorStr = message["hostColor"].toString();
             PieceColor hostColor = (hostColorStr == "White") ? PieceColor::White : PieceColor::Black;
             
+            // 提取遊戲模式
+            QMap<QString, bool> gameModes;
+            if (message.contains("gameModes")) {
+                QJsonObject gameModesJson = message["gameModes"].toObject();
+                for (auto it = gameModesJson.constBegin(); it != gameModesJson.constEnd(); ++it) {
+                    gameModes[it.key()] = it.value().toBool();
+                }
+            }
+            
+            // 提取地雷位置（如果有）
+            std::vector<QPoint> minePositions = parseMinePositions(message);
+            
             // 計算伺服器時間偏移（如果訊息中包含伺服器時間戳）
             qint64 serverTimeOffset = 0;
             if (message.contains("serverTimestamp")) {
@@ -594,7 +745,7 @@ void NetworkManager::processMessage(const QJsonObject& message)
                 m_opponentColor = hostColor;
             }
             
-            emit startGameReceived(whiteTimeMs, blackTimeMs, incrementMs, hostColor, serverTimeOffset);
+            emit startGameReceived(whiteTimeMs, blackTimeMs, incrementMs, hostColor, serverTimeOffset, gameModes, minePositions);
         }
         break;
     
@@ -630,8 +781,16 @@ void NetworkManager::processMessage(const QJsonObject& message)
             promotionType = static_cast<PieceType>(message["promotion"].toInt());
         }
         
-        qDebug() << "[NetworkManager::processMessage] Emitting opponentMove signal";
-        emit opponentMove(from, to, promotionType);
+        // 提取最終位置（如果發生傳送）
+        QPoint finalPosition(-1, -1);
+        if (message.contains("finalPosition")) {
+            QJsonObject finalPosJson = message["finalPosition"].toObject();
+            finalPosition = QPoint(finalPosJson["x"].toInt(), finalPosJson["y"].toInt());
+        }
+        
+        qDebug() << "[NetworkManager::processMessage] Emitting opponentMove signal"
+                 << "| FinalPosition:" << finalPosition;
+        emit opponentMove(from, to, promotionType, finalPosition);
         break;
     }
         
@@ -704,4 +863,18 @@ QString NetworkManager::messageTypeToString(MessageType type) const
     };
     
     return stringMap.value(type, "Unknown");
+}
+
+std::vector<QPoint> NetworkManager::parseMinePositions(const QJsonObject& message) const {
+    std::vector<QPoint> minePositions;
+    if (message.contains("minePositions")) {
+        QJsonArray mineArray = message["minePositions"].toArray();
+        for (const QJsonValue& val : mineArray) {
+            QJsonObject posObj = val.toObject();
+            int x = posObj["x"].toInt();
+            int y = posObj["y"].toInt();
+            minePositions.push_back(QPoint(x, y));
+        }
+    }
+    return minePositions;
 }
