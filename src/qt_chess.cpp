@@ -1243,31 +1243,29 @@ void Qt_Chess::setupTimeControlUI(QVBoxLayout* timeControlPanelLayout) {
     m_startButton->setEnabled(true);  // 始終啟用以允許開始遊戲
     m_startButton->setStyleSheet(QString(
         "QPushButton { "
-        "  background: qlineargradient(x1:0, y1:0, x2:1, y2:0, "
-        "    stop:0 %1, stop:0.5 rgba(0, 255, 136, 0.8), stop:1 %1); "
+        "  background-color: %1; "
         "  color: %2; "
-        "  border: 3px solid %1; "
-        "  border-radius: 12px; "
+        "  border: 1px solid %1; "
+        "  border-radius: 4px; "
         "  padding: 10px; "
         "}"
         "QPushButton:hover { "
-        "  background: qlineargradient(x1:0, y1:0, x2:1, y2:0, "
-        "    stop:0 %1, stop:0.3 rgba(0, 255, 136, 0.9), stop:0.7 rgba(0, 217, 255, 0.9), stop:1 %1); "
-        "  border-color: white; "
+        "  background-color: %3; "
+        "  border-color: %3; "
         "}"
         "QPushButton:pressed { "
-        "  background: %1; "
+        "  background-color: %4; "
         "}"
         "QPushButton:disabled { "
-        "  background: rgba(50, 50, 70, 0.6); "
-        "  color: #666; "
-        "  border-color: #444; "
+        "  background-color: %5; "
+        "  color: #999; "
+        "  border-color: %6; "
         "}"
-    ).arg(THEME_ACCENT_SUCCESS, THEME_BG_DARK));
+    ).arg(THEME_ACCENT_PRIMARY, THEME_BG_PANEL, THEME_TEXT_PRIMARY, THEME_BORDER, THEME_BG_DARK, THEME_BORDER));
     connect(m_startButton, &QPushButton::clicked, this, &Qt_Chess::onStartButtonClicked);
     timeControlPanelLayout->addWidget(m_startButton, 0);  // 伸展因子 0 以保持按鈕高度
 
-    // 退出房間按鈕 - 現代科技風格橙色警告效果
+    // 退出房間按鈕 - 簡約風格
     m_exitRoomButton = new QPushButton("🚪 退出房間", this);
     m_exitRoomButton->setMinimumHeight(45);
     QFont exitRoomButtonFont;
@@ -1276,22 +1274,20 @@ void Qt_Chess::setupTimeControlUI(QVBoxLayout* timeControlPanelLayout) {
     m_exitRoomButton->setFont(exitRoomButtonFont);
     m_exitRoomButton->setStyleSheet(QString(
         "QPushButton { "
-        "  background: qlineargradient(x1:0, y1:0, x2:1, y2:0, "
-        "    stop:0 %1, stop:0.5 rgba(255, 140, 0, 0.7), stop:1 %1); "
+        "  background-color: %1; "
         "  color: %2; "
-        "  border: 3px solid %3; "
-        "  border-radius: 10px; "
+        "  border: 1px solid %3; "
+        "  border-radius: 4px; "
         "  padding: 8px; "
         "}"
         "QPushButton:hover { "
-        "  background: qlineargradient(x1:0, y1:0, x2:1, y2:0, "
-        "    stop:0 %3, stop:0.5 rgba(255, 160, 50, 0.9), stop:1 %3); "
-        "  border-color: #FFA500; "
+        "  background-color: %4; "
+        "  border-color: %2; "
         "}"
         "QPushButton:pressed { "
-        "  background: %3; "
+        "  background-color: %3; "
         "}"
-    ).arg(THEME_BG_DARK, THEME_TEXT_PRIMARY, THEME_ACCENT_WARNING));
+    ).arg(THEME_BG_PANEL, THEME_TEXT_PRIMARY, THEME_BORDER, THEME_BG_DARK));
     m_exitRoomButton->hide();  // 初始隱藏
     connect(m_exitRoomButton, &QPushButton::clicked, this, &Qt_Chess::onExitRoomClicked);
     timeControlPanelLayout->addWidget(m_exitRoomButton, 0);  // 伸展因子 0 以保持按鈕高度
@@ -1302,7 +1298,7 @@ void Qt_Chess::setupTimeControlUI(QVBoxLayout* timeControlPanelLayout) {
     onlineButtonsLayout->setContentsMargins(0, 5, 0, 5);
     onlineButtonsLayout->setSpacing(10);
     
-    // 創建房間按鈕 - 現代科技風格綠色效果
+    // 創建房間按鈕 - 簡約風格
     m_createRoomButton = new QPushButton("📱 創建房間", this);
     m_createRoomButton->setMinimumHeight(45);
     QFont createRoomButtonFont;
@@ -1311,26 +1307,24 @@ void Qt_Chess::setupTimeControlUI(QVBoxLayout* timeControlPanelLayout) {
     m_createRoomButton->setFont(createRoomButtonFont);
     m_createRoomButton->setStyleSheet(QString(
         "QPushButton { "
-        "  background: qlineargradient(x1:0, y1:0, x2:1, y2:0, "
-        "    stop:0 %1, stop:0.5 rgba(0, 255, 136, 0.7), stop:1 %1); "
+        "  background-color: %1; "
         "  color: %2; "
-        "  border: 3px solid %3; "
-        "  border-radius: 10px; "
+        "  border: 1px solid %3; "
+        "  border-radius: 4px; "
         "  padding: 8px; "
         "}"
         "QPushButton:hover { "
-        "  background: qlineargradient(x1:0, y1:0, x2:1, y2:0, "
-        "    stop:0 %3, stop:0.5 rgba(0, 255, 136, 0.9), stop:1 %3); "
-        "  border-color: #00FF88; "
+        "  background-color: %4; "
+        "  border-color: %2; "
         "}"
         "QPushButton:pressed { "
-        "  background: %3; "
+        "  background-color: %3; "
         "}"
-    ).arg(THEME_BG_DARK, THEME_TEXT_PRIMARY, THEME_ACCENT_SUCCESS));
+    ).arg(THEME_BG_PANEL, THEME_TEXT_PRIMARY, THEME_BORDER, THEME_BG_DARK));
     connect(m_createRoomButton, &QPushButton::clicked, this, &Qt_Chess::onCreateRoomButtonClicked);
     onlineButtonsLayout->addWidget(m_createRoomButton);
     
-    // 加入房間按鈕 - 現代科技風格藍色效果
+    // 加入房間按鈕 - 簡約風格
     m_joinRoomButton = new QPushButton("🔗 加入房間", this);
     m_joinRoomButton->setMinimumHeight(45);
     QFont joinRoomButtonFont;
@@ -1339,22 +1333,20 @@ void Qt_Chess::setupTimeControlUI(QVBoxLayout* timeControlPanelLayout) {
     m_joinRoomButton->setFont(joinRoomButtonFont);
     m_joinRoomButton->setStyleSheet(QString(
         "QPushButton { "
-        "  background: qlineargradient(x1:0, y1:0, x2:1, y2:0, "
-        "    stop:0 %1, stop:0.5 rgba(0, 217, 255, 0.7), stop:1 %1); "
+        "  background-color: %1; "
         "  color: %2; "
-        "  border: 3px solid %3; "
-        "  border-radius: 10px; "
+        "  border: 1px solid %3; "
+        "  border-radius: 4px; "
         "  padding: 8px; "
         "}"
         "QPushButton:hover { "
-        "  background: qlineargradient(x1:0, y1:0, x2:1, y2:0, "
-        "    stop:0 %3, stop:0.5 rgba(0, 217, 255, 0.9), stop:1 %3); "
-        "  border-color: #00D9FF; "
+        "  background-color: %4; "
+        "  border-color: %2; "
         "}"
         "QPushButton:pressed { "
-        "  background: %3; "
+        "  background-color: %3; "
         "}"
-    ).arg(THEME_BG_DARK, THEME_TEXT_PRIMARY, THEME_ACCENT_PRIMARY));
+    ).arg(THEME_BG_PANEL, THEME_TEXT_PRIMARY, THEME_BORDER, THEME_BG_DARK));
     connect(m_joinRoomButton, &QPushButton::clicked, this, &Qt_Chess::onJoinRoomButtonClicked);
     onlineButtonsLayout->addWidget(m_joinRoomButton);
     
@@ -1978,9 +1970,9 @@ void Qt_Chess::updateSquareColor(int displayRow, int displayCol) {
     // 使用輔助函數獲取文字顏色
     QString textColor = getPieceTextColor(logicalRow, logicalCol);
     
-    // 現代科技風格 - 帶有微妙的霓虹青色發光邊框效果和適當的文字顏色
+    // 簡約風格 - 淺色邊框和適當的文字顏色
     m_squares[displayRow][displayCol]->setStyleSheet(
-        QString("QPushButton { background-color: %1; border: 1px solid rgba(0, 255, 255, 0.3); color: %2; }").arg(color.name(), textColor)
+        QString("QPushButton { background-color: %1; border: 1px solid %2; color: %3; }").arg(color.name(), THEME_BORDER, textColor)
         );
 }
 
@@ -2108,9 +2100,9 @@ void Qt_Chess::handleMineExplosion(const QPoint& logicalPosition, bool isOpponen
             explodedSquare->setIconSize(squareSize);
         }
         
-        // 設置方格背景為橙紅色
+        // 設置方格背景為深灰色
         explodedSquare->setStyleSheet(
-            "QPushButton { background-color: rgba(255, 100, 0, 0.8); border: 3px solid #FF0000; }"
+            "QPushButton { background-color: #999999; border: 2px solid #666666; }"
         );
         
         // 1.5秒後恢復正常顏色並清除圖示
@@ -2154,12 +2146,12 @@ void Qt_Chess::highlightValidMoves() {
 
     if (!m_pieceSelected) return;
 
-    // 高亮選中的格子（m_selectedSquare 是邏輯坐標）- 現代科技風格霓虹綠（不透明）
+    // 高亮選中的格子（m_selectedSquare 是邏輯坐標）- 簡約風格淺灰色
     int displayRow = getDisplayRow(m_selectedSquare.y());
     int displayCol = getDisplayCol(m_selectedSquare.x());
     QString selectedTextColor = getPieceTextColor(m_selectedSquare.y(), m_selectedSquare.x());
     m_squares[displayRow][displayCol]->setStyleSheet(
-        QString("QPushButton { background-color: rgba(0, 255, 136, 1.0); border: 3px solid %1; color: %2; }").arg(THEME_ACCENT_SUCCESS, selectedTextColor)
+        QString("QPushButton { background-color: #C5C5C5; border: 2px solid %1; color: %2; }").arg(THEME_ACCENT_PRIMARY, selectedTextColor)
         );
 
     // 高亮有效的移動
@@ -2175,16 +2167,16 @@ void Qt_Chess::highlightValidMoves() {
                 QString textColor = getPieceTextColor(logicalRow, logicalCol);
 
                 if (isCapture) {
-                    // 將吃子移動高亮為霓虹紅/粉色（不透明）
-                    QString color = isLight ? "rgba(255, 100, 120, 1.0)" : "rgba(233, 69, 96, 1.0)";
+                    // 將吃子移動高亮為中灰色
+                    QString color = isLight ? "#B0B0B0" : "#959595";
                     m_squares[displayRow][displayCol]->setStyleSheet(
-                        QString("QPushButton { background-color: %1; border: 3px solid %2; color: %3; }").arg(color, THEME_ACCENT_SECONDARY, textColor)
+                        QString("QPushButton { background-color: %1; border: 2px solid %2; color: %3; }").arg(color, THEME_ACCENT_PRIMARY, textColor)
                         );
                 } else {
-                    // 將非吃子移動高亮為霓虹黃色（不透明）
-                    QString color = isLight ? "rgba(255, 217, 61, 1.0)" : "rgba(255, 217, 61, 1.0)";
+                    // 將非吃子移動高亮為淺灰色
+                    QString color = isLight ? "#D5D5D5" : "#BFBFBF";
                     m_squares[displayRow][displayCol]->setStyleSheet(
-                        QString("QPushButton { background-color: %1; border: 3px solid %2; color: %3; }").arg(color, THEME_ACCENT_WARNING, textColor)
+                        QString("QPushButton { background-color: %1; border: 2px solid %2; color: %3; }").arg(color, THEME_ACCENT_SECONDARY, textColor)
                         );
                 }
             }
@@ -2219,7 +2211,7 @@ void Qt_Chess::applyCheckHighlight(const QPoint& excludeSquare) {
             int displayCol = getDisplayCol(logicalCol);
             QString textColor = getPieceTextColor(logicalRow, logicalCol);
             m_squares[displayRow][displayCol]->setStyleSheet(
-                QString("QPushButton { background-color: rgba(255, 80, 80, 0.85); border: 2px solid #FF3333; color: %1; }").arg(textColor)
+                QString("QPushButton { background-color: #C0C0C0; border: 2px solid #808080; color: %1; }").arg(textColor)
             );
         }
     }
@@ -3065,22 +3057,20 @@ void Qt_Chess::onStartButtonClicked() {
             m_requestDrawButton->setText("🤝 請求和棋");
             m_requestDrawButton->setStyleSheet(QString(
                 "QPushButton { "
-                "  background: qlineargradient(x1:0, y1:0, x2:1, y2:0, "
-                "    stop:0 %1, stop:0.5 rgba(0, 217, 255, 0.7), stop:1 %1); "
+                "  background-color: %1; "
                 "  color: %2; "
-                "  border: 3px solid %3; "
-                "  border-radius: 10px; "
+                "  border: 1px solid %3; "
+                "  border-radius: 4px; "
                 "  padding: 8px; "
                 "}"
                 "QPushButton:hover { "
-                "  background: qlineargradient(x1:0, y1:0, x2:1, y2:0, "
-                "    stop:0 %3, stop:0.5 rgba(100, 230, 255, 0.9), stop:1 %3); "
-                "  border-color: #6BDBFF; "
+                "  background-color: %4; "
+                "  border-color: %2; "
                 "}"
                 "QPushButton:pressed { "
-                "  background: %3; "
+                "  background-color: %3; "
                 "}"
-            ).arg(THEME_BG_DARK, THEME_TEXT_PRIMARY, THEME_ACCENT_PRIMARY));
+            ).arg(THEME_BG_PANEL, THEME_TEXT_PRIMARY, THEME_BORDER, THEME_BG_DARK));
             m_requestDrawButton->disconnect();
             connect(m_requestDrawButton, &QPushButton::clicked, this, &Qt_Chess::onRequestDrawClicked);
         }
@@ -3089,22 +3079,20 @@ void Qt_Chess::onStartButtonClicked() {
             m_resignButton->setText("🏳 認輸");
             m_resignButton->setStyleSheet(QString(
                 "QPushButton { "
-                "  background: qlineargradient(x1:0, y1:0, x2:1, y2:0, "
-                "    stop:0 %1, stop:0.5 rgba(255, 82, 82, 0.7), stop:1 %1); "
+                "  background-color: %1; "
                 "  color: %2; "
-                "  border: 3px solid %3; "
-                "  border-radius: 10px; "
+                "  border: 1px solid %3; "
+                "  border-radius: 4px; "
                 "  padding: 8px; "
                 "}"
                 "QPushButton:hover { "
-                "  background: qlineargradient(x1:0, y1:0, x2:1, y2:0, "
-                "    stop:0 %3, stop:0.5 rgba(255, 120, 120, 0.9), stop:1 %3); "
-                "  border-color: #FF7878; "
+                "  background-color: %4; "
+                "  border-color: %2; "
                 "}"
                 "QPushButton:pressed { "
-                "  background: %3; "
+                "  background-color: %3; "
                 "}"
-            ).arg(THEME_BG_DARK, THEME_TEXT_PRIMARY, THEME_ACCENT_SECONDARY));
+            ).arg(THEME_BG_PANEL, THEME_TEXT_PRIMARY, THEME_BORDER, THEME_BG_DARK));
             m_resignButton->disconnect();
             connect(m_resignButton, &QPushButton::clicked, this, &Qt_Chess::onResignClicked);
         }
@@ -3187,22 +3175,20 @@ void Qt_Chess::onStartButtonClicked() {
             m_requestDrawButton->setText("🤝 請求和棋");
             m_requestDrawButton->setStyleSheet(QString(
                 "QPushButton { "
-                "  background: qlineargradient(x1:0, y1:0, x2:1, y2:0, "
-                "    stop:0 %1, stop:0.5 rgba(0, 217, 255, 0.7), stop:1 %1); "
+                "  background-color: %1; "
                 "  color: %2; "
-                "  border: 3px solid %3; "
-                "  border-radius: 10px; "
+                "  border: 1px solid %3; "
+                "  border-radius: 4px; "
                 "  padding: 8px; "
                 "}"
                 "QPushButton:hover { "
-                "  background: qlineargradient(x1:0, y1:0, x2:1, y2:0, "
-                "    stop:0 %3, stop:0.5 rgba(100, 230, 255, 0.9), stop:1 %3); "
-                "  border-color: #6BDBFF; "
+                "  background-color: %4; "
+                "  border-color: %2; "
                 "}"
                 "QPushButton:pressed { "
-                "  background: %3; "
+                "  background-color: %3; "
                 "}"
-            ).arg(THEME_BG_DARK, THEME_TEXT_PRIMARY, THEME_ACCENT_PRIMARY));
+            ).arg(THEME_BG_PANEL, THEME_TEXT_PRIMARY, THEME_BORDER, THEME_BG_DARK));
             m_requestDrawButton->disconnect();
             connect(m_requestDrawButton, &QPushButton::clicked, this, &Qt_Chess::onRequestDrawClicked);
         }
@@ -3211,22 +3197,20 @@ void Qt_Chess::onStartButtonClicked() {
             m_resignButton->setText("🏳 認輸");
             m_resignButton->setStyleSheet(QString(
                 "QPushButton { "
-                "  background: qlineargradient(x1:0, y1:0, x2:1, y2:0, "
-                "    stop:0 %1, stop:0.5 rgba(255, 82, 82, 0.7), stop:1 %1); "
+                "  background-color: %1; "
                 "  color: %2; "
-                "  border: 3px solid %3; "
-                "  border-radius: 10px; "
+                "  border: 1px solid %3; "
+                "  border-radius: 4px; "
                 "  padding: 8px; "
                 "}"
                 "QPushButton:hover { "
-                "  background: qlineargradient(x1:0, y1:0, x2:1, y2:0, "
-                "    stop:0 %3, stop:0.5 rgba(255, 120, 120, 0.9), stop:1 %3); "
-                "  border-color: #FF7878; "
+                "  background-color: %4; "
+                "  border-color: %2; "
                 "}"
                 "QPushButton:pressed { "
-                "  background: %3; "
+                "  background-color: %3; "
                 "}"
-            ).arg(THEME_BG_DARK, THEME_TEXT_PRIMARY, THEME_ACCENT_SECONDARY));
+            ).arg(THEME_BG_PANEL, THEME_TEXT_PRIMARY, THEME_BORDER, THEME_BG_DARK));
             m_resignButton->disconnect();
             connect(m_resignButton, &QPushButton::clicked, this, &Qt_Chess::onResignClicked);
         }
