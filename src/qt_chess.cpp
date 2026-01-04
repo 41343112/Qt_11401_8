@@ -973,7 +973,7 @@ void Qt_Chess::setupMainMenu() {
     menuLayout->setSpacing(10);  // 減小間距
     
     // 標題標籤 - 歐式古典風格
-    QLabel* titleLabel = new QLabel("♔ 國際象棋 - 林一拳去你的 ♚", m_mainMenuWidget);
+    QLabel* titleLabel = new QLabel("♔ 國際象棋 ♚", m_mainMenuWidget);
     titleLabel->setAlignment(Qt::AlignCenter);
     titleLabel->setWordWrap(true);  // 允許換行
     titleLabel->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Minimum);  // 允許壓縮
