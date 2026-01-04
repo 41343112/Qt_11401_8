@@ -9495,9 +9495,24 @@ void Qt_Chess::updateDiceDisplay() {
                     // 使用圖示模式：將圖示縮放到合適大小並設置
                     QPixmap scaledPixmap = piecePixmap.scaled(DICE_ICON_SIZE, DICE_ICON_SIZE, Qt::KeepAspectRatio, Qt::SmoothTransformation);
                     
-                    // 如果需要灰階，對圖片應用灰階效果（使用更高效的方法）
+                    // 如果需要灰階，對圖片應用灰階效果（保留透明度）
                     if (isGrayed) {
-                        QImage image = scaledPixmap.toImage().convertToFormat(QImage::Format_Grayscale8);
+                        QImage image = scaledPixmap.toImage();
+                        // 確保圖像有 alpha 通道
+                        if (image.format() != QImage::Format_ARGB32 && image.format() != QImage::Format_ARGB32_Premultiplied) {
+                            image = image.convertToFormat(QImage::Format_ARGB32);
+                        }
+                        
+                        // 手動應用灰階效果，保留 alpha 通道
+                        for (int y = 0; y < image.height(); ++y) {
+                            QRgb* line = reinterpret_cast<QRgb*>(image.scanLine(y));
+                            for (int x = 0; x < image.width(); ++x) {
+                                QRgb pixel = line[x];
+                                int gray = qGray(pixel);
+                                int alpha = qAlpha(pixel);
+                                line[x] = qRgba(gray, gray, gray, alpha);
+                            }
+                        }
                         scaledPixmap = QPixmap::fromImage(image);
                     }
                     
