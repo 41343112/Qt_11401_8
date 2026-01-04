@@ -7,19 +7,75 @@
 
 **Translation**: "Dice mode: When it's my turn and I place a piece, the dice will flash/blink, and the timer will also briefly go to the opponent's side before returning to mine. Although the functionality is not wrong, the visual experience is very poor."
 
+**Follow-up Comment**: "他會每步都先切換過去 這樣導致我每下一步棋 我的骰子就會先切換過去在切換回來 時間也是這樣 觀感不好"
+
+**Translation**: "It switches over with every step, which causes my dice to switch over and back every time I make a move, the time is also like this, the viewing experience is not good."
+
 ## Problem Analysis
 
 ### Visual Issue Description
 
 When a player makes a move during their dice turn in online dice mode:
-1. The dice panel briefly flashes/changes
+1. The dice panel briefly shows "⏸️ 對手回合" (opponent's turn)
 2. The timer display briefly shows it's the opponent's turn
-3. Then immediately corrects back to show it's still the player's turn
+3. Then immediately corrects back to show "🎲 輪到我" (my turn)
 4. This creates a poor visual experience despite the game logic working correctly
 
-### Root Cause
+### Root Cause - Two Sources of Flash
+
+The flash/flicker occurs from **TWO different sources**:
+
+#### Source 1: updateStatus() Called Too Early
+
+#### Source 1: updateStatus() Called Too Early
 
 The problem occurs due to the order of operations when processing a move in dice mode:
+
+#### Source 2: updateDiceDisplay() Called from markPieceTypeAsMoved()
+
+An additional source of flash was discovered:
+
+```
+1. movePiece() is called
+   └─> Switches currentPlayer (White → Black)
+   
+2. markPieceTypeAsMoved() is called [LINE 2686]
+   └─> Decrements dice counters
+   └─> Calls updateDiceDisplay() [LINE 9622] ❌ PROBLEM HERE
+   
+3. updateDiceDisplay() executes
+   └─> Checks isOnlineTurn() which uses m_chessBoard.getCurrentPlayer()
+   └─> getCurrentPlayer() returns Black (already switched)
+   └─> Shows "⏸️ 對手回合" (opponent's turn) ❌ WRONG!
+   
+4. Dice logic switches player back [LINE 2766]
+   └─> setCurrentPlayer(White)
+   
+5. updateDiceDisplay() called again after player corrected
+   └─> Shows "🎲 輪到我" (my turn) ✓ CORRECT
+```
+
+This means **BOTH** `updateStatus()` and `updateDiceDisplay()` were causing flashes at different points in the code flow.
+
+### Combined Timeline of Both Flashes
+
+```
+Time 0ms:   Player makes move
+Time 1ms:   movePiece() → player switches to opponent
+Time 2ms:   updateStatus() → timer shows "opponent's turn" ❌ Flash #1
+Time 3ms:   markPieceTypeAsMoved() → calls updateDiceDisplay()
+Time 4ms:   updateDiceDisplay() → dice panel shows "⏸️ 對手回合" ❌ Flash #2
+Time 5ms:   Dice logic: "wait, player has moves remaining"
+Time 6ms:   setCurrentPlayer(previousPlayer) → switch back
+Time 7ms:   updateStatus() → timer shows "my turn" again ✓
+Time 8ms:   (need explicit call) → dice panel shows "🎲 輪到我" ✓
+```
+
+Both UI elements flash independently, creating a **double flash** effect that is very noticeable and jarring.
+
+#### Source 2: updateDiceDisplay() Called from markPieceTypeAsMoved()
+
+An additional source of flash was discovered:
 
 ```
 1. movePiece() is called
@@ -71,13 +127,13 @@ The original code assumed the turn would switch, updated the UI, then "fixed" it
 
 ### Design Principle
 
-**Defer UI updates until game state is finalized.**
+**Defer ALL UI updates until game state is finalized.**
 
 In dice mode, the final turn state is not known until AFTER the dice logic executes. Therefore, we should:
 1. Process the move (movePiece)
 2. Execute dice turn logic
 3. Determine final player state
-4. THEN update UI to reflect final state
+4. THEN update UI (both status and dice display) to reflect final state
 
 ### Implementation
 
@@ -96,7 +152,6 @@ updateStatus();  // Always called immediately
 updateTimeDisplays();
 
 // 在骰子模式下，延遲 updateStatus() 直到骰子邏輯確定最終玩家狀態
-// 這避免了骰子和計時器的閃爍
 if (!m_diceModeEnabled || !m_isOnlineGame) {
     updateStatus();  // Only call if NOT in dice mode
 }
@@ -104,15 +159,43 @@ if (!m_diceModeEnabled || !m_isOnlineGame) {
 // Dice mode logic...
 ```
 
-#### 2. Add updateStatus() to All Dice Branches
+#### 2. Remove updateDiceDisplay() from markPieceTypeAsMoved()
 
-Since we skip the initial `updateStatus()` in dice mode, we must ensure every dice logic branch calls it:
+**Problem:** `markPieceTypeAsMoved()` was calling `updateDiceDisplay()` immediately, which checked `isOnlineTurn()` using the already-switched player state.
+
+**Before:**
+```cpp
+void Qt_Chess::markPieceTypeAsMoved(PieceType type) {
+    // ... decrement counters ...
+    m_rolledPieceTypeCounts[i]--;
+    m_diceMovesRemaining--;
+    updateDiceDisplay();  // ❌ Called with wrong player state!
+    return;
+}
+```
+
+**After:**
+```cpp
+void Qt_Chess::markPieceTypeAsMoved(PieceType type) {
+    // ... decrement counters ...
+    m_rolledPieceTypeCounts[i]--;
+    m_diceMovesRemaining--;
+    // 注意：不在這裡調用 updateDiceDisplay()，因為此時玩家可能還沒有被最終確定
+    // updateDiceDisplay() 會在玩家狀態確定後由調用方統一調用
+    return;
+}
+```
+
+#### 3. Add updateDiceDisplay() to All Dice Branches
+
+Since we removed the automatic call from `markPieceTypeAsMoved()`, we must ensure every dice logic branch calls it explicitly after the player state is finalized:
 
 **Branch 1: Checkmate**
 ```cpp
 if (opponentInCheckmate) {
     // ... handle checkmate ...
-    updateStatus();  // ✓ Added
+    updateDiceDisplay();  // ✓ Added - player state is final
+    updateStatus();
     // ... send game over ...
 }
 ```
@@ -121,8 +204,8 @@ if (opponentInCheckmate) {
 ```cpp
 else if (opponentInCheck && !opponentInCheckmate && m_diceMovesRemaining > 0) {
     // ... save dice state ...
-    updateDiceDisplay();
-    updateStatus();  // ✓ Already present
+    updateDiceDisplay();  // ✓ Already present - turn already switched to opponent
+    updateStatus();
 }
 ```
 
@@ -130,7 +213,8 @@ else if (opponentInCheck && !opponentInCheckmate && m_diceMovesRemaining > 0) {
 ```cpp
 else if (allRolledPiecesMoved()) {
     // ... switch turn normally ...
-    updateStatus();  // ✓ Added
+    updateDiceDisplay();  // ✓ Added - turn switched, state is final
+    updateStatus();
 }
 ```
 
@@ -139,11 +223,12 @@ else if (allRolledPiecesMoved()) {
 else {
     // ... keep same player ...
     m_chessBoard.setCurrentPlayer(previousPlayer);
-    updateStatus();  // ✓ Already present
+    updateDiceDisplay();  // ✓ Added - player switched back, state is final
+    updateStatus();
 }
 ```
 
-#### 3. Apply to Both Click and Drag Handlers
+#### 4. Apply to Both Click and Drag Handlers
 
 The same logic is implemented in:
 - `onSquareClicked()` - Click-to-move handler (lines ~2632-2760)
@@ -156,16 +241,17 @@ Both code paths now have the same fix to ensure consistent behavior.
 ### Files Modified
 
 1. **src/qt_chess.cpp**
-   - Lines 2632-2639: Conditional updateStatus() in click handler
-   - Line 2716: Added updateStatus() in checkmate branch (click)
-   - Line 2754: Added updateStatus() in all-moved branch (click)
-   - Lines 3875-3883: Conditional updateStatus() in drag handler
-   - Line 3963: Added updateStatus() in checkmate branch (drag)
-   - Line 4003: Added updateStatus() in all-moved branch (drag)
+   - Lines 2632-2641: Conditional updateStatus() with detailed comments (click handler)
+   - Line 2718: Added updateDiceDisplay() in checkmate branch (click)
+   - Line 2760: Added updateDiceDisplay() in all-moved branch (click)
+   - Line 2770: Added updateDiceDisplay() in continue-turn branch (click)
+   - Lines 3881-3890: Conditional updateStatus() with detailed comments (drag handler)
+   - Line 3971: Added updateDiceDisplay() in checkmate branch (drag)
+   - Line 4013: Added updateDiceDisplay() in all-moved branch (drag)
+   - Line 4023: Added updateDiceDisplay() in continue-turn branch (drag)
+   - Line 9625: Removed updateDiceDisplay() from markPieceTypeAsMoved(), added comment
 
-### Change Summary
-
-- **Lines changed**: 18 insertions, 2 deletions
+**Documentation Created:** `BUGFIX_DICE_VISUAL_FLASH.md`
 - **Logic changes**: 0 (only timing of UI updates)
 - **Scope**: Only affects dice mode in online games
 - **Backward compatibility**: 100% (no API changes)
