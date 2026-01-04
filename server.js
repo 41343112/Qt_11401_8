@@ -290,7 +290,9 @@ wss.on('connection', ws => {
                 if(playerWhoJustMoved === "White"){
                     // 白方剛走棋，從白方時間扣除
                     const whiteTime = timer.whiteIsA ? timer.timeA : timer.timeB;
-                    const newWhiteTime = Math.max(0, whiteTime - elapsedMs) + timer.incrementMs;
+                    // 只在非第一步時添加增量
+                    const increment = isFirstMove ? 0 : timer.incrementMs;
+                    const newWhiteTime = Math.max(0, whiteTime - elapsedMs) + increment;
                     
                     if(timer.whiteIsA){
                         timer.timeA = newWhiteTime;
@@ -305,7 +307,9 @@ wss.on('connection', ws => {
                 } else {
                     // 黑方剛走棋，從黑方時間扣除
                     const blackTime = timer.whiteIsA ? timer.timeB : timer.timeA;
-                    const newBlackTime = Math.max(0, blackTime - elapsedMs) + timer.incrementMs;
+                    // 只在非第一步時添加增量
+                    const increment = isFirstMove ? 0 : timer.incrementMs;
+                    const newBlackTime = Math.max(0, blackTime - elapsedMs) + increment;
                     
                     if(timer.whiteIsA){
                         timer.timeB = newBlackTime;
