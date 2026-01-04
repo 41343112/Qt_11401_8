@@ -192,6 +192,7 @@ private:
     qint64 m_serverLastSwitchTime;       // 伺服器最後切換時間（UNIX 秒數）
     bool m_useServerTimer;               // 是否使用伺服器控制的計時器
     qint64 m_lastServerUpdateTime;       // 最後一次收到伺服器更新的本地時間（毫秒）
+    bool m_justReceivedTimerUpdate;      // 剛收到計時器更新（用於防止第一步扣時）
     
     // 遊戲結束時的上下方面板
     QWidget* m_topEndGamePanel;          // 遊戲結束時對方的時間和吃子紀錄（棋盤上方）

@@ -205,6 +205,7 @@ Qt_Chess::Qt_Chess(QWidget *parent)
     , m_serverLastSwitchTime(0)
     , m_useServerTimer(false)
     , m_lastServerUpdateTime(0)
+    , m_justReceivedTimerUpdate(false)
     , m_boardContainer(nullptr)
     , m_timeControlPanel(nullptr)
     , m_contentLayout(nullptr)
@@ -4273,31 +4274,21 @@ void Qt_Chess::updateTimeDisplaysFromServer() {
     // We only count time elapsed since we received the update, not since the server processed the move.
     // 計算距離最後更新經過的時間（不包含網路延遲）
     qint64 elapsedMs = 0;
-    if (m_lastServerUpdateTime > 0) {
+    if (m_lastServerUpdateTime > 0 && !m_justReceivedTimerUpdate) {
         elapsedMs = currentUnixTimeMs - m_lastServerUpdateTime;
         // 處理異常：如果elapsed為負數，設為0
         if (elapsedMs < 0) {
             elapsedMs = 0;
         }
     }
+    // FIX: 如果剛收到計時器更新（例如剛下完棋），elapsed設為0
+    // 這確保玩家能看到完整的時間（包含增量），而不是立即開始倒數
     
     // 確定我是玩家 A (房主) 還是玩家 B (房客)
     bool isPlayerA = (m_networkManager->getRole() == NetworkRole::Host);
     
     // 計算白方和黑方的實際顯示時間
     qint64 whiteTime, blackTime;
-    
-    // FIX: 限制elapsed時間以防止顯示錯誤
-    // 在收到新的伺服器更新後，elapsed應該接近0
-    // 如果elapsed很大，說明可能是計時器剛啟動或有計算錯誤
-    // 正常情況下，計時器每100ms更新一次，所以elapsed不應超過幾百毫秒
-    // 除非玩家思考時間很長，但那種情況下也是逐步累積的
-    qint64 safeElapsedMs = elapsedMs;
-    
-    // 對於剛收到伺服器更新的情況（elapsed < 500ms），直接使用
-    // 對於已經累積較長時間的情況（elapsed >= 500ms），也直接使用
-    // 但要確保顯示的時間不會突然跳變
-    // 實際上，我們應該總是信任伺服器發送的時間，只對當前玩家累加經過時間
     
     if (m_serverCurrentPlayer == "White") {
         // 白方正在走棋，從白方時間扣除 elapsed
@@ -7359,13 +7350,18 @@ void Qt_Chess::onTimerStateReceived(qint64 timeA, qint64 timeB, const QString& c
     
     m_useServerTimer = true;  // 啟用伺服器計時器模式
     
-    // FIX: 對於第一次收到計時器狀態，將 m_lastServerUpdateTime 設置為稍早的時間
-    // 這確保第一次更新顯示時，elapsed時間為0，避免顯示任何時間扣除
-    if (isFirstTimerState) {
-        m_lastServerUpdateTime = QDateTime::currentMSecsSinceEpoch();  // 設置為當前時間，elapsed將為0
-    } else {
-        m_lastServerUpdateTime = QDateTime::currentMSecsSinceEpoch();  // 正常設置
-    }
+    // FIX: 設置剛收到計時器更新的標誌
+    // 這確保在下一次 updateTimeDisplaysFromServer() 調用時，elapsed為0
+    // 讓玩家能看到完整的時間（包含增量）
+    m_justReceivedTimerUpdate = true;
+    
+    // FIX: 設置當前時間為最後更新時間
+    m_lastServerUpdateTime = QDateTime::currentMSecsSinceEpoch();
+    
+    // 300ms 後清除標誌，允許正常倒數
+    QTimer::singleShot(300, this, [this]() {
+        m_justReceivedTimerUpdate = false;
+    });
     
     // 同步棋盤的當前玩家與伺服器狀態
     // 這對於骰子模式特別重要，確保雙方都知道輪到誰下棋
