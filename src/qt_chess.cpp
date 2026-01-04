@@ -4570,7 +4570,7 @@ void Qt_Chess::handleGameEnd() {
                         }
                     }
                     
-                    // 90度順時針旋轉（恢復270度旋轉）
+                    // 恢復原始佈局：應用90度順時針旋轉以復原先前的270度旋轉
                     for (int oldRow = 0; oldRow < 8; ++oldRow) {
                         for (int oldCol = 0; oldCol < 8; ++oldCol) {
                             int newRow = oldCol;
