@@ -75,7 +75,9 @@ bool NetworkManager::joinRoom(const QString& roomNumber)
     m_playerColor = PieceColor::Black;  // 加入者執黑
     m_opponentColor = PieceColor::White;
     
+#ifndef QT_NO_DEBUG
     qDebug() << "[NetworkManager] Connecting to server:" << m_serverUrl << "to join room:" << roomNumber;
+#endif
     m_webSocket->open(QUrl(m_serverUrl));
     return true;
 }
@@ -385,7 +387,9 @@ void NetworkManager::onConnected()
         message["action"] = "joinRoom";  // 使用伺服器期望的格式
         message["room"] = m_roomNumber;  // 使用 "room" 而不是 "roomNumber"
         sendMessage(message);
+#ifndef QT_NO_DEBUG
         qDebug() << "[NetworkManager] Sent joinRoom request for room:" << m_roomNumber;
+#endif
     }
 }
 
@@ -420,8 +424,13 @@ void NetworkManager::onError(QAbstractSocket::SocketError socketError)
     }
     
     qDebug() << "[NetworkManager] Socket error:" << errorString;
-    emit connectionError(errorString);
+    
+    // 清理狀態以避免不一致
     m_status = ConnectionStatus::Error;
+    m_roomNumber.clear();
+    m_role = NetworkRole::None;
+    
+    emit connectionError(errorString);
 }
 
 void NetworkManager::sendMessage(const QJsonObject& message)

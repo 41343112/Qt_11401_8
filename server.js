@@ -14,6 +14,29 @@ const gameTimers = {}; // gameTimers[roomId] = { timeA, timeB, currentPlayer, la
 // 骰子模式狀態 (Dice Mode State)
 const diceRolls = {}; // diceRolls[roomId] = { currentPlayer, rolls: [{row, col}], movesRemaining }
 
+// 速率限制狀態 (Rate Limiting)
+const rateLimits = new Map(); // ws -> { count, resetTime }
+
+// 速率限制檢查函數
+function checkRateLimit(ws) {
+    const now = Date.now();
+    const limit = rateLimits.get(ws) || { count: 0, resetTime: now + 1000 };
+    
+    if(now > limit.resetTime) {
+        // 重置計數器
+        limit.count = 1;
+        limit.resetTime = now + 1000;
+    } else {
+        limit.count++;
+        if(limit.count > 50) { // 每秒最多 50 條訊息
+            return false;
+        }
+    }
+    
+    rateLimits.set(ws, limit);
+    return true;
+}
+
 // 生成 4 位數字房號
 function generateRoomId() {
     return Math.floor(1000 + Math.random() * 9000).toString();
@@ -61,7 +84,21 @@ function handlePlayerLeaveRoom(ws, roomId) {
 
 wss.on('connection', ws => {
     ws.on('message', message => {
-        const msg = JSON.parse(message);
+        // 速率限制檢查
+        if(!checkRateLimit(ws)) {
+            console.log('[Server] Rate limit exceeded');
+            ws.send(JSON.stringify({ action: "error", message: "訊息發送過快，請稍後再試" }));
+            return;
+        }
+        
+        let msg;
+        try {
+            msg = JSON.parse(message);
+        } catch (error) {
+            console.error('[Server] JSON parse error:', error.message);
+            ws.send(JSON.stringify({ action: "error", message: "無效的訊息格式" }));
+            return;
+        }
 
         // 創建房間
         if(msg.action === "createRoom"){
@@ -77,7 +114,16 @@ wss.on('connection', ws => {
         // 加入房間
         else if(msg.action === "joinRoom"){
             const roomId = msg.room;
+            if(!roomId || typeof roomId !== 'string'){
+                ws.send(JSON.stringify({ action: "error", message: "無效的房間號" }));
+                return;
+            }
             if(rooms[roomId]){
+                // 檢查房間是否已滿（限制2人）
+                if(rooms[roomId].length >= 2){
+                    ws.send(JSON.stringify({ action: "error", message: "房間已滿" }));
+                    return;
+                }
                 rooms[roomId].push(ws);
                 ws.send(JSON.stringify({ action: "joinedRoom", room: roomId }));
                 
@@ -158,22 +204,45 @@ wss.on('connection', ws => {
         // 廣播落子訊息並更新計時器
         else if(msg.action === "move"){
             const roomId = msg.room;
+            
+            // 驗證房間和發送者
+            if(!rooms[roomId] || !rooms[roomId].includes(ws)) {
+                console.log('[Server] ERROR: Invalid room or sender not in room');
+                ws.send(JSON.stringify({ action: "error", message: "無效的房間或未加入該房間" }));
+                return;
+            }
+            
+            // 驗證移動數據的存在性和類型
+            if(typeof msg.fromRow !== 'number' || typeof msg.fromCol !== 'number' ||
+               typeof msg.toRow !== 'number' || typeof msg.toCol !== 'number') {
+                console.log('[Server] ERROR: Invalid move data types');
+                ws.send(JSON.stringify({ action: "error", message: "無效的移動數據格式" }));
+                return;
+            }
+            
+            // 驗證座標範圍（0-7）
+            if(msg.fromRow < 0 || msg.fromRow >= 8 || msg.fromCol < 0 || msg.fromCol >= 8 ||
+               msg.toRow < 0 || msg.toRow >= 8 || msg.toCol < 0 || msg.toCol >= 8) {
+                console.log('[Server] ERROR: Move coordinates out of bounds');
+                ws.send(JSON.stringify({ action: "error", message: "移動座標超出範圍" }));
+                return;
+            }
+            
             console.log('[Server] Move received for room:', roomId, 'from:', msg.fromRow, msg.fromCol, 'to:', msg.toRow, msg.toCol);
             console.log('[Server] gameTimers exists:', !!gameTimers[roomId], 'rooms exists:', !!rooms[roomId]);
             
             if(rooms[roomId] && gameTimers[roomId]){
                 const timer = gameTimers[roomId];
-                const currentTime = Math.floor(Date.now() / 1000);  // UNIX 秒數
+                const currentTime = Date.now();  // 保持毫秒精度
                 
                 // 檢查是否為第一步棋（計時器尚未啟動）
                 const isFirstMove = (timer.lastSwitchTime === null);
                 
-                // 計算經過的時間
+                // 計算經過的時間（毫秒）
                 let elapsedMs = 0;
                 if (!isFirstMove) {
                     // 不是第一步，計算經過的時間
-                    const elapsed = currentTime - timer.lastSwitchTime;
-                    elapsedMs = elapsed * 1000;
+                    elapsedMs = currentTime - timer.lastSwitchTime;
                 }
                 // 如果是第一步，elapsedMs 保持為 0，不扣除時間
                 
@@ -251,8 +320,8 @@ wss.on('connection', ws => {
                 }
                 
                 // 更新最後切換時間（如果是第一步，這裡開始計時）
-                // 加上緩衝時間以補償網路延遲，確保客戶端收到訊息時不會扣錯時間
-                timer.lastSwitchTime = currentTime + 1;  // 加 1 秒緩衝
+                // 使用當前時間，不加緩衝（客戶端會處理網路延遲）
+                timer.lastSwitchTime = currentTime;
                 
                 // 如果骰子模式所有移動完成，檢查是否需要恢復中斷的玩家（在廣播之前）
                 if(diceRolls[roomId] && diceRolls[roomId].movesRemaining <= 0) {
@@ -496,6 +565,8 @@ wss.on('connection', ws => {
         for(const roomId in rooms){
             handlePlayerLeaveRoom(ws, roomId);
         }
+        // 清理速率限制資料
+        rateLimits.delete(ws);
     });
 });
 

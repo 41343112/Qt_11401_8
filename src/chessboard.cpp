@@ -55,10 +55,20 @@ void ChessBoard::initializeBoard() {
 }
 
 const ChessPiece& ChessBoard::getPiece(int row, int col) const {
+    // 邊界檢查以防止陣列越界訪問
+    if (row < 0 || row >= 8 || col < 0 || col >= 8) {
+        static const ChessPiece empty(PieceType::None, PieceColor::None);
+        return empty;
+    }
     return m_board[row][col];
 }
 
 ChessPiece& ChessBoard::getPiece(int row, int col) {
+    // 邊界檢查以防止陣列越界訪問
+    if (row < 0 || row >= 8 || col < 0 || col >= 8) {
+        static ChessPiece empty(PieceType::None, PieceColor::None);
+        return empty;
+    }
     return m_board[row][col];
 }
 
