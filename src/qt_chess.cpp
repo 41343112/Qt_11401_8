@@ -72,6 +72,8 @@ const QString THEME_ACCENT_SECONDARY = "#B8860B";  // 深金色（次要強調�
 const QString THEME_ACCENT_SUCCESS = "#6B4423";    // 深木色（成功色）
 const QString THEME_ACCENT_WARNING = "#CD853F";    // 秘魯褐色（警告色）
 const QString THEME_TEXT_PRIMARY = "#3E2723";      // 深褐色文字
+const QString THEME_TEXT_LIGHT = "#FFFFFF";        // 白色文字（用於深色背景）
+const QString THEME_TEXT_DISABLED = "#505050";     // 灰色文字（禁用狀態）
 const QString THEME_BORDER = "#A0826D";            // 古銅色邊框
 
 // 視窗大小的佈局常數
@@ -9492,16 +9494,9 @@ void Qt_Chess::updateDiceDisplay() {
                     // 使用圖示模式：將圖示縮放到合適大小並設置
                     QPixmap scaledPixmap = piecePixmap.scaled(50, 50, Qt::KeepAspectRatio, Qt::SmoothTransformation);
                     
-                    // 如果需要灰階，對圖片應用灰階效果
+                    // 如果需要灰階，對圖片應用灰階效果（使用更高效的方法）
                     if (isGrayed) {
-                        QImage image = scaledPixmap.toImage();
-                        for (int y = 0; y < image.height(); ++y) {
-                            for (int x = 0; x < image.width(); ++x) {
-                                QColor color = image.pixelColor(x, y);
-                                int gray = qGray(color.rgb());
-                                image.setPixelColor(x, y, QColor(gray, gray, gray, color.alpha()));
-                            }
-                        }
+                        QImage image = scaledPixmap.toImage().convertToFormat(QImage::Format_Grayscale8);
                         scaledPixmap = QPixmap::fromImage(image);
                     }
                     
@@ -9521,27 +9516,27 @@ void Qt_Chess::updateDiceDisplay() {
                         "QLabel { "
                         "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1, "
                         "    stop:0 rgba(180, 180, 180, 0.8), stop:1 rgba(140, 140, 140, 0.9)); "
-                        "  color: #505050; "
+                        "  color: %1; "
                         "  border: 3px solid #909090; "
                         "  border-radius: 10px; "
                         "  padding: 8px; "
                         "  font-size: 16pt; "
                         "  font-weight: bold; "
                         "}"
-                    ));
+                    ).arg(THEME_TEXT_DISABLED));
                 } else {
                     label->setStyleSheet(QString(
                         "QLabel { "
                         "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1, "
                         "    stop:0 rgba(100, 200, 255, 0.9), stop:1 rgba(60, 160, 240, 0.95)); "
-                        "  color: #FFFFFF; "
-                        "  border: 3px solid %1; "
+                        "  color: %1; "
+                        "  border: 3px solid %2; "
                         "  border-radius: 10px; "
                         "  padding: 8px; "
                         "  font-size: 16pt; "
                         "  font-weight: bold; "
                         "}"
-                    ).arg(THEME_ACCENT_PRIMARY));
+                    ).arg(THEME_TEXT_LIGHT, THEME_ACCENT_PRIMARY));
                 }
             } else {
                 label->setText("--");
