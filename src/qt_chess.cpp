@@ -4274,15 +4274,20 @@ void Qt_Chess::updateTimeDisplaysFromServer() {
     // We only count time elapsed since we received the update, not since the server processed the move.
     // 計算距離最後更新經過的時間（不包含網路延遲）
     qint64 elapsedMs = 0;
-    if (m_lastServerUpdateTime > 0 && !m_justReceivedTimerUpdate) {
+    
+    // FIX: 檢查三個條件：
+    // 1. m_serverLastSwitchTime > 0: 伺服器已經開始計時（第一步已下）
+    // 2. m_lastServerUpdateTime > 0: 我們已經收到過更新
+    // 3. !m_justReceivedTimerUpdate: 不在剛收到更新的300ms凍結期內
+    if (m_serverLastSwitchTime > 0 && m_lastServerUpdateTime > 0 && !m_justReceivedTimerUpdate) {
         elapsedMs = currentUnixTimeMs - m_lastServerUpdateTime;
         // 處理異常：如果elapsed為負數，設為0
         if (elapsedMs < 0) {
             elapsedMs = 0;
         }
     }
-    // FIX: 如果剛收到計時器更新（例如剛下完棋），elapsed設為0
-    // 這確保玩家能看到完整的時間（包含增量），而不是立即開始倒數
+    // 如果 m_serverLastSwitchTime == 0，表示第一步還沒下，不應該有elapsed
+    // 如果 m_justReceivedTimerUpdate == true，表示剛收到更新，elapsed設為0以顯示增量
     
     // 確定我是玩家 A (房主) 還是玩家 B (房客)
     bool isPlayerA = (m_networkManager->getRole() == NetworkRole::Host);
@@ -7358,8 +7363,9 @@ void Qt_Chess::onTimerStateReceived(qint64 timeA, qint64 timeB, const QString& c
     // FIX: 設置當前時間為最後更新時間
     m_lastServerUpdateTime = QDateTime::currentMSecsSinceEpoch();
     
-    // 300ms 後清除標誌，允許正常倒數
-    QTimer::singleShot(300, this, [this]() {
+    // 100ms 後清除標誌，允許正常倒數
+    // 100ms足夠讓玩家看到增量，但不會造成明顯的卡頓
+    QTimer::singleShot(100, this, [this]() {
         m_justReceivedTimerUpdate = false;
     });
     
