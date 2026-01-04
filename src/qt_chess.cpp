@@ -4342,20 +4342,17 @@ void Qt_Chess::updateTimeDisplaysFromServer() {
     blackTime = qMax(static_cast<qint64>(0), blackTime);
     
     // 防止時間跳躍：只允許時間遞減，不允許時間回跳
-    // 例外：如果elapsed很小（<200ms），表示剛收到伺服器更新，允許時間回跳以校正
-    // 這修正了從本地計時器切換到伺服器計時器時的時間差異
+    // 在線上模式下，由於不再使用本地計時器倒數，應該不會出現時間跳躍
+    // 但保留此邏輯作為安全措施
     int newWhiteTime = static_cast<int>(whiteTime);
     int newBlackTime = static_cast<int>(blackTime);
     
-    // 如果剛收到更新（elapsed < 200ms），直接使用伺服器時間
-    // 否則只允許時間遞減（防止時間回跳）
-    bool justReceivedUpdate = (elapsedMs < 200);
-    
-    if (justReceivedUpdate || newWhiteTime <= m_whiteTimeMs) {
+    // 只允許時間遞減或相等（防止時間回跳）
+    if (newWhiteTime <= m_whiteTimeMs) {
         m_whiteTimeMs = newWhiteTime;
     }
     
-    if (justReceivedUpdate || newBlackTime <= m_blackTimeMs) {
+    if (newBlackTime <= m_blackTimeMs) {
         m_blackTimeMs = newBlackTime;
     }
     
@@ -4446,74 +4443,33 @@ void Qt_Chess::onGameTimerTick() {
         return;
     }
 
-    // 在線上模式中，使用伺服器同步的時間計算
-    // 這確保兩位玩家看到相同的經過時間，即使他們的本地時鐘不同步
-    if (m_isOnlineGame && m_gameStartLocalTime > 0) {
-        // 獲取當前同步時間（使用伺服器時間偏移）
-        qint64 currentSyncTime = QDateTime::currentMSecsSinceEpoch() + m_serverTimeOffset;
-        qint64 gameStartSyncTime = m_gameStartLocalTime + m_serverTimeOffset;
-        
-        // 如果這是當前回合的第一個 tick，記錄回合開始時間
-        if (m_currentTurnStartTime == 0) {
-            m_currentTurnStartTime = currentSyncTime;
-        }
-        
-        // 計算當前玩家在這個回合已用的時間
-        qint64 turnElapsedMs = currentSyncTime - m_currentTurnStartTime;
-        
-        // 更新當前玩家的剩餘時間
-        PieceColor currentPlayer = m_isReplayMode ? m_savedCurrentPlayer : m_chessBoard.getCurrentPlayer();
-        if (currentPlayer == PieceColor::White) {
-            if (m_whiteTimeMs > 0 && m_whiteInitialTimeMs > 0) {  // 檢查初始時間也 > 0（非無限制）
-                // 基於實際經過時間更新，而不是固定減少100ms
-                int newWhiteTime = m_whiteInitialTimeMs - static_cast<int>(turnElapsedMs);
-                
-                // 防止時間跳躍（如果計算出的時間比當前剩餘時間多，保持當前時間）
-                if (newWhiteTime < m_whiteTimeMs) {
-                    m_whiteTimeMs = newWhiteTime;
-                }
-                
-                if (m_whiteTimeMs <= 0) {
-                    m_whiteTimeMs = 0;
-                    handleTimeout(PieceColor::White);
-                    return;
-                }
-            }
-        } else {
-            if (m_blackTimeMs > 0 && m_blackInitialTimeMs > 0) {  // 檢查初始時間也 > 0（非無限制）
-                int newBlackTime = m_blackInitialTimeMs - static_cast<int>(turnElapsedMs);
-                
-                if (newBlackTime < m_blackTimeMs) {
-                    m_blackTimeMs = newBlackTime;
-                }
-                
-                if (m_blackTimeMs <= 0) {
-                    m_blackTimeMs = 0;
-                    handleTimeout(PieceColor::Black);
-                    return;
-                }
+    // 在線上模式中，如果還沒收到伺服器計時器狀態，不要倒數
+    // 等待第一次伺服器更新後才開始使用伺服器計時器
+    if (m_isOnlineGame && !m_useServerTimer) {
+        // 只更新顯示，不修改時間值
+        updateTimeDisplays();
+        return;
+    }
+
+    // 以下為離線模式的計時器邏輯
+    // 非線上模式：使用原本的遞減邏輯
+    PieceColor currentPlayer = m_isReplayMode ? m_savedCurrentPlayer : m_chessBoard.getCurrentPlayer();
+    if (currentPlayer == PieceColor::White) {
+        if (m_whiteTimeMs > 0) {
+            m_whiteTimeMs -= 100;
+            if (m_whiteTimeMs <= 0) {
+                m_whiteTimeMs = 0;
+                handleTimeout(PieceColor::White);
+                return;
             }
         }
     } else {
-        // 非線上模式：使用原本的遞減邏輯
-        PieceColor currentPlayer = m_isReplayMode ? m_savedCurrentPlayer : m_chessBoard.getCurrentPlayer();
-        if (currentPlayer == PieceColor::White) {
-            if (m_whiteTimeMs > 0) {
-                m_whiteTimeMs -= 100;
-                if (m_whiteTimeMs <= 0) {
-                    m_whiteTimeMs = 0;
-                    handleTimeout(PieceColor::White);
-                    return;
-                }
-            }
-        } else {
-            if (m_blackTimeMs > 0) {
-                m_blackTimeMs -= 100;
-                if (m_blackTimeMs <= 0) {
-                    m_blackTimeMs = 0;
-                    handleTimeout(PieceColor::Black);
-                    return;
-                }
+        if (m_blackTimeMs > 0) {
+            m_blackTimeMs -= 100;
+            if (m_blackTimeMs <= 0) {
+                m_blackTimeMs = 0;
+                handleTimeout(PieceColor::Black);
+                return;
             }
         }
     }
