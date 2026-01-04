@@ -4298,12 +4298,12 @@ void Qt_Chess::updateTimeDisplaysFromServer() {
         stopTimer();
         m_timerStarted = false;
         showTimeControlAfterTimeout();
-        QMessageBox::information(this, "時間到", "白方超時！黑方獲勝！");
+        showNonBlockingInfo("時間到", "白方超時！黑方獲勝！");
     } else if (m_blackTimeMs <= 0 && m_timeControlEnabled && m_blackInitialTimeMs > 0) {
         stopTimer();
         m_timerStarted = false;
         showTimeControlAfterTimeout();
-        QMessageBox::information(this, "時間到", "黑方超時！白方獲勝！");
+        showNonBlockingInfo("時間到", "黑方超時！白方獲勝！");
     }
 }
 
@@ -4416,7 +4416,7 @@ void Qt_Chess::onGameTimerTick() {
                     stopTimer();
                     m_timerStarted = false;
                     showTimeControlAfterTimeout();
-                    QMessageBox::information(this, "時間到", "白方超時！黑方獲勝！");
+                    showNonBlockingInfo("時間到", "白方超時！黑方獲勝！");
                     return;
                 }
             }
@@ -4434,7 +4434,7 @@ void Qt_Chess::onGameTimerTick() {
                     stopTimer();
                     m_timerStarted = false;
                     showTimeControlAfterTimeout();
-                    QMessageBox::information(this, "時間到", "黑方超時！白方獲勝！");
+                    showNonBlockingInfo("時間到", "黑方超時！白方獲勝！");
                     return;
                 }
             }
@@ -4451,7 +4451,7 @@ void Qt_Chess::onGameTimerTick() {
                     stopTimer();
                     m_timerStarted = false;
                     showTimeControlAfterTimeout();
-                    QMessageBox::information(this, "時間到", "白方超時！黑方獲勝！");
+                    showNonBlockingInfo("時間到", "白方超時！黑方獲勝！");
                     return;
                 }
             }
@@ -4464,7 +4464,7 @@ void Qt_Chess::onGameTimerTick() {
                     stopTimer();
                     m_timerStarted = false;
                     showTimeControlAfterTimeout();
-                    QMessageBox::information(this, "時間到", "黑方超時！白方獲勝！");
+                    showNonBlockingInfo("時間到", "黑方超時！白方獲勝！");
                     return;
                 }
             }
