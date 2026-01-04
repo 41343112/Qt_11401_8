@@ -288,11 +288,20 @@ wss.on('connection', ws => {
                 }
                 
                 if(playerWhoJustMoved === "White"){
-                    // 白方剛走棋，從白方時間扣除
+                    // 白方剛走棋
                     const whiteTime = timer.whiteIsA ? timer.timeA : timer.timeB;
-                    // 只在非第一步時添加增量
-                    const increment = isFirstMove ? 0 : timer.incrementMs;
-                    const newWhiteTime = Math.max(0, whiteTime - elapsedMs) + increment;
+                    
+                    let newWhiteTime;
+                    if (isFirstMove) {
+                        // 第一步不扣時間，不加增量
+                        newWhiteTime = whiteTime;
+                        console.log('[Server] First move by White - no time deducted. Time remains:', newWhiteTime);
+                    } else {
+                        // 非第一步：扣除經過時間，添加增量
+                        const increment = timer.incrementMs;
+                        newWhiteTime = Math.max(0, whiteTime - elapsedMs) + increment;
+                        console.log('[Server] White move - elapsed:', elapsedMs, 'increment:', increment, 'old:', whiteTime, 'new:', newWhiteTime);
+                    }
                     
                     if(timer.whiteIsA){
                         timer.timeA = newWhiteTime;
@@ -305,11 +314,20 @@ wss.on('connection', ws => {
                         timer.currentPlayer = "Black";
                     }
                 } else {
-                    // 黑方剛走棋，從黑方時間扣除
+                    // 黑方剛走棋
                     const blackTime = timer.whiteIsA ? timer.timeB : timer.timeA;
-                    // 只在非第一步時添加增量
-                    const increment = isFirstMove ? 0 : timer.incrementMs;
-                    const newBlackTime = Math.max(0, blackTime - elapsedMs) + increment;
+                    
+                    let newBlackTime;
+                    if (isFirstMove) {
+                        // 第一步不扣時間，不加增量
+                        newBlackTime = blackTime;
+                        console.log('[Server] First move by Black - no time deducted. Time remains:', newBlackTime);
+                    } else {
+                        // 非第一步：扣除經過時間，添加增量
+                        const increment = timer.incrementMs;
+                        newBlackTime = Math.max(0, blackTime - elapsedMs) + increment;
+                        console.log('[Server] Black move - elapsed:', elapsedMs, 'increment:', increment, 'old:', blackTime, 'new:', newBlackTime);
+                    }
                     
                     if(timer.whiteIsA){
                         timer.timeB = newBlackTime;
