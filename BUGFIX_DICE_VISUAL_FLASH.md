@@ -153,7 +153,7 @@ updateTimeDisplays();
 
 // 在骰子模式下，延遲 updateStatus() 直到骰子邏輯確定最終玩家狀態
 if (!m_diceModeEnabled || !m_isOnlineGame) {
-    updateStatus();  // Only call if NOT in dice mode
+    updateStatus();  // Only call if NOT in dice mode OR not online game
 }
 
 // Dice mode logic...
