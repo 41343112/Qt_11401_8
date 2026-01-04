@@ -2633,7 +2633,10 @@ void Qt_Chess::onSquareClicked(int displayRow, int displayCol) {
             updateTimeDisplays();
 
             // 在骰子模式下，延遲 updateStatus() 直到骰子邏輯確定最終玩家狀態
-            // 這避免了骰子和計時器的閃爍
+            // 原因：movePiece() 會自動切換玩家，但在骰子模式下，如果還有剩餘移動次數，
+            // 玩家會被切換回來。如果我們在這裡立即調用 updateStatus()，UI 會短暫顯示
+            // 對手的回合，然後再切換回來，造成閃爍。因此，我們延遲到骰子邏輯完成後再更新。
+            // 非骰子模式或本地遊戲則立即更新（保持原有行為）。
             if (!m_diceModeEnabled || !m_isOnlineGame) {
                 updateStatus();
             }
@@ -3879,7 +3882,10 @@ void Qt_Chess::mouseReleaseEvent(QMouseEvent *event) {
                 updateTimeDisplays();
 
                 // 在骰子模式下，延遲 updateStatus() 直到骰子邏輯確定最終玩家狀態
-                // 這避免了骰子和計時器的閃爍
+                // 原因：movePiece() 會自動切換玩家，但在骰子模式下，如果還有剩餘移動次數，
+                // 玩家會被切換回來。如果我們在這裡立即調用 updateStatus()，UI 會短暫顯示
+                // 對手的回合，然後再切換回來，造成閃爍。因此，我們延遲到骰子邏輯完成後再更新。
+                // 非骰子模式或本地遊戲則立即更新（保持原有行為）。
                 if (!m_diceModeEnabled || !m_isOnlineGame) {
                     updateStatus();
                 }
