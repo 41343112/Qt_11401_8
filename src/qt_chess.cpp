@@ -7145,14 +7145,14 @@ void Qt_Chess::onStartGameReceived(int whiteTimeMs, int blackTimeMs, int increme
         
         // 顯示玩家顏色指示器（地吸引力模式）
         if (m_playerColorLabel) {
-            // 確定當前玩家的顏色
+            // 確定當前玩家的顏色（預設白方，僅在無網路管理器時使用）
             PieceColor playerColor = PieceColor::White;
             
             if (m_networkManager) {
                 bool isHost = (m_networkManager->getRole() == NetworkRole::Host);
+                PieceColor guestColor = (hostColor == PieceColor::White) ? PieceColor::Black : PieceColor::White;
                 // 房主使用房主選擇的顏色，房客使用相反顏色
-                playerColor = isHost ? hostColor 
-                                    : (hostColor == PieceColor::White ? PieceColor::Black : PieceColor::White);
+                playerColor = isHost ? hostColor : guestColor;
             }
             
             // 設定標籤文字
@@ -7160,8 +7160,8 @@ void Qt_Chess::onStartGameReceived(int whiteTimeMs, int blackTimeMs, int increme
             m_playerColorLabel->setText(colorText);
             m_playerColorLabel->show();
             
-            qDebug() << "[Qt_Chess::onStartGameReceived] Showing player color indicator:" 
-                     << (playerColor == PieceColor::White ? "White" : "Black");
+            QString colorName = (playerColor == PieceColor::White) ? "白方" : "黑方";
+            qDebug() << "[Qt_Chess::onStartGameReceived] 顯示玩家顏色指示器:" << colorName;
         }
     } else {
         // 如果沒有啟用地吸引力模式，隱藏玩家顏色指示器
