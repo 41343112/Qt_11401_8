@@ -4702,13 +4702,13 @@ void Qt_Chess::handleGameEnd() {
     moveWidgetsForGameEnd();
 
     // 顯示匯出 PGN 按鈕和複製棋譜按鈕（僅在一般模式或僅霧戰模式時）
-    // 檢查是否應該顯示棋譜記錄
+    // 檢查是否應該顯示棋譜記錄功能
     bool hasBombMode = m_selectedGameModes.contains(GAME_MODE_BOMB) && m_selectedGameModes[GAME_MODE_BOMB];
     bool hasOtherSpecialModes = m_gravityModeEnabled || m_teleportModeEnabled || 
                                  m_diceModeEnabled || hasBombMode;
-    bool shouldShowMoveRecord = !hasOtherSpecialModes;
+    bool shouldShowPGNFeatures = !hasOtherSpecialModes;
     
-    if (shouldShowMoveRecord) {
+    if (shouldShowPGNFeatures) {
         // 一般模式或僅霧戰模式：顯示 PGN 按鈕
         if (m_exportPGNButton) {
             m_exportPGNButton->show();
@@ -7048,16 +7048,16 @@ void Qt_Chess::onStartGameReceived(int whiteTimeMs, int blackTimeMs, int increme
         }
     }
     
-    // 檢查是否應該顯示棋譜記錄
+    // 檢查是否應該顯示棋譜記錄功能
     // 只有一般模式（無特殊模式）或僅霧戰模式時才顯示棋譜記錄
     bool hasBombMode = m_selectedGameModes.contains(GAME_MODE_BOMB) && m_selectedGameModes[GAME_MODE_BOMB];
     bool hasOtherSpecialModes = m_gravityModeEnabled || m_teleportModeEnabled || 
                                  m_diceModeEnabled || hasBombMode;
     
     // 顯示棋譜的條件：一般模式（無特殊模式）或僅啟用霧戰模式
-    bool shouldShowMoveRecord = !hasOtherSpecialModes;
+    bool shouldShowPGNFeatures = !hasOtherSpecialModes;
     
-    if (shouldShowMoveRecord) {
+    if (shouldShowPGNFeatures) {
         // 顯示棋譜相關元件（一般模式或僅霧戰模式）
         if (m_moveListTitle) m_moveListTitle->show();
         if (m_moveListWidget) m_moveListWidget->show();
