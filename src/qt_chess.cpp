@@ -4554,6 +4554,23 @@ void Qt_Chess::handleGameEnd() {
         // 恢復棋盤UI到正常佈局（無論房主或房客都使用相同的恢復邏輯）
         rotateBoardDisplay(false);
         
+        // 恢復m_squares映射到原始狀態（未旋轉的映射）
+        // rotateBoardDisplay(false)已經將按鈕放回原始網格位置
+        // 現在需要重建m_squares使其按原始順序映射
+        std::vector<std::vector<QPushButton*>> restoredSquares(8, std::vector<QPushButton*>(8));
+        QGridLayout* gridLayout = qobject_cast<QGridLayout*>(m_boardWidget->layout());
+        if (gridLayout) {
+            for (int row = 0; row < 8; ++row) {
+                for (int col = 0; col < 8; ++col) {
+                    QLayoutItem* item = gridLayout->itemAtPosition(row, col);
+                    if (item && item->widget()) {
+                        restoredSquares[row][col] = qobject_cast<QPushButton*>(item->widget());
+                    }
+                }
+            }
+            m_squares = restoredSquares;
+        }
+        
         // 更新棋盤顯示
         updateBoard();
     }
@@ -6929,14 +6946,32 @@ void Qt_Chess::onStartGameReceived(int whiteTimeMs, int blackTimeMs, int increme
                         }
                     }
                     
-                    // 270度順時針旋轉
+                    // 270度順時針旋轉並更新m_squares映射
+                    // 旋轉後，邏輯位置(logRow, logCol)對應的按鈕需要重新映射
                     for (int oldRow = 0; oldRow < 8; ++oldRow) {
                         for (int oldCol = 0; oldCol < 8; ++oldCol) {
                             int newRow = 7 - oldCol;
                             int newCol = oldRow;
+                            // 將按鈕添加到旋轉後的網格位置
                             gridLayout->addWidget(tempSquares[oldRow][oldCol], newRow, newCol);
                         }
                     }
+                    
+                    // 重新映射m_squares：邏輯坐標(logRow, logCol)應該指向旋轉後對應的按鈕
+                    // 270度旋轉的逆變換：oldRow = newCol, oldCol = 7 - newRow
+                    std::vector<std::vector<QPushButton*>> remappedSquares(8, std::vector<QPushButton*>(8));
+                    for (int logRow = 0; logRow < 8; ++logRow) {
+                        for (int logCol = 0; logCol < 8; ++logCol) {
+                            // 找到這個邏輯位置在旋轉前對應的按鈕
+                            // 邏輯位置(logRow, logCol) 旋轉後應該顯示原始(oldRow, oldCol)的按鈕
+                            // 其中 newRow = 7 - oldCol, newCol = oldRow, 且 newRow = logRow, newCol = logCol
+                            // 因此 oldRow = logCol, oldCol = 7 - logRow
+                            int oldRow = logCol;
+                            int oldCol = 7 - logRow;
+                            remappedSquares[logRow][logCol] = tempSquares[oldRow][oldCol];
+                        }
+                    }
+                    m_squares = remappedSquares;
                     
                     gridLayout->update();
                     m_boardWidget->update();
@@ -6945,6 +6980,29 @@ void Qt_Chess::onStartGameReceived(int whiteTimeMs, int blackTimeMs, int increme
         } else {
             // 房主：標準90度旋轉
             rotateBoardDisplay(true);
+            
+            // 更新m_squares映射以匹配90度旋轉
+            // 90度旋轉：newRow = oldCol, newCol = 7 - oldRow
+            // 逆變換：oldRow = 7 - newCol, oldCol = newRow
+            std::vector<std::vector<QPushButton*>> tempSquares(8, std::vector<QPushButton*>(8));
+            for (int row = 0; row < 8; ++row) {
+                for (int col = 0; col < 8; ++col) {
+                    tempSquares[row][col] = m_squares[row][col];
+                }
+            }
+            
+            std::vector<std::vector<QPushButton*>> remappedSquares(8, std::vector<QPushButton*>(8));
+            for (int logRow = 0; logRow < 8; ++logRow) {
+                for (int logCol = 0; logCol < 8; ++logCol) {
+                    // 邏輯位置(logRow, logCol) 旋轉後應該顯示原始(oldRow, oldCol)的按鈕
+                    // newRow = oldCol, newCol = 7 - oldRow, 且 newRow = logRow, newCol = logCol
+                    // 因此 oldRow = 7 - logCol, oldCol = logRow
+                    int oldRow = 7 - logCol;
+                    int oldCol = logRow;
+                    remappedSquares[logRow][logCol] = tempSquares[oldRow][oldCol];
+                }
+            }
+            m_squares = remappedSquares;
         }
     }
     
