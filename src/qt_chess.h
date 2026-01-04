@@ -201,6 +201,7 @@ private:
     // 棋譜系統 (Move History System)
     // ========================================
     QLabel* m_moveListTitle;
+    QLabel* m_playerColorLabel;          // 玩家顏色指示器（地吸引力模式）
     QListWidget* m_moveListWidget;
     QPushButton* m_exportPGNButton;
     QPushButton* m_copyPGNButton;

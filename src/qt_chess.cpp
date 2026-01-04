@@ -210,6 +210,7 @@ Qt_Chess::Qt_Chess(QWidget *parent)
     , m_contentLayout(nullptr)
     , m_rightStretchIndex(-1)
     , m_moveListTitle(nullptr)
+    , m_playerColorLabel(nullptr)
     , m_moveListWidget(nullptr)
     , m_exportPGNButton(nullptr)
     , m_copyPGNButton(nullptr)
@@ -413,6 +414,26 @@ void Qt_Chess::setupUI() {
         "}"
     ).arg(THEME_TEXT_PRIMARY, THEME_BG_PANEL, THEME_BORDER));
     moveListLayout->addWidget(m_moveListTitle);
+
+    // 玩家顏色指示器 - 在地吸引力模式時顯示
+    m_playerColorLabel = new QLabel("", m_moveListPanel);
+    m_playerColorLabel->setAlignment(Qt::AlignCenter);
+    QFont colorFont;
+    colorFont.setPointSize(11);
+    colorFont.setBold(true);
+    m_playerColorLabel->setFont(colorFont);
+    m_playerColorLabel->setStyleSheet(QString(
+        "QLabel { "
+        "  color: %1; "
+        "  padding: 6px; "
+        "  background-color: %2; "
+        "  border: 1px solid %3; "
+        "  border-radius: 4px; "
+        "  margin: 5px 0px; "
+        "}"
+    ).arg(THEME_ACCENT_PRIMARY, THEME_BG_PANEL, THEME_BORDER));
+    m_playerColorLabel->hide();  // 初始隱藏
+    moveListLayout->addWidget(m_playerColorLabel);
 
     m_moveListWidget = new QListWidget(m_moveListPanel);
     m_moveListWidget->setAlternatingRowColors(true);
@@ -1845,6 +1866,11 @@ void Qt_Chess::resetGameState() {
         m_copyPGNButton->hide();
     }
     
+    // 隱藏玩家顏色指示器
+    if (m_playerColorLabel) {
+        m_playerColorLabel->hide();
+    }
+    
     // 隱藏右側時間面板
     if (m_rightTimePanel) {
         m_rightTimePanel->hide();
@@ -2815,6 +2841,9 @@ void Qt_Chess::onNewGameClicked() {
     // 隱藏匯出 PGN 按鈕和複製棋譜按鈕
     if (m_exportPGNButton) m_exportPGNButton->hide();
     if (m_copyPGNButton) m_copyPGNButton->hide();
+    
+    // 隱藏玩家顏色指示器
+    if (m_playerColorLabel) m_playerColorLabel->hide();
 
     // 清空棋譜列表
     if (m_moveListWidget) m_moveListWidget->clear();
@@ -7112,6 +7141,38 @@ void Qt_Chess::onStartGameReceived(int whiteTimeMs, int blackTimeMs, int increme
         } else {
             // 房主：標準90度旋轉
             rotateBoardDisplay(true);
+        }
+        
+        // 顯示玩家顏色指示器（地吸引力模式）
+        if (m_playerColorLabel) {
+            // 確定當前玩家的顏色
+            PieceColor playerColor = PieceColor::White;  // 預設白方
+            
+            if (m_networkManager) {
+                if (m_networkManager->getRole() == NetworkRole::Host) {
+                    // 房主使用房主選擇的顏色
+                    playerColor = hostColor;
+                } else {
+                    // 房客使用與房主相反的顏色
+                    playerColor = (hostColor == PieceColor::White) ? PieceColor::Black : PieceColor::White;
+                }
+            }
+            
+            // 設定標籤文字
+            if (playerColor == PieceColor::White) {
+                m_playerColorLabel->setText("♔ 玩家：白方");
+            } else {
+                m_playerColorLabel->setText("♚ 玩家：黑方");
+            }
+            
+            m_playerColorLabel->show();
+            qDebug() << "[Qt_Chess::onStartGameReceived] Showing player color indicator:" 
+                     << (playerColor == PieceColor::White ? "White" : "Black");
+        }
+    } else {
+        // 如果沒有啟用地吸引力模式，隱藏玩家顏色指示器
+        if (m_playerColorLabel) {
+            m_playerColorLabel->hide();
         }
     }
     
