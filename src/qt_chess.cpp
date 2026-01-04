@@ -2567,7 +2567,7 @@ void Qt_Chess::onSquareClicked(int displayRow, int displayCol) {
             // 第一步棋也需要調用此函數以重置對手的回合計時器
             if (isFirstMove) {
                 // 第一步棋不添加增量，但需要重置回合計時器
-                // 在線上模式下，時間由伺服器控制，不需要本地處理
+                // 在線上模式下，只有非伺服器計時器時才需要本地處理
                 if (m_isOnlineGame && m_gameStartLocalTime > 0 && !m_useServerTimer) {
                     m_currentTurnStartTime = QDateTime::currentMSecsSinceEpoch() + m_serverTimeOffset;
                     // 更新對手的初始時間（用於計算經過時間）
@@ -4746,15 +4746,15 @@ void Qt_Chess::handleTimeout(PieceColor timeoutPlayer) {
         return;
     }
     
-    // Set the appropriate game result
+    // Show notification before ending game to ensure it displays properly
     if (timeoutPlayer == PieceColor::White) {
+        showNonBlockingInfo("時間到", "白方超時！黑方獲勝！");
         m_chessBoard.setGameResult(GameResult::WhiteTimeout);
         handleGameEnd();
-        showNonBlockingInfo("時間到", "白方超時！黑方獲勝！");
     } else {
+        showNonBlockingInfo("時間到", "黑方超時！白方獲勝！");
         m_chessBoard.setGameResult(GameResult::BlackTimeout);
         handleGameEnd();
-        showNonBlockingInfo("時間到", "黑方超時！白方獲勝！");
     }
 }
 
@@ -7355,21 +7355,11 @@ void Qt_Chess::onTimerStateReceived(qint64 timeA, qint64 timeB, const QString& c
     m_serverTimeB = timeB;
     m_serverCurrentPlayer = currentPlayer;
     
-    // Use server's lastSwitchTime directly without adjustment
-    // FIX: Previously, we adjusted lastSwitchTime to local time to "compensate for network delay".
-    // However, this caused time desynchronization between clients because:
-    // 1. Each client receives the message at different times (different network latency)
-    // 2. Each client would set lastSwitchTime to their own local time
-    // 3. When calculating elapsed time (currentTime - lastSwitchTime), different clients
-    //    would get different results, causing visible time differences
-    // 
-    // Correct approach: Use server's lastSwitchTime as the common reference point.
-    // Network latency is naturally included when calculating elapsed = currentLocalTime - serverLastSwitchTime
-    // Both clients calculate from the same reference, so they show the same time.
-    //
-    // 直接使用伺服器的 lastSwitchTime，不調整
-    // 客戶端在計算 elapsed 時會使用當前時間減去 lastSwitchTime
-    // 這樣可以正確計算經過的時間，包括網路延遲
+    // Use server's lastSwitchTime directly without adjustment (Time Sync Bug Fix)
+    // Adjusting to local time caused desynchronization between clients due to different network latencies.
+    // Using server time as common reference ensures both clients calculate same elapsed time.
+    // See TIMER_BUG_FIXES.md for detailed explanation.
+    // 直接使用伺服器的 lastSwitchTime，不調整（時間同步錯誤修復）
     m_serverLastSwitchTime = lastSwitchTime;
     
     m_useServerTimer = true;  // 啟用伺服器計時器模式
