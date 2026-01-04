@@ -8856,6 +8856,16 @@ void Qt_Chess::calculateVisibleSquares(PieceColor playerColor) {
 }
 
 void Qt_Chess::updateVisibleSquares() {
+    // 如果遊戲已結束，顯示所有方格（不顯示霧）
+    if (m_chessBoard.getGameResult() != GameResult::InProgress) {
+        for (int row = 0; row < 8; ++row) {
+            for (int col = 0; col < 8; ++col) {
+                m_visibleSquares[row][col] = true;
+            }
+        }
+        return;
+    }
+    
     if (!m_fogOfWarEnabled || !m_isOnlineGame) {
         // 如果霧戰模式未啟用或不是線上遊戲，所有方格都可見
         for (int row = 0; row < 8; ++row) {
