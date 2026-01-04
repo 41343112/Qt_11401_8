@@ -4339,16 +4339,20 @@ void Qt_Chess::updateTimeDisplaysFromServer() {
     blackTime = qMax(static_cast<qint64>(0), blackTime);
     
     // 防止時間跳躍：只允許時間遞減，不允許時間回跳
-    // 當雙方顯示都歸0時，由伺服器（裁判）判斷超時
+    // 例外：如果elapsed很小（<200ms），表示剛收到伺服器更新，允許時間回跳以校正
+    // 這修正了從本地計時器切換到伺服器計時器時的時間差異
     int newWhiteTime = static_cast<int>(whiteTime);
     int newBlackTime = static_cast<int>(blackTime);
     
-    // 只在時間減少或相等時更新，完全防止時間增加（回跳）
-    if (newWhiteTime <= m_whiteTimeMs) {
+    // 如果剛收到更新（elapsed < 200ms），直接使用伺服器時間
+    // 否則只允許時間遞減（防止時間回跳）
+    bool justReceivedUpdate = (elapsedMs < 200);
+    
+    if (justReceivedUpdate || newWhiteTime <= m_whiteTimeMs) {
         m_whiteTimeMs = newWhiteTime;
     }
     
-    if (newBlackTime <= m_blackTimeMs) {
+    if (justReceivedUpdate || newBlackTime <= m_blackTimeMs) {
         m_blackTimeMs = newBlackTime;
     }
     
