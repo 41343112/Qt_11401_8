@@ -6550,6 +6550,14 @@ void Qt_Chess::onOpponentMove(const QPoint& from, const QPoint& to, PieceType pr
     qDebug() << "[Qt_Chess::onOpponentMove] Received opponent move: from" << from << "to" << to
              << "| FinalPosition:" << finalPosition;
     
+    // 檢查是否為自己剛才發送的移動（伺服器會廣播給所有客戶端，包括發送者）
+    // 如果是自己的移動，我們已經在本地處理過（包括應用重力），應該跳過避免重複處理
+    bool isOwnMove = (from == m_lastMoveFrom && to == m_lastMoveTo);
+    if (isOwnMove) {
+        qDebug() << "[Qt_Chess::onOpponentMove] Detected own move being echoed back, skipping processing to avoid double gravity application";
+        return;
+    }
+    
     // 骰子模式：在移動前記錄對手移動的棋子類型
     PieceType opponentMovedPieceType = PieceType::None;
     if (m_diceModeEnabled && m_isOnlineGame) {
