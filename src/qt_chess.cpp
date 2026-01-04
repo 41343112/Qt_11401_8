@@ -4564,7 +4564,10 @@ void Qt_Chess::handleGameEnd() {
                 for (int col = 0; col < 8; ++col) {
                     QLayoutItem* item = gridLayout->itemAtPosition(row, col);
                     if (item && item->widget()) {
-                        restoredSquares[row][col] = qobject_cast<QPushButton*>(item->widget());
+                        QPushButton* button = qobject_cast<QPushButton*>(item->widget());
+                        if (button) {
+                            restoredSquares[row][col] = button;
+                        }
                     }
                 }
             }
