@@ -13,7 +13,9 @@ enum class GameResult {
     BlackWins,       // 黑方獲勝
     Draw,            // 和局
     WhiteResigns,    // 白方認輸
-    BlackResigns     // 黑方認輸
+    BlackResigns,    // 黑方認輸
+    WhiteTimeout,    // 白方超時
+    BlackTimeout     // 黑方超時
 };
 
 struct MoveRecord {
