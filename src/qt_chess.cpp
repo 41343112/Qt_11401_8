@@ -4546,6 +4546,52 @@ void Qt_Chess::handleGameEnd() {
     // 停止背景音樂（遊戲已結束）
     stopBackgroundMusic();
 
+    // 如果啟用地吸引力模式，恢復棋盤原狀
+    if (m_gravityModeEnabled) {
+        // 重置棋盤到初始狀態
+        m_chessBoard.initializeBoard();
+        
+        // 恢復棋盤UI旋轉到正常方向
+        // 檢查是否為房客（連接端）需要恢復270度旋轉
+        bool isGuest = m_networkManager && m_networkManager->getRole() == NetworkRole::Guest;
+        
+        if (isGuest) {
+            // 房客需要恢復270度旋轉（反向旋轉90度）
+            if (m_boardWidget) {
+                QGridLayout* gridLayout = qobject_cast<QGridLayout*>(m_boardWidget->layout());
+                if (gridLayout) {
+                    // 創建臨時數組保存當前佈局
+                    std::vector<std::vector<QPushButton*>> tempSquares(8, std::vector<QPushButton*>(8));
+                    
+                    for (int row = 0; row < 8; ++row) {
+                        for (int col = 0; col < 8; ++col) {
+                            tempSquares[row][col] = m_squares[row][col];
+                            gridLayout->removeWidget(m_squares[row][col]);
+                        }
+                    }
+                    
+                    // 90度順時針旋轉（恢復270度旋轉）
+                    for (int oldRow = 0; oldRow < 8; ++oldRow) {
+                        for (int oldCol = 0; oldCol < 8; ++oldCol) {
+                            int newRow = oldCol;
+                            int newCol = 7 - oldRow;
+                            gridLayout->addWidget(tempSquares[oldRow][oldCol], newRow, newCol);
+                        }
+                    }
+                    
+                    gridLayout->update();
+                    m_boardWidget->update();
+                }
+            }
+        } else {
+            // 房主：恢復標準90度旋轉
+            rotateBoardDisplay(false);
+        }
+        
+        // 更新棋盤顯示
+        updateBoard();
+    }
+
     // 隱藏認輸和請求和棋按鈕
     if (m_resignButton) {
         m_resignButton->hide();
