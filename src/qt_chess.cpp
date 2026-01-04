@@ -5120,9 +5120,6 @@ bool Qt_Chess::shouldShowPGNFeatures() const {
     bool hasBombMode = m_selectedGameModes.contains(GAME_MODE_BOMB) && m_selectedGameModes[GAME_MODE_BOMB];
     bool hasOtherSpecialModes = m_gravityModeEnabled || m_teleportModeEnabled || 
                                  m_diceModeEnabled || hasBombMode;
-    
-    // 顯示棋譜的條件：一般模式（無任何特殊模式）或僅啟用霧戰模式（沒有其他特殊模式）
-    // 霧戰模式可以單獨啟用或不啟用，但如果有其他特殊模式則不顯示 PGN
     return !hasOtherSpecialModes;
 }
 
@@ -7054,8 +7051,7 @@ void Qt_Chess::onStartGameReceived(int whiteTimeMs, int blackTimeMs, int increme
         }
     }
     
-    // 檢查是否應該顯示棋譜記錄功能
-    // 只有一般模式（無任何特殊模式）或僅霧戰模式（沒有其他特殊模式）時才顯示棋譜記錄
+    // 檢查是否應該顯示棋譜記錄功能（詳見 shouldShowPGNFeatures() 方法）
     if (shouldShowPGNFeatures()) {
         // 顯示棋譜相關元件（一般模式或僅霧戰模式）
         if (m_moveListTitle) m_moveListTitle->show();
