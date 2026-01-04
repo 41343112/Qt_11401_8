@@ -205,7 +205,6 @@ Qt_Chess::Qt_Chess(QWidget *parent)
     , m_serverLastSwitchTime(0)
     , m_useServerTimer(false)
     , m_lastServerUpdateTime(0)
-    , m_justReceivedTimerUpdate(false)
     , m_boardContainer(nullptr)
     , m_timeControlPanel(nullptr)
     , m_contentLayout(nullptr)
@@ -4275,11 +4274,10 @@ void Qt_Chess::updateTimeDisplaysFromServer() {
     // 計算距離最後更新經過的時間（不包含網路延遲）
     qint64 elapsedMs = 0;
     
-    // FIX: 檢查三個條件：
+    // FIX: 檢查兩個條件：
     // 1. m_serverLastSwitchTime > 0: 伺服器已經開始計時（第一步已下）
     // 2. m_lastServerUpdateTime > 0: 我們已經收到過更新
-    // 3. !m_justReceivedTimerUpdate: 不在剛收到更新的300ms凍結期內
-    if (m_serverLastSwitchTime > 0 && m_lastServerUpdateTime > 0 && !m_justReceivedTimerUpdate) {
+    if (m_serverLastSwitchTime > 0 && m_lastServerUpdateTime > 0) {
         elapsedMs = currentUnixTimeMs - m_lastServerUpdateTime;
         // 處理異常：如果elapsed為負數，設為0
         if (elapsedMs < 0) {
@@ -4287,7 +4285,6 @@ void Qt_Chess::updateTimeDisplaysFromServer() {
         }
     }
     // 如果 m_serverLastSwitchTime == 0，表示第一步還沒下，不應該有elapsed
-    // 如果 m_justReceivedTimerUpdate == true，表示剛收到更新，elapsed設為0以顯示增量
     
     // 確定我是玩家 A (房主) 還是玩家 B (房客)
     bool isPlayerA = (m_networkManager->getRole() == NetworkRole::Host);
@@ -4295,54 +4292,54 @@ void Qt_Chess::updateTimeDisplaysFromServer() {
     // 計算白方和黑方的實際顯示時間
     qint64 whiteTime, blackTime;
     
+    // FIX: 簡化邏輯 - 只對當前玩家扣除elapsed，非當前玩家直接顯示伺服器時間（含增量）
+    // 這確保增量立即可見，不需要任何凍結期
     if (m_serverCurrentPlayer == "White") {
         // 白方正在走棋，從白方時間扣除 elapsed
-        // 黑方不是當前玩家，直接顯示伺服器發送的時間（包含增量）
+        // 黑方剛下完棋，直接顯示伺服器時間（包含增量）
         if (isPlayerA) {
-            // 我是房主，房主是白方還是黑方？檢查我的顏色
             if (m_networkManager->getPlayerColor() == PieceColor::White) {
                 // 房主是白方 (whiteIsA = true)
-                whiteTime = m_serverTimeA - elapsedMs;
-                blackTime = m_serverTimeB;  // 黑方剛下完棋，顯示伺服器時間（含增量）
+                whiteTime = m_serverTimeA - elapsedMs;  // 白方在思考，扣除elapsed
+                blackTime = m_serverTimeB;  // 黑方剛下完棋，顯示完整時間（含增量）
             } else {
                 // 房主是黑方 (whiteIsA = false)
-                whiteTime = m_serverTimeB - elapsedMs;
-                blackTime = m_serverTimeA;  // 黑方剛下完棋，顯示伺服器時間（含增量）
+                whiteTime = m_serverTimeB - elapsedMs;  // 白方在思考，扣除elapsed
+                blackTime = m_serverTimeA;  // 黑方剛下完棋，顯示完整時間（含增量）
             }
         } else {
-            // 我是房客
             if (m_networkManager->getPlayerColor() == PieceColor::White) {
                 // 房客是白方 (whiteIsA = false)
-                whiteTime = m_serverTimeB - elapsedMs;
-                blackTime = m_serverTimeA;  // 黑方剛下完棋，顯示伺服器時間（含增量）
+                whiteTime = m_serverTimeB - elapsedMs;  // 白方在思考，扣除elapsed
+                blackTime = m_serverTimeA;  // 黑方剛下完棋，顯示完整時間（含增量）
             } else {
                 // 房客是黑方 (whiteIsA = true)
-                whiteTime = m_serverTimeA - elapsedMs;
-                blackTime = m_serverTimeB;  // 黑方剛下完棋，顯示伺服器時間（含增量）
+                whiteTime = m_serverTimeA - elapsedMs;  // 白方在思考，扣除elapsed
+                blackTime = m_serverTimeB;  // 黑方剛下完棋，顯示完整時間（含增量）
             }
         }
     } else {
         // 黑方正在走棋，從黑方時間扣除 elapsed
-        // 白方不是當前玩家，直接顯示伺服器發送的時間（包含增量）
+        // 白方剛下完棋，直接顯示伺服器時間（包含增量）
         if (isPlayerA) {
             if (m_networkManager->getPlayerColor() == PieceColor::White) {
                 // 房主是白方 (whiteIsA = true)
-                whiteTime = m_serverTimeA;  // 白方剛下完棋，顯示伺服器時間（含增量）
-                blackTime = m_serverTimeB - elapsedMs;
+                whiteTime = m_serverTimeA;  // 白方剛下完棋，顯示完整時間（含增量）
+                blackTime = m_serverTimeB - elapsedMs;  // 黑方在思考，扣除elapsed
             } else {
                 // 房主是黑方 (whiteIsA = false)
-                whiteTime = m_serverTimeB;  // 白方剛下完棋，顯示伺服器時間（含增量）
-                blackTime = m_serverTimeA - elapsedMs;
+                whiteTime = m_serverTimeB;  // 白方剛下完棋，顯示完整時間（含增量）
+                blackTime = m_serverTimeA - elapsedMs;  // 黑方在思考，扣除elapsed
             }
         } else {
             if (m_networkManager->getPlayerColor() == PieceColor::White) {
                 // 房客是白方 (whiteIsA = false)
-                whiteTime = m_serverTimeB;  // 白方剛下完棋，顯示伺服器時間（含增量）
-                blackTime = m_serverTimeA - elapsedMs;
+                whiteTime = m_serverTimeB;  // 白方剛下完棋，顯示完整時間（含增量）
+                blackTime = m_serverTimeA - elapsedMs;  // 黑方在思考，扣除elapsed
             } else {
                 // 房客是黑方 (whiteIsA = true)
-                whiteTime = m_serverTimeA;  // 白方剛下完棋，顯示伺服器時間（含增量）
-                blackTime = m_serverTimeB - elapsedMs;
+                whiteTime = m_serverTimeA;  // 白方剛下完棋，顯示完整時間（含增量）
+                blackTime = m_serverTimeB - elapsedMs;  // 黑方在思考，扣除elapsed
             }
         }
     }
@@ -7355,19 +7352,9 @@ void Qt_Chess::onTimerStateReceived(qint64 timeA, qint64 timeB, const QString& c
     
     m_useServerTimer = true;  // 啟用伺服器計時器模式
     
-    // FIX: 設置剛收到計時器更新的標誌
-    // 這確保在下一次 updateTimeDisplaysFromServer() 調用時，elapsed為0
-    // 讓玩家能看到完整的時間（包含增量）
-    m_justReceivedTimerUpdate = true;
-    
     // FIX: 設置當前時間為最後更新時間
+    // 這是計算elapsed的參考點
     m_lastServerUpdateTime = QDateTime::currentMSecsSinceEpoch();
-    
-    // 100ms 後清除標誌，允許正常倒數
-    // 100ms足夠讓玩家看到增量，但不會造成明顯的卡頓
-    QTimer::singleShot(100, this, [this]() {
-        m_justReceivedTimerUpdate = false;
-    });
     
     // 同步棋盤的當前玩家與伺服器狀態
     // 這對於骰子模式特別重要，確保雙方都知道輪到誰下棋
