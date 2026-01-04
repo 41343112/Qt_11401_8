@@ -48,6 +48,7 @@ namespace {
 // includes text color via getPieceTextColor() to maintain proper piece coloring
 // const QString CHECK_HIGHLIGHT_STYLE = "QPushButton { background-color: rgba(255, 80, 80, 0.85); border: 2px solid #FF3333; }";
 const int DEFAULT_ICON_SIZE = 40; // 預設圖示大小（像素）
+const int DICE_ICON_SIZE = 50; // 骰子顯示面板圖示大小（像素）
 const int MAX_TIME_LIMIT_SECONDS = 1800; // 最大時間限制：30 分鐘
 const int MAX_SLIDER_POSITION = 31; // 滑桿範圍：0（無限制）、1（30秒）、2-31（1-30 分鐘）
 const int MAX_MINUTES = 30; // 最大時間限制（分鐘）
@@ -9490,9 +9491,9 @@ void Qt_Chess::updateDiceDisplay() {
                 QPixmap piecePixmap = getCachedPieceIcon(type, diceOwnerColor);
                 
                 // 如果有自訂圖示，使用圖示顯示，否則使用文字
-                if (!piecePixmap.isNull() && m_pieceIconSettings.useCustomIcons) {
+                if (!piecePixmap.isNull()) {
                     // 使用圖示模式：將圖示縮放到合適大小並設置
-                    QPixmap scaledPixmap = piecePixmap.scaled(50, 50, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+                    QPixmap scaledPixmap = piecePixmap.scaled(DICE_ICON_SIZE, DICE_ICON_SIZE, Qt::KeepAspectRatio, Qt::SmoothTransformation);
                     
                     // 如果需要灰階，對圖片應用灰階效果（使用更高效的方法）
                     if (isGrayed) {
@@ -9502,13 +9503,15 @@ void Qt_Chess::updateDiceDisplay() {
                     
                     label->setPixmap(scaledPixmap);
                     label->setText("");  // 清除文字
-                    label->setAlignment(Qt::AlignCenter);
                 } else {
                     // 使用文字模式：顯示棋子類型文字
                     label->setPixmap(QPixmap());  // 清除圖示
                     QString displayText = QString("%1").arg(pieceTypeName);
                     label->setText(displayText);
                 }
+                
+                // 統一設置對齊方式
+                label->setAlignment(Qt::AlignCenter);
                 
                 // 設置樣式（增大字體和邊框以更明顯，使用明亮的底色）
                 if (isGrayed) {
