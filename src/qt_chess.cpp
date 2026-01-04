@@ -6711,6 +6711,17 @@ void Qt_Chess::onOpponentMove(const QPoint& from, const QPoint& to, PieceType pr
             }
         }
         
+        // 如果是第一步棋且計時器未啟動，則啟動計時器
+        // 這對房客很重要：當房主下第一步時，房客的計時器需要啟動
+        bool isFirstMove = m_uciMoveHistory.isEmpty();
+        if (isFirstMove && m_timeControlEnabled && !m_timerStarted) {
+            m_timerStarted = true;
+            m_gameStartLocalTime = QDateTime::currentMSecsSinceEpoch();  // 記錄遊戲開始時間
+            m_currentTurnStartTime = m_gameStartLocalTime;  // 記錄當前回合開始時間
+            startTimer();
+            qDebug() << "[Qt_Chess] Timer started after receiving opponent's first move";
+        }
+        
         // 應用時間增量（僅在非伺服器計時器模式下）
         // 使用伺服器計時器時，增量已在伺服器端計算並包含在 timerState 中
         if (m_timeControlEnabled && m_timerStarted && !m_useServerTimer) {
