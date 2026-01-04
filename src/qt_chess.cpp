@@ -4348,20 +4348,16 @@ void Qt_Chess::updateTimeDisplaysFromServer() {
     whiteTime = qMax(static_cast<qint64>(0), whiteTime);
     blackTime = qMax(static_cast<qint64>(0), blackTime);
     
-    // 防止時間跳躍：只允許時間遞減，不允許時間回跳
-    // 在線上模式下，由於不再使用本地計時器倒數，應該不會出現時間跳躍
-    // 但保留此邏輯作為安全措施
+    // FIX: 在線上模式下，直接使用伺服器的時間值
+    // 移除「防止時間跳躍」邏輯，因為它會阻止增量顯示
+    // 伺服器的時間值是權威的，已經包含了正確的增量
+    // In online mode, trust server time values (they include increments)
+    // Removing "prevent time jump" logic that was blocking increment display
     int newWhiteTime = static_cast<int>(whiteTime);
     int newBlackTime = static_cast<int>(blackTime);
     
-    // 只允許時間遞減或相等（防止時間回跳）
-    if (newWhiteTime <= m_whiteTimeMs) {
-        m_whiteTimeMs = newWhiteTime;
-    }
-    
-    if (newBlackTime <= m_blackTimeMs) {
-        m_blackTimeMs = newBlackTime;
-    }
+    m_whiteTimeMs = newWhiteTime;
+    m_blackTimeMs = newBlackTime;
     
     // 更新顯示
     updateTimeDisplays();
