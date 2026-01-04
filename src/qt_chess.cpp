@@ -6677,9 +6677,11 @@ void Qt_Chess::onOpponentMove(const QPoint& from, const QPoint& to, PieceType pr
             applyFinalPosition(to, finalPosition);
         }
         
-        // 記錄對手的移動用於高亮顯示
-        m_lastMoveFrom = from;
-        m_lastMoveTo = finalPosition.x() >= 0 ? finalPosition : to;  // 如果有傳送，使用最終位置
+        // 記錄對手的移動用於高亮顯示（霧戰模式下不顯示對方移動高光）
+        if (!m_fogOfWarEnabled) {
+            m_lastMoveFrom = from;
+            m_lastMoveTo = finalPosition.x() >= 0 ? finalPosition : to;  // 如果有傳送，使用最終位置
+        }
         
         updateBoard();
         updateStatus();
@@ -8842,40 +8844,13 @@ void Qt_Chess::calculateVisibleSquares(PieceColor playerColor) {
         }
     }
     
-    // 如果玩家的王被將軍，讓所有攻擊王的對方棋子可見
-    if (m_chessBoard.isInCheck(playerColor)) {
-        QPoint kingPos = m_chessBoard.findKing(playerColor);
-        if (kingPos.x() >= 0 && kingPos.y() >= 0) {
-            PieceColor opponentColor = (playerColor == PieceColor::White) ? PieceColor::Black : PieceColor::White;
-            
-            // 獲取棋盤數據用於 piece.isValidMove()（一次性複製，避免重複複製）
-            std::vector<std::vector<ChessPiece>> boardCopy;
-            for (int r = 0; r < 8; ++r) {
-                std::vector<ChessPiece> rowCopy;
-                for (int c = 0; c < 8; ++c) {
-                    rowCopy.push_back(m_chessBoard.getPiece(r, c));
-                }
-                boardCopy.push_back(rowCopy);
-            }
-            QPoint enPassantTarget = m_chessBoard.getEnPassantTarget();
-            
-            // 遍歷所有對方棋子，找出能攻擊王的棋子
-            for (int row = 0; row < 8; ++row) {
-                for (int col = 0; col < 8; ++col) {
-                    const ChessPiece& piece = m_chessBoard.getPiece(row, col);
-                    
-                    // 如果是對方的棋子，檢查是否能攻擊王
-                    if (piece.getColor() == opponentColor && piece.getType() != PieceType::None) {
-                        QPoint from(col, row);
-                        
-                        // 直接使用 ChessPiece 的 isValidMove 檢查（不需要改變 currentPlayer）
-                        if (piece.isValidMove(from, kingPos, boardCopy, enPassantTarget)) {
-                            // 讓攻擊王的對方棋子可見
-                            m_visibleSquares[row][col] = true;
-                        }
-                    }
-                }
-            }
+    // 如果玩家攻擊對方的王，讓對方的王可見
+    PieceColor opponentColor = (playerColor == PieceColor::White) ? PieceColor::Black : PieceColor::White;
+    if (m_chessBoard.isInCheck(opponentColor)) {
+        QPoint opponentKingPos = m_chessBoard.findKing(opponentColor);
+        if (opponentKingPos.x() >= 0 && opponentKingPos.y() >= 0) {
+            // 讓對方的王可見
+            m_visibleSquares[opponentKingPos.y()][opponentKingPos.x()] = true;
         }
     }
 }
