@@ -32,25 +32,55 @@
 
 ### 修改的函數
 
-#### 1. `onStartGameReceived()` (行 7051-7076)
+#### 1. `onStartGameReceived()` (行 7054)
 
 在遊戲開始時檢查遊戲模式，決定是否顯示棋譜列表和回放按鈕。
 
-```cpp
-// 檢查是否應該顯示棋譜記錄功能
-bool hasBombMode = m_selectedGameModes.contains(GAME_MODE_BOMB) && m_selectedGameModes[GAME_MODE_BOMB];
-bool hasOtherSpecialModes = m_gravityModeEnabled || m_teleportModeEnabled || 
-                             m_diceModeEnabled || hasBombMode;
+使用 `shouldShowPGNFeatures()` 輔助方法來判斷：
 
-// 顯示棋譜的條件：一般模式（無任何特殊模式）或僅啟用霧戰模式（沒有其他特殊模式）
-bool shouldShowPGNFeatures = !hasOtherSpecialModes;
+```cpp
+// 檢查是否應該顯示棋譜記錄功能（詳見 shouldShowPGNFeatures() 方法）
+if (shouldShowPGNFeatures()) {
+    // 顯示棋譜相關元件（一般模式或僅霧戰模式）
+    if (m_moveListTitle) m_moveListTitle->show();
+    if (m_moveListWidget) m_moveListWidget->show();
+} else {
+    // 隱藏棋譜相關元件（其他特殊遊戲模式組合）
+    // ...
+}
 ```
 
-#### 2. `handleGameEnd()` (行 4704-4727)
+#### 2. `handleGameEnd()` (行 4706)
 
 在遊戲結束時檢查遊戲模式，決定是否顯示 PGN 匯出和複製按鈕。
 
-使用與 `onStartGameReceived()` 相同的邏輯，確保一致性。
+使用相同的 `shouldShowPGNFeatures()` 輔助方法來判斷：
+
+```cpp
+// 顯示匯出 PGN 按鈕和複製棋譜按鈕（僅在一般模式或僅霧戰模式時）
+if (shouldShowPGNFeatures()) {
+    // 顯示 PGN 按鈕
+    if (m_exportPGNButton) m_exportPGNButton->show();
+    if (m_copyPGNButton) m_copyPGNButton->show();
+} else {
+    // 隱藏 PGN 按鈕
+    // ...
+}
+```
+
+#### 3. `shouldShowPGNFeatures()` (行 5117-5123)
+
+輔助方法，集中管理 PGN 功能顯示邏輯：
+
+```cpp
+bool Qt_Chess::shouldShowPGNFeatures() const {
+    // 檢查是否應該顯示 PGN 相關功能（匯出、複製、棋譜列表）
+    // 只有一般模式（無任何特殊模式）或僅啟用霧戰模式（沒有其他特殊模式）時才顯示
+    bool hasBombMode = m_selectedGameModes.contains(GAME_MODE_BOMB) && m_selectedGameModes[GAME_MODE_BOMB];
+    bool hasOtherSpecialModes = m_gravityModeEnabled || m_teleportModeEnabled || 
+                                 m_diceModeEnabled || hasBombMode;
+    return !hasOtherSpecialModes;
+}
 
 ## 邏輯驗證
 
