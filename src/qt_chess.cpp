@@ -6903,12 +6903,7 @@ void Qt_Chess::onStartGameReceived(int whiteTimeMs, int blackTimeMs, int increme
         // 注意：PGN按鈕和回放按鈕在其他地方控制顯示/隱藏
     }
     
-    // 更新棋盤和狀態
-    updateBoard();
-    updateStatus();
-    updateTimeDisplays();
-    
-    // 如果啟用地吸引力模式，在更新棋盤後應用旋轉
+    // 如果啟用地吸引力模式，先應用旋轉再更新棋盤
     if (m_gravityModeEnabled) {
         // 檢查是否為房客（連接端）需要270度旋轉
         bool isGuest = m_networkManager && m_networkManager->getRole() == NetworkRole::Guest;
@@ -6951,6 +6946,11 @@ void Qt_Chess::onStartGameReceived(int whiteTimeMs, int blackTimeMs, int increme
             rotateBoardDisplay(true);
         }
     }
+    
+    // 更新棋盤和狀態（在旋轉之後，這樣棋子會顯示在正確的位置）
+    updateBoard();
+    updateStatus();
+    updateTimeDisplays();
     
     // 如果啟用了時間控制，啟動計時器並顯示時間
     if (m_timeControlEnabled) {
