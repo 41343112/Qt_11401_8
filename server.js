@@ -321,7 +321,7 @@ wss.on('connection', ws => {
                 
                 // 更新最後切換時間（如果是第一步，這裡開始計時）
                 // 加上緩衝時間以補償網路延遲，確保客戶端收到訊息時不會扣錯時間
-                timer.lastSwitchTime = currentTime + 1000;  // 加 1000 毫秒 (1 秒) 緩衝
+                timer.lastSwitchTime = currentTime + 100;  // 加 100 毫秒緩衝以補償網路延遲
                 
                 // 如果骰子模式所有移動完成，檢查是否需要恢復中斷的玩家（在廣播之前）
                 if(diceRolls[roomId] && diceRolls[roomId].movesRemaining <= 0) {
