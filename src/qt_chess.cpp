@@ -48,6 +48,7 @@ namespace {
 // includes text color via getPieceTextColor() to maintain proper piece coloring
 // const QString CHECK_HIGHLIGHT_STYLE = "QPushButton { background-color: rgba(255, 80, 80, 0.85); border: 2px solid #FF3333; }";
 const int DEFAULT_ICON_SIZE = 40; // 預設圖示大小（像素）
+const int DICE_ICON_SIZE = 50; // 骰子顯示面板圖示大小（像素）
 const int MAX_TIME_LIMIT_SECONDS = 1800; // 最大時間限制：30 分鐘
 const int MAX_SLIDER_POSITION = 31; // 滑桿範圍：0（無限制）、1（30秒）、2-31（1-30 分鐘）
 const int MAX_MINUTES = 30; // 最大時間限制（分鐘）
@@ -72,6 +73,8 @@ const QString THEME_ACCENT_SECONDARY = "#B8860B";  // 深金色（次要強調�
 const QString THEME_ACCENT_SUCCESS = "#6B4423";    // 深木色（成功色）
 const QString THEME_ACCENT_WARNING = "#CD853F";    // 秘魯褐色（警告色）
 const QString THEME_TEXT_PRIMARY = "#3E2723";      // 深褐色文字
+const QString THEME_TEXT_LIGHT = "#FFFFFF";        // 白色文字（用於深色背景）
+const QString THEME_TEXT_DISABLED = "#505050";     // 灰色文字（禁用狀態）
 const QString THEME_BORDER = "#A0826D";            // 古銅色邊框
 
 // 視窗大小的佈局常數
@@ -9477,43 +9480,85 @@ void Qt_Chess::updateDiceDisplay() {
                     default: pieceTypeName = "?"; break;
                 }
                 
-                // 顯示棋子類型（移除剩餘次數顯示）
-                QString displayText = QString("%1").arg(pieceTypeName);
-                label->setText(displayText);
-                
                 // 判斷是否應該灰階顯示：
                 // 1. 剩餘移動次數已用完，或
                 // 2. 該類型棋子已不存在或沒有合法移動
                 PieceColor diceOwnerColor = m_chessBoard.getCurrentPlayer();
                 bool canMove = canPieceTypeMove(type, diceOwnerColor);
+                bool isGrayed = (remainingMoves <= 0 || !canMove);
                 
-                if (remainingMoves <= 0 || !canMove) {
+                // 嘗試獲取棋子圖示並顯示（如果可用）
+                QPixmap piecePixmap = getCachedPieceIcon(type, diceOwnerColor);
+                
+                // 如果有自訂圖示，使用圖示顯示，否則使用文字
+                if (!piecePixmap.isNull()) {
+                    // 使用圖示模式：將圖示縮放到合適大小並設置
+                    QPixmap scaledPixmap = piecePixmap.scaled(DICE_ICON_SIZE, DICE_ICON_SIZE, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+                    
+                    // 如果需要灰階，對圖片應用灰階效果（保留透明度）
+                    if (isGrayed) {
+                        QImage image = scaledPixmap.toImage();
+                        // 確保圖像有 alpha 通道
+                        if (image.format() != QImage::Format_ARGB32 && image.format() != QImage::Format_ARGB32_Premultiplied) {
+                            image = image.convertToFormat(QImage::Format_ARGB32);
+                        }
+                        
+                        // 手動應用灰階效果，保留 alpha 通道
+                        for (int y = 0; y < image.height(); ++y) {
+                            QRgb* line = reinterpret_cast<QRgb*>(image.scanLine(y));
+                            for (int x = 0; x < image.width(); ++x) {
+                                QRgb pixel = line[x];
+                                int gray = qGray(pixel);
+                                int alpha = qAlpha(pixel);
+                                line[x] = qRgba(gray, gray, gray, alpha);
+                            }
+                        }
+                        scaledPixmap = QPixmap::fromImage(image);
+                    }
+                    
+                    label->setPixmap(scaledPixmap);
+                    label->setText("");  // 清除文字
+                } else {
+                    // 使用文字模式：顯示棋子類型文字
+                    label->setPixmap(QPixmap());  // 清除圖示
+                    QString displayText = QString("%1").arg(pieceTypeName);
+                    label->setText(displayText);
+                }
+                
+                // 統一設置對齊方式
+                label->setAlignment(Qt::AlignCenter);
+                
+                // 設置樣式（增大字體和邊框以更明顯，使用明亮的底色）
+                if (isGrayed) {
                     label->setStyleSheet(QString(
                         "QLabel { "
                         "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1, "
-                        "    stop:0 rgba(80, 80, 80, 0.5), stop:1 rgba(40, 40, 40, 0.7)); "
-                        "  color: #808080; "
-                        "  border: 2px solid #606060; "
-                        "  border-radius: 8px; "
-                        "  padding: 5px; "
-                        "  font-size: 11pt; "
+                        "    stop:0 rgba(180, 180, 180, 0.8), stop:1 rgba(140, 140, 140, 0.9)); "
+                        "  color: %1; "
+                        "  border: 3px solid #909090; "
+                        "  border-radius: 10px; "
+                        "  padding: 8px; "
+                        "  font-size: 16pt; "
+                        "  font-weight: bold; "
                         "}"
-                    ));
+                    ).arg(THEME_TEXT_DISABLED));
                 } else {
                     label->setStyleSheet(QString(
                         "QLabel { "
                         "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1, "
-                        "    stop:0 rgba(33, 150, 243, 0.3), stop:1 rgba(26, 26, 46, 0.95)); "
+                        "    stop:0 rgba(100, 200, 255, 0.9), stop:1 rgba(60, 160, 240, 0.95)); "
                         "  color: %1; "
-                        "  border: 2px solid %2; "
-                        "  border-radius: 8px; "
-                        "  padding: 5px; "
-                        "  font-size: 11pt; "
+                        "  border: 3px solid %2; "
+                        "  border-radius: 10px; "
+                        "  padding: 8px; "
+                        "  font-size: 16pt; "
+                        "  font-weight: bold; "
                         "}"
-                    ).arg(THEME_TEXT_PRIMARY, THEME_ACCENT_PRIMARY));
+                    ).arg(THEME_TEXT_LIGHT, THEME_ACCENT_PRIMARY));
                 }
             } else {
                 label->setText("--");
+                label->setPixmap(QPixmap());
             }
         }
     } else {
