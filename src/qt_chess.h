@@ -434,6 +434,7 @@ private:
     void exportPGN();
     void copyPGN();
     QString generatePGN() const;
+    bool shouldShowPGNFeatures() const;  // 檢查是否應該顯示 PGN 功能（匯出、複製、棋譜列表）
     
     // ========================================
     // 被吃棋子顯示系統 (Captured Pieces Display)
