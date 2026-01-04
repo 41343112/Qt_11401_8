@@ -4620,6 +4620,18 @@ void Qt_Chess::handleGameEnd() {
     // 停止背景音樂（遊戲已結束）
     stopBackgroundMusic();
 
+    // 如果啟用地吸引力模式，恢復棋盤原狀
+    if (m_gravityModeEnabled) {
+        // 重置棋盤到初始狀態
+        m_chessBoard.initializeBoard();
+        
+        // 恢復棋盤UI到正常佈局（無論房主或房客都使用相同的恢復邏輯）
+        rotateBoardDisplay(false);
+        
+        // 更新棋盤顯示
+        updateBoard();
+    }
+
     // 隱藏認輸和請求和棋按鈕
     if (m_resignButton) {
         m_resignButton->hide();
@@ -6979,12 +6991,8 @@ void Qt_Chess::onStartGameReceived(int whiteTimeMs, int blackTimeMs, int increme
         // 注意：PGN按鈕和回放按鈕在其他地方控制顯示/隱藏
     }
     
-    // 更新棋盤和狀態
-    updateBoard();
-    updateStatus();
-    updateTimeDisplays();
-    
-    // 如果啟用地吸引力模式，在更新棋盤後應用旋轉
+    // 如果啟用地吸引力模式，在更新棋盤前先應用旋轉
+    // 順序：重力已在前面應用 → 現在應用旋轉 → 最後更新棋盤顯示
     if (m_gravityModeEnabled) {
         // 檢查是否為房客（連接端）需要270度旋轉
         bool isGuest = m_networkManager && m_networkManager->getRole() == NetworkRole::Guest;
@@ -7027,6 +7035,11 @@ void Qt_Chess::onStartGameReceived(int whiteTimeMs, int blackTimeMs, int increme
             rotateBoardDisplay(true);
         }
     }
+    
+    // 更新棋盤和狀態（在重力和旋轉都應用之後，這樣棋子會顯示在正確的位置）
+    updateBoard();
+    updateStatus();
+    updateTimeDisplays();
     
     // 如果啟用了時間控制，啟動計時器並顯示時間
     if (m_timeControlEnabled) {
