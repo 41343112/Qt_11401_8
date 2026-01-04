@@ -3435,8 +3435,11 @@ void Qt_Chess::onStartButtonClicked() {
                 m_blackInitialTimeMs = m_blackTimeMs;
             }
             
-            // 啟動計時器
-            startTimer();
+            // 在線上模式不啟動計時器（等待第一步棋）
+            // 離線模式需要啟動計時器
+            if (!m_isOnlineGame) {
+                startTimer();
+            }
             
             // 顯示時間和進度條
             if (m_whiteTimeLabel && m_blackTimeLabel) {
@@ -7194,11 +7197,11 @@ void Qt_Chess::onStartGameReceived(int whiteTimeMs, int blackTimeMs, int increme
     updateStatus();
     updateTimeDisplays();
     
-    // 如果啟用了時間控制，啟動計時器並顯示時間
+    // 在線上模式，顯示時間但不啟動計時器（等待第一步棋）
+    // 計時器會在第一步棋走出後啟動
     if (m_timeControlEnabled) {
-        startTimer();
-        
-        // 在棋盤左右兩側顯示時間和進度條（必須在 updateTimeDisplays 之後）
+        // 顯示時間標籤和進度條，但不啟動計時器
+        // 計時器會在第一步棋時啟動（onSquareClicked, mouseReleaseEvent, onEngineBestMove）
         if (m_whiteTimeLabel) {
             m_whiteTimeLabel->show();
         }
