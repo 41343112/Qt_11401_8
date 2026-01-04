@@ -584,5 +584,10 @@ private:
     // 棋盤翻轉設定
     void loadBoardFlipSettings();
     void saveBoardFlipSettings();
+    
+    // ========================================
+    // 非阻塞對話框 (Non-blocking Dialogs)
+    // ========================================
+    void showNonBlockingInfo(const QString& title, const QString& message);
 };
 #endif // QT_CHESS_H

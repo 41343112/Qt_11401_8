@@ -2010,20 +2010,21 @@ void Qt_Chess::updateStatus() {
         
         // 在線上遊戲中，立即發送遊戲結束訊息，不阻塞
         // 使用 QTimer::singleShot 延遲顯示對話框，確保網路訊息先發送
+        // 使用非阻塞對話框，避免阻塞網路訊息處理
         QTimer::singleShot(100, this, [this, winner]() {
-            QMessageBox::information(this, "遊戲結束", QString("將死！%1獲勝！").arg(winner));
+            showNonBlockingInfo("遊戲結束", QString("將死！%1獲勝！").arg(winner));
         });
     } else if (m_chessBoard.isStalemate(currentPlayer)) {
         m_chessBoard.setGameResult(GameResult::Draw);
         handleGameEnd();
         QTimer::singleShot(100, this, [this]() {
-            QMessageBox::information(this, "遊戲結束", "逼和！對局和棋。");
+            showNonBlockingInfo("遊戲結束", "逼和！對局和棋。");
         });
     } else if (m_chessBoard.isInsufficientMaterial()) {
         m_chessBoard.setGameResult(GameResult::Draw);
         handleGameEnd();
         QTimer::singleShot(100, this, [this]() {
-            QMessageBox::information(this, "遊戲結束", "子力不足以將死！對局和棋。");
+            showNonBlockingInfo("遊戲結束", "子力不足以將死！對局和棋。");
         });
     }
 }
@@ -2646,8 +2647,9 @@ void Qt_Chess::onSquareClicked(int displayRow, int displayCol) {
                         handleGameEnd();
                         QString winner = (opponentColor == PieceColor::White) ? "黑方" : "白方";
                         // 延遲顯示對話框，讓網路訊息先發送
+                        // 使用非阻塞對話框，避免阻塞網路訊息處理
                         QTimer::singleShot(100, this, [this, winner]() {
-                            QMessageBox::information(this, "遊戲結束", QString("將死！%1獲勝！").arg(winner));
+                            showNonBlockingInfo("遊戲結束", QString("將死！%1獲勝！").arg(winner));
                         });
                     } else {
                         qDebug() << "[Qt_Chess] Checkmate already handled by updateStatus(), skipping duplicate dialog";
@@ -2846,10 +2848,10 @@ void Qt_Chess::onResignClicked() {
         // 處理遊戲結束的通用邏輯
         handleGameEnd();
 
-        // 顯示放棄者的訊息
+        // 顯示放棄者的訊息（使用非阻塞對話框，避免阻塞網路訊息處理）
         QString playerName = (currentPlayer == PieceColor::White) ? "白方" : "黑方";
         QString winner = (currentPlayer == PieceColor::White) ? "黑方" : "白方";
-        QMessageBox::information(this, "遊戲結束", QString("%1認輸！%2獲勝！").arg(playerName).arg(winner));
+        showNonBlockingInfo("遊戲結束", QString("%1認輸！%2獲勝！").arg(playerName).arg(winner));
 
         // 不再自動進入回放模式，用戶可以根據需要點擊回放按鈕
     }
@@ -3873,8 +3875,9 @@ void Qt_Chess::mouseReleaseEvent(QMouseEvent *event) {
                             handleGameEnd();
                             QString winner = (opponentColor == PieceColor::White) ? "黑方" : "白方";
                             // 延遲顯示對話框，讓網路訊息先發送
+                            // 使用非阻塞對話框，避免阻塞網路訊息處理
                             QTimer::singleShot(100, this, [this, winner]() {
-                                QMessageBox::information(this, "遊戲結束", QString("將死！%1獲勝！").arg(winner));
+                                showNonBlockingInfo("遊戲結束", QString("將死！%1獲勝！").arg(winner));
                             });
                         } else {
                             qDebug() << "[Qt_Chess] Checkmate already handled by updateStatus() (drag), skipping duplicate dialog";
@@ -4295,12 +4298,12 @@ void Qt_Chess::updateTimeDisplaysFromServer() {
         stopTimer();
         m_timerStarted = false;
         showTimeControlAfterTimeout();
-        QMessageBox::information(this, "時間到", "白方超時！黑方獲勝！");
+        showNonBlockingInfo("時間到", "白方超時！黑方獲勝！");
     } else if (m_blackTimeMs <= 0 && m_timeControlEnabled && m_blackInitialTimeMs > 0) {
         stopTimer();
         m_timerStarted = false;
         showTimeControlAfterTimeout();
-        QMessageBox::information(this, "時間到", "黑方超時！白方獲勝！");
+        showNonBlockingInfo("時間到", "黑方超時！白方獲勝！");
     }
 }
 
@@ -4413,7 +4416,7 @@ void Qt_Chess::onGameTimerTick() {
                     stopTimer();
                     m_timerStarted = false;
                     showTimeControlAfterTimeout();
-                    QMessageBox::information(this, "時間到", "白方超時！黑方獲勝！");
+                    showNonBlockingInfo("時間到", "白方超時！黑方獲勝！");
                     return;
                 }
             }
@@ -4431,7 +4434,7 @@ void Qt_Chess::onGameTimerTick() {
                     stopTimer();
                     m_timerStarted = false;
                     showTimeControlAfterTimeout();
-                    QMessageBox::information(this, "時間到", "黑方超時！白方獲勝！");
+                    showNonBlockingInfo("時間到", "黑方超時！白方獲勝！");
                     return;
                 }
             }
@@ -4448,7 +4451,7 @@ void Qt_Chess::onGameTimerTick() {
                     stopTimer();
                     m_timerStarted = false;
                     showTimeControlAfterTimeout();
-                    QMessageBox::information(this, "時間到", "白方超時！黑方獲勝！");
+                    showNonBlockingInfo("時間到", "白方超時！黑方獲勝！");
                     return;
                 }
             }
@@ -4461,7 +4464,7 @@ void Qt_Chess::onGameTimerTick() {
                     stopTimer();
                     m_timerStarted = false;
                     showTimeControlAfterTimeout();
-                    QMessageBox::information(this, "時間到", "黑方超時！白方獲勝！");
+                    showNonBlockingInfo("時間到", "黑方超時！白方獲勝！");
                     return;
                 }
             }
@@ -7270,10 +7273,10 @@ void Qt_Chess::onSurrenderReceived() {
     // 處理遊戲結束
     handleGameEnd();
     
-    // 顯示訊息
+    // 顯示訊息（使用非阻塞對話框，避免阻塞網路訊息處理）
     QString opponentName = (opponentColor == PieceColor::White) ? "白方" : "黑方";
     QString winner = (opponentColor == PieceColor::White) ? "黑方" : "白方";
-    QMessageBox::information(this, "對手投降", QString("%1投降！%2獲勝！").arg(opponentName).arg(winner));
+    showNonBlockingInfo("對手投降", QString("%1投降！%2獲勝！").arg(opponentName).arg(winner));
 }
 
 void Qt_Chess::onGameOverReceived(const QString& result) {
@@ -7315,8 +7318,9 @@ void Qt_Chess::onGameOverReceived(const QString& result) {
     handleGameEnd();
     
     // 延遲顯示訊息，確保遊戲結束處理完成
+    // 使用非阻塞對話框，避免阻塞網路訊息處理
     QTimer::singleShot(100, this, [this, message]() {
-        QMessageBox::information(this, "遊戲結束", message);
+        showNonBlockingInfo("遊戲結束", message);
     });
 }
 
@@ -9468,4 +9472,26 @@ bool Qt_Chess::canRollPiece(const QPoint& pos) const {
     return false;
 }
 
+// ========================================
+// 非阻塞對話框 (Non-blocking Dialogs)
+// ========================================
+
+void Qt_Chess::showNonBlockingInfo(const QString& title, const QString& message) {
+    // 創建非模態訊息框，避免阻塞事件循環
+    // 這樣在線上模式下，即使對話框打開，仍可接收並處理網路訊息
+    QMessageBox* msgBox = new QMessageBox(this);
+    msgBox->setWindowTitle(title);
+    msgBox->setText(message);
+    msgBox->setIcon(QMessageBox::Information);
+    msgBox->setStandardButtons(QMessageBox::Ok);
+    
+    // 設定為非模態，不阻塞事件循環
+    msgBox->setModal(false);
+    
+    // 設定對話框關閉時自動刪除
+    msgBox->setAttribute(Qt::WA_DeleteOnClose);
+    
+    // 顯示對話框（非阻塞）
+    msgBox->show();
+}
 
