@@ -2201,8 +2201,8 @@ void Qt_Chess::highlightValidMoves() {
     if (!m_pieceSelected) return;
 
     // 高亮選中的格子（m_selectedSquare 是邏輯坐標）- 現代科技風格霓虹綠（不透明）
-    int displayRow = getDisplayRow(m_selectedSquare.y());
-    int displayCol = getDisplayCol(m_selectedSquare.x());
+    int displayRow, displayCol;
+    getGravityDisplayCoords(m_selectedSquare.y(), m_selectedSquare.x(), displayRow, displayCol);
     QString selectedTextColor = getPieceTextColor(m_selectedSquare.y(), m_selectedSquare.x());
     m_squares[displayRow][displayCol]->setStyleSheet(
         QString("QPushButton { background-color: rgba(0, 255, 136, 1.0); border: 3px solid %1; color: %2; }").arg(THEME_ACCENT_SUCCESS, selectedTextColor)
@@ -2214,8 +2214,8 @@ void Qt_Chess::highlightValidMoves() {
             QPoint targetSquare(logicalCol, logicalRow);
             if (m_chessBoard.isValidMove(m_selectedSquare, targetSquare)) {
                 bool isCapture = isCaptureMove(m_selectedSquare, targetSquare);
-                int displayRow = getDisplayRow(logicalRow);
-                int displayCol = getDisplayCol(logicalCol);
+                int validDisplayRow, validDisplayCol;
+                getGravityDisplayCoords(logicalRow, logicalCol, validDisplayRow, validDisplayCol);
                 // 使用邏輯坐標確定淺色/深色格子
                 bool isLight = (logicalRow + logicalCol) % 2 == 0;
                 QString textColor = getPieceTextColor(logicalRow, logicalCol);
@@ -2223,13 +2223,13 @@ void Qt_Chess::highlightValidMoves() {
                 if (isCapture) {
                     // 將吃子移動高亮為霓虹紅/粉色（不透明）
                     QString color = isLight ? "rgba(255, 100, 120, 1.0)" : "rgba(233, 69, 96, 1.0)";
-                    m_squares[displayRow][displayCol]->setStyleSheet(
+                    m_squares[validDisplayRow][validDisplayCol]->setStyleSheet(
                         QString("QPushButton { background-color: %1; border: 3px solid %2; color: %3; }").arg(color, THEME_ACCENT_SECONDARY, textColor)
                         );
                 } else {
                     // 將非吃子移動高亮為霓虹黃色（不透明）
                     QString color = isLight ? "rgba(255, 217, 61, 1.0)" : "rgba(255, 217, 61, 1.0)";
-                    m_squares[displayRow][displayCol]->setStyleSheet(
+                    m_squares[validDisplayRow][validDisplayCol]->setStyleSheet(
                         QString("QPushButton { background-color: %1; border: 3px solid %2; color: %3; }").arg(color, THEME_ACCENT_WARNING, textColor)
                         );
                 }
@@ -2261,8 +2261,8 @@ void Qt_Chess::applyCheckHighlight(const QPoint& excludeSquare) {
         if (kingPos.x() >= 0 && kingPos.y() >= 0 && kingPos != excludeSquare) {
             int logicalRow = kingPos.y();
             int logicalCol = kingPos.x();
-            int displayRow = getDisplayRow(logicalRow);
-            int displayCol = getDisplayCol(logicalCol);
+            int displayRow, displayCol;
+            getGravityDisplayCoords(logicalRow, logicalCol, displayRow, displayCol);
             QString textColor = getPieceTextColor(logicalRow, logicalCol);
             m_squares[displayRow][displayCol]->setStyleSheet(
                 QString("QPushButton { background-color: rgba(255, 80, 80, 0.85); border: 2px solid #FF3333; color: %1; }").arg(textColor)
@@ -2278,8 +2278,8 @@ void Qt_Chess::applyLastMoveHighlight() {
     }
     
     // 高亮「從」格子（黃色）
-    int fromDisplayRow = getDisplayRow(m_lastMoveFrom.y());
-    int fromDisplayCol = getDisplayCol(m_lastMoveFrom.x());
+    int fromDisplayRow, fromDisplayCol;
+    getGravityDisplayCoords(m_lastMoveFrom.y(), m_lastMoveFrom.x(), fromDisplayRow, fromDisplayCol);
     bool fromIsLight = (m_lastMoveFrom.y() + m_lastMoveFrom.x()) % 2 == 0;
     QString fromColor = fromIsLight ? LAST_MOVE_LIGHT_COLOR : LAST_MOVE_DARK_COLOR;
     QString fromTextColor = getPieceTextColor(m_lastMoveFrom.y(), m_lastMoveFrom.x());
@@ -2288,8 +2288,8 @@ void Qt_Chess::applyLastMoveHighlight() {
     );
     
     // 高亮「到」格子（黃色）
-    int toDisplayRow = getDisplayRow(m_lastMoveTo.y());
-    int toDisplayCol = getDisplayCol(m_lastMoveTo.x());
+    int toDisplayRow, toDisplayCol;
+    getGravityDisplayCoords(m_lastMoveTo.y(), m_lastMoveTo.x(), toDisplayRow, toDisplayCol);
     bool toIsLight = (m_lastMoveTo.y() + m_lastMoveTo.x()) % 2 == 0;
     QString toColor = toIsLight ? LAST_MOVE_LIGHT_COLOR : LAST_MOVE_DARK_COLOR;
     QString toTextColor = getPieceTextColor(m_lastMoveTo.y(), m_lastMoveTo.x());
