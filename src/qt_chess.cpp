@@ -1978,8 +1978,11 @@ void Qt_Chess::updateBoard() {
     
     for (int logicalRow = 0; logicalRow < 8; ++logicalRow) {
         for (int logicalCol = 0; logicalCol < 8; ++logicalCol) {
-            int displayRow = getDisplayRow(logicalRow);
-            int displayCol = getDisplayCol(logicalCol);
+            int displayRow, displayCol;
+            
+            // 使用重力模式座標轉換（如果啟用）
+            getGravityDisplayCoords(logicalRow, logicalCol, displayRow, displayCol);
+            
             const ChessPiece& piece = m_chessBoard.getPiece(logicalRow, logicalCol);
             displayPieceOnSquare(m_squares[displayRow][displayCol], piece);
             updateSquareColor(displayRow, displayCol);
@@ -2309,6 +2312,31 @@ int Qt_Chess::getLogicalRow(int displayRow) const {
 
 int Qt_Chess::getLogicalCol(int displayCol) const {
     return m_isBoardFlipped ? (7 - displayCol) : displayCol;
+}
+
+// 重力模式座標轉換：將邏輯座標轉換為考慮旋轉的顯示座標
+void Qt_Chess::getGravityDisplayCoords(int logicalRow, int logicalCol, int& displayRow, int& displayCol) const {
+    if (!m_gravityModeEnabled) {
+        // 無重力模式，使用標準轉換
+        displayRow = getDisplayRow(logicalRow);
+        displayCol = getDisplayCol(logicalCol);
+        return;
+    }
+    
+    // 檢查是否為房客（270度旋轉）
+    bool isGuest = m_networkManager && m_networkManager->getRole() == NetworkRole::Guest;
+    
+    if (isGuest) {
+        // 房客：270度順時針旋轉
+        // 公式：displayRow = 7 - logicalCol, displayCol = logicalRow
+        displayRow = 7 - logicalCol;
+        displayCol = logicalRow;
+    } else {
+        // 房主：90度順時針旋轉
+        // 公式：displayRow = logicalCol, displayCol = 7 - logicalRow
+        displayRow = logicalCol;
+        displayCol = 7 - logicalRow;
+    }
 }
 
 QPoint Qt_Chess::getSquareAtPosition(const QPoint& pos) const {

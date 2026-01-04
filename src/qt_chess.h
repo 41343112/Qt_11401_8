@@ -390,6 +390,9 @@ private:
     int getDisplayCol(int logicalCol) const;
     int getLogicalRow(int displayRow) const;
     int getLogicalCol(int displayCol) const;
+    
+    // 重力模式座標轉換 (Gravity Mode Coordinate Transformation)
+    void getGravityDisplayCoords(int logicalRow, int logicalCol, int& displayRow, int& displayCol) const;
     QPoint getSquareAtPosition(const QPoint& pos) const;
     
     // 棋盤輔助功能
