@@ -7101,47 +7101,12 @@ void Qt_Chess::onStartGameReceived(int whiteTimeMs, int blackTimeMs, int increme
     
     // 如果啟用地吸引力模式，在更新棋盤前先應用旋轉
     // 順序：重力已在前面應用 → 現在應用旋轉 → 最後更新棋盤顯示
+    // 地吸引力模式：所有玩家都看到相同的棋盤方向（白色在左，黑色在右）
     if (m_gravityModeEnabled) {
-        // 檢查是否為房客（連接端）需要270度旋轉
-        bool isGuest = m_networkManager && m_networkManager->getRole() == NetworkRole::Guest;
-        
-        if (isGuest) {
-            // 房客需要270度旋轉（= -90度 = 3×90度）
-            // 由於 rotateBoardDisplay 的實現限制，我們需要手動實現270度旋轉
-            // 270度順時針 = 90度逆時針
-            // 公式：newRow = 7 - oldCol, newCol = oldRow
-            if (m_boardWidget) {
-                QGridLayout* gridLayout = qobject_cast<QGridLayout*>(m_boardWidget->layout());
-                if (gridLayout) {
-                    qDebug() << "[Qt_Chess::onStartGameReceived] Guest: Applying 270-degree rotation";
-                    
-                    // 創建臨時數組保存當前佈局
-                    std::vector<std::vector<QPushButton*>> tempSquares(8, std::vector<QPushButton*>(8));
-                    
-                    for (int row = 0; row < 8; ++row) {
-                        for (int col = 0; col < 8; ++col) {
-                            tempSquares[row][col] = m_squares[row][col];
-                            gridLayout->removeWidget(m_squares[row][col]);
-                        }
-                    }
-                    
-                    // 270度順時針旋轉
-                    for (int oldRow = 0; oldRow < 8; ++oldRow) {
-                        for (int oldCol = 0; oldCol < 8; ++oldCol) {
-                            int newRow = 7 - oldCol;
-                            int newCol = oldRow;
-                            gridLayout->addWidget(tempSquares[oldRow][oldCol], newRow, newCol);
-                        }
-                    }
-                    
-                    gridLayout->update();
-                    m_boardWidget->update();
-                }
-            }
-        } else {
-            // 房主：標準90度旋轉
-            rotateBoardDisplay(true);
-        }
+        // 所有玩家都使用標準90度旋轉，使白色棋子在左側，黑色棋子在右側
+        // 不論玩家選擇執白或執黑，棋盤方向保持一致
+        rotateBoardDisplay(true);
+        qDebug() << "[Qt_Chess::onStartGameReceived] Gravity mode: Applying standard 90-degree rotation for all players";
         
         // 顯示玩家顏色指示器（地吸引力模式）
         if (m_playerColorLabel) {
