@@ -422,16 +422,7 @@ void Qt_Chess::setupUI() {
     colorFont.setPointSize(20);
     colorFont.setBold(true);
     m_playerColorLabel->setFont(colorFont);
-    m_playerColorLabel->setStyleSheet(QString(
-        "QLabel { "
-        "  color: %1; "
-        "  padding: 6px; "
-        "  background-color: %2; "
-        "  border: 1px solid %3; "
-        "  border-radius: 4px; "
-        "  margin: 5px 0px; "
-        "}"
-    ).arg(THEME_ACCENT_PRIMARY, THEME_BG_PANEL, THEME_BORDER));
+    // 樣式會在顯示時根據玩家顏色動態設定
     m_playerColorLabel->hide();  // 初始隱藏
     moveListLayout->addWidget(m_playerColorLabel);
 
@@ -7125,9 +7116,37 @@ void Qt_Chess::onStartGameReceived(int whiteTimeMs, int blackTimeMs, int increme
                 playerColor = isHost ? hostColor : guestColor;
             }
             
-            // 設定標籤文字
-            QString colorText = (playerColor == PieceColor::White) ? "♔ 玩家：白方" : "♚ 玩家：黑方";
-            m_playerColorLabel->setText(colorText);
+            // 根據玩家顏色設定標籤文字和樣式
+            if (playerColor == PieceColor::White) {
+                // 白方：白色方塊，黑色文字
+                m_playerColorLabel->setText("白方");
+                m_playerColorLabel->setStyleSheet(
+                    "QLabel { "
+                    "  color: #000000; "
+                    "  background-color: #FFFFFF; "
+                    "  border: 2px solid #333333; "
+                    "  border-radius: 4px; "
+                    "  padding: 20px 10px; "
+                    "  margin: 5px 0px; "
+                    "  font-weight: bold; "
+                    "}"
+                );
+            } else {
+                // 黑方：黑色方塊，白色文字
+                m_playerColorLabel->setText("黑方");
+                m_playerColorLabel->setStyleSheet(
+                    "QLabel { "
+                    "  color: #FFFFFF; "
+                    "  background-color: #000000; "
+                    "  border: 2px solid #666666; "
+                    "  border-radius: 4px; "
+                    "  padding: 20px 10px; "
+                    "  margin: 5px 0px; "
+                    "  font-weight: bold; "
+                    "}"
+                );
+            }
+            
             m_playerColorLabel->show();
             
             QString colorName = (playerColor == PieceColor::White) ? "白方" : "黑方";
