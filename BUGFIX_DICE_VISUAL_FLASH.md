@@ -7,25 +7,25 @@
 
 **Translation**: "Dice mode: When it's my turn and I place a piece, the dice will flash/blink, and the timer will also briefly go to the opponent's side before returning to mine. Although the functionality is not wrong, the visual experience is very poor."
 
-**Follow-up Comment**: "他會每步都先切換過去 這樣導致我每下一步棋 我的骰子就會先切換過去在切換回來 時間也是這樣 觀感不好"
+**Follow-up Comment**: "骰子以解決 但是時間顯示還是會每下一步都先切過去在切回來"
 
-**Translation**: "It switches over with every step, which causes my dice to switch over and back every time I make a move, the time is also like this, the viewing experience is not good."
+**Translation**: "The dice is solved, but the time display still switches over and back with every move."
 
 ## Problem Analysis
 
 ### Visual Issue Description
 
 When a player makes a move during their dice turn in online dice mode:
-1. The dice panel briefly shows "⏸️ 對手回合" (opponent's turn)
-2. The timer display briefly shows it's the opponent's turn
-3. Then immediately corrects back to show "🎲 輪到我" (my turn)
+1. ~~The dice panel briefly shows "⏸️ 對手回合" (opponent's turn)~~ ✅ **FIXED**
+2. The timer highlight briefly switches to opponent (green → gray → green)
+3. ~~Then immediately corrects back to show "🎲 輪到我" (my turn)~~ ✅ **FIXED**
 4. This creates a poor visual experience despite the game logic working correctly
 
-### Root Cause - Two Sources of Flash
+### Root Cause - Three Sources of Flash
 
-The flash/flicker occurs from **TWO different sources**:
+The flash/flicker occurs from **THREE different sources**:
 
-#### Source 1: updateStatus() Called Too Early
+#### Source 1: updateStatus() Called Too Early ✅ FIXED
 
 #### Source 1: updateStatus() Called Too Early
 
