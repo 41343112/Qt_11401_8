@@ -7031,13 +7031,22 @@ void Qt_Chess::onStartGameReceived(int whiteTimeMs, int blackTimeMs, int increme
         }
     }
     
-    // 檢查是否有任何特殊遊戲模式啟用
-    bool hasSpecialGameMode = m_fogOfWarEnabled || m_gravityModeEnabled || 
-                              m_teleportModeEnabled || m_diceModeEnabled ||
-                              (m_selectedGameModes.contains(GAME_MODE_BOMB) && m_selectedGameModes[GAME_MODE_BOMB]);
+    // 檢查是否應該顯示棋譜記錄
+    // 只有一般模式（無特殊模式）或僅霧戰模式時才顯示棋譜記錄
+    bool hasBombMode = m_selectedGameModes.contains(GAME_MODE_BOMB) && m_selectedGameModes[GAME_MODE_BOMB];
+    bool hasOtherSpecialModes = m_gravityModeEnabled || m_teleportModeEnabled || 
+                                 m_diceModeEnabled || hasBombMode;
     
-    // 如果有特殊遊戲模式，隱藏棋譜相關元件
-    if (hasSpecialGameMode) {
+    // 顯示棋譜的條件：一般模式（無特殊模式）或僅啟用霧戰模式
+    bool shouldShowMoveRecord = !hasOtherSpecialModes;
+    
+    if (shouldShowMoveRecord) {
+        // 顯示棋譜相關元件（一般模式或僅霧戰模式）
+        if (m_moveListTitle) m_moveListTitle->show();
+        if (m_moveListWidget) m_moveListWidget->show();
+        // 注意：PGN按鈕和回放按鈕在其他地方控制顯示/隱藏
+    } else {
+        // 隱藏棋譜相關元件（其他特殊遊戲模式組合）
         if (m_moveListTitle) m_moveListTitle->hide();
         if (m_moveListWidget) m_moveListWidget->hide();
         if (m_exportPGNButton) m_exportPGNButton->hide();
@@ -7047,10 +7056,6 @@ void Qt_Chess::onStartGameReceived(int whiteTimeMs, int blackTimeMs, int increme
         if (m_replayPrevButton) m_replayPrevButton->hide();
         if (m_replayNextButton) m_replayNextButton->hide();
         if (m_replayLastButton) m_replayLastButton->hide();
-    } else {
-        if (m_moveListTitle) m_moveListTitle->show();
-        if (m_moveListWidget) m_moveListWidget->show();
-        // 注意：PGN按鈕和回放按鈕在其他地方控制顯示/隱藏
     }
     
     // 如果啟用地吸引力模式，在更新棋盤前先應用旋轉
