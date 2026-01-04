@@ -419,7 +419,7 @@ void Qt_Chess::setupUI() {
     m_playerColorLabel = new QLabel("", m_moveListPanel);
     m_playerColorLabel->setAlignment(Qt::AlignCenter);
     QFont colorFont;
-    colorFont.setPointSize(11);
+    colorFont.setPointSize(20);
     colorFont.setBold(true);
     m_playerColorLabel->setFont(colorFont);
     m_playerColorLabel->setStyleSheet(QString(
