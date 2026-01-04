@@ -6677,6 +6677,10 @@ void Qt_Chess::onOpponentMove(const QPoint& from, const QPoint& to, PieceType pr
             applyFinalPosition(to, finalPosition);
         }
         
+        // 記錄對手的移動用於高亮顯示
+        m_lastMoveFrom = from;
+        m_lastMoveTo = finalPosition.x() >= 0 ? finalPosition : to;  // 如果有傳送，使用最終位置
+        
         updateBoard();
         updateStatus();
         updateMoveList();
@@ -8834,6 +8838,39 @@ void Qt_Chess::calculateVisibleSquares(PieceColor playerColor) {
                 
                 // 恢復原來的玩家
                 const_cast<ChessBoard&>(m_chessBoard).setCurrentPlayer(savedPlayer);
+            }
+        }
+    }
+    
+    // 如果玩家的王被將軍，讓所有攻擊王的對方棋子可見
+    if (m_chessBoard.isInCheck(playerColor)) {
+        QPoint kingPos = m_chessBoard.findKing(playerColor);
+        if (kingPos.x() >= 0 && kingPos.y() >= 0) {
+            PieceColor opponentColor = (playerColor == PieceColor::White) ? PieceColor::Black : PieceColor::White;
+            
+            // 遍歷所有對方棋子
+            for (int row = 0; row < 8; ++row) {
+                for (int col = 0; col < 8; ++col) {
+                    const ChessPiece& piece = m_chessBoard.getPiece(row, col);
+                    
+                    // 如果是對方的棋子
+                    if (piece.getColor() == opponentColor && piece.getType() != PieceType::None) {
+                        QPoint from(col, row);
+                        
+                        // 暫時改變當前玩家以檢查對方棋子的攻擊範圍
+                        PieceColor savedPlayer = m_chessBoard.getCurrentPlayer();
+                        const_cast<ChessBoard&>(m_chessBoard).setCurrentPlayer(opponentColor);
+                        
+                        // 檢查該對方棋子是否能攻擊王
+                        if (m_chessBoard.isValidMove(from, kingPos)) {
+                            // 讓攻擊王的對方棋子可見
+                            m_visibleSquares[row][col] = true;
+                        }
+                        
+                        // 恢復原來的玩家
+                        const_cast<ChessBoard&>(m_chessBoard).setCurrentPlayer(savedPlayer);
+                    }
+                }
             }
         }
     }
