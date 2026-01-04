@@ -6900,6 +6900,7 @@ void Qt_Chess::onStartGameReceived(int whiteTimeMs, int blackTimeMs, int increme
     // 根據房主選擇的顏色決定棋盤翻轉和玩家顏色
     // 如果房主選擇黑色，則房主的棋盤翻轉，房客的棋盤不翻轉
     // 如果房主選擇白色，則房主的棋盤不翻轉，房客的棋盤翻轉
+    // 注意：地吸引力模式下，棋盤翻轉邏輯會被覆蓋，所有玩家都使用相同方向
     if (m_networkManager && m_networkManager->getRole() == NetworkRole::Guest) {
         // 房客的棋盤翻轉與房主相反
         m_isBoardFlipped = (hostColor == PieceColor::White);
@@ -7103,10 +7104,14 @@ void Qt_Chess::onStartGameReceived(int whiteTimeMs, int blackTimeMs, int increme
     // 順序：重力已在前面應用 → 現在應用旋轉 → 最後更新棋盤顯示
     // 地吸引力模式：所有玩家都看到相同的棋盤方向（白色在左，黑色在右）
     if (m_gravityModeEnabled) {
+        // 地吸引力模式下，禁用棋盤翻轉，確保所有玩家看到相同的棋盤方向
+        m_isBoardFlipped = false;
+        saveBoardFlipSettings();
+        
         // 所有玩家都使用標準90度旋轉，使白色棋子在左側，黑色棋子在右側
         // 不論玩家選擇執白或執黑，棋盤方向保持一致
         rotateBoardDisplay(true);
-        qDebug() << "[Qt_Chess::onStartGameReceived] Gravity mode: Applying standard 90-degree rotation for all players";
+        qDebug() << "[Qt_Chess::onStartGameReceived] Gravity mode: Disabled board flip, applying standard 90-degree rotation for all players";
         
         // 顯示玩家顏色指示器（地吸引力模式）
         if (m_playerColorLabel) {
