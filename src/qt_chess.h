@@ -157,6 +157,15 @@ private:
     QPushButton* m_backToMenuButton;     // 返回主選單按鈕
     
     // ========================================
+    // UI 元件 - 設定面板 (UI Components - Settings Panel)
+    // ========================================
+    QWidget* m_settingsWidget;           // 設定面板容器
+    QPushButton* m_settingsSoundButton;  // 音效設定按鈕
+    QPushButton* m_settingsPieceIconButton; // 棋子圖標設定按鈕
+    QPushButton* m_settingsBoardColorButton; // 棋盤顏色設定按鈕
+    QPushButton* m_settingsBackButton;   // 返回主選單按鈕
+    
+    // ========================================
     // 時間控制系統 (Time Control System)
     // ========================================
     QWidget* m_timeControlPanel;         // 時間控制設定面板
@@ -361,6 +370,7 @@ private:
     void setupUI();
     void setupMenuBar();
     void setupMainMenu();
+    void setupSettingsPanel();
     void setupTimeControlUI(QVBoxLayout* timeControlPanelLayout);
     void setupEngineUI(QVBoxLayout* layout);
     void updateSquareSizes();
@@ -372,6 +382,7 @@ private:
     // ========================================
     void showMainMenu();
     void showGameContent();
+    void showSettingsPanel();
     void resetGameState();
     
     // ========================================
