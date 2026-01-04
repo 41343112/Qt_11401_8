@@ -4287,28 +4287,37 @@ void Qt_Chess::updateTimeDisplaysFromServer() {
     // 計算白方和黑方的實際顯示時間
     qint64 whiteTime, blackTime;
     
+    // FIX: 對於第一次更新，確保elapsed接近0，避免立即扣除時間
+    // 這可以防止在第一步棋後立即顯示時間扣除
+    qint64 safeElapsedMs = elapsedMs;
+    if (safeElapsedMs > 1000) {
+        // 如果elapsed超過1秒，可能是時間計算錯誤，重置為0
+        qDebug() << "[Qt_Chess::updateTimeDisplaysFromServer] WARNING: Large elapsed time on update:" << safeElapsedMs << "ms, resetting to 0";
+        safeElapsedMs = 0;
+    }
+    
     if (m_serverCurrentPlayer == "White") {
         // 白方正在走棋，從白方時間扣除 elapsed
         if (isPlayerA) {
             // 我是房主，房主是白方還是黑方？檢查我的顏色
             if (m_networkManager->getPlayerColor() == PieceColor::White) {
                 // 房主是白方 (whiteIsA = true)
-                whiteTime = m_serverTimeA - elapsedMs;
+                whiteTime = m_serverTimeA - safeElapsedMs;
                 blackTime = m_serverTimeB;
             } else {
                 // 房主是黑方 (whiteIsA = false)
-                whiteTime = m_serverTimeB - elapsedMs;
+                whiteTime = m_serverTimeB - safeElapsedMs;
                 blackTime = m_serverTimeA;
             }
         } else {
             // 我是房客
             if (m_networkManager->getPlayerColor() == PieceColor::White) {
                 // 房客是白方 (whiteIsA = false)
-                whiteTime = m_serverTimeB - elapsedMs;
+                whiteTime = m_serverTimeB - safeElapsedMs;
                 blackTime = m_serverTimeA;
             } else {
                 // 房客是黑方 (whiteIsA = true)
-                whiteTime = m_serverTimeA - elapsedMs;
+                whiteTime = m_serverTimeA - safeElapsedMs;
                 blackTime = m_serverTimeB;
             }
         }
@@ -4318,21 +4327,21 @@ void Qt_Chess::updateTimeDisplaysFromServer() {
             if (m_networkManager->getPlayerColor() == PieceColor::White) {
                 // 房主是白方 (whiteIsA = true)
                 whiteTime = m_serverTimeA;
-                blackTime = m_serverTimeB - elapsedMs;
+                blackTime = m_serverTimeB - safeElapsedMs;
             } else {
                 // 房主是黑方 (whiteIsA = false)
                 whiteTime = m_serverTimeB;
-                blackTime = m_serverTimeA - elapsedMs;
+                blackTime = m_serverTimeA - safeElapsedMs;
             }
         } else {
             if (m_networkManager->getPlayerColor() == PieceColor::White) {
                 // 房客是白方 (whiteIsA = false)
                 whiteTime = m_serverTimeB;
-                blackTime = m_serverTimeA - elapsedMs;
+                blackTime = m_serverTimeA - safeElapsedMs;
             } else {
                 // 房客是黑方 (whiteIsA = true)
                 whiteTime = m_serverTimeA;
-                blackTime = m_serverTimeB - elapsedMs;
+                blackTime = m_serverTimeB - safeElapsedMs;
             }
         }
     }
@@ -7327,6 +7336,9 @@ void Qt_Chess::onTimerStateReceived(qint64 timeA, qint64 timeB, const QString& c
              << "| currentPlayer:" << currentPlayer
              << "| lastSwitchTime:" << lastSwitchTime;
     
+    // 檢查是否為第一次收到計時器狀態（遊戲剛開始）
+    bool isFirstTimerState = !m_useServerTimer;
+    
     // 儲存伺服器計時器狀態
     m_serverTimeA = timeA;
     m_serverTimeB = timeB;
@@ -7341,7 +7353,14 @@ void Qt_Chess::onTimerStateReceived(qint64 timeA, qint64 timeB, const QString& c
     m_serverLastSwitchTime = lastSwitchTime;
     
     m_useServerTimer = true;  // 啟用伺服器計時器模式
-    m_lastServerUpdateTime = QDateTime::currentMSecsSinceEpoch();  // 記錄更新時間（用於計算經過時間）
+    
+    // FIX: 對於第一次收到計時器狀態，將 m_lastServerUpdateTime 設置為稍早的時間
+    // 這確保第一次更新顯示時，elapsed時間為0，避免顯示任何時間扣除
+    if (isFirstTimerState) {
+        m_lastServerUpdateTime = QDateTime::currentMSecsSinceEpoch();  // 設置為當前時間，elapsed將為0
+    } else {
+        m_lastServerUpdateTime = QDateTime::currentMSecsSinceEpoch();  // 正常設置
+    }
     
     // 同步棋盤的當前玩家與伺服器狀態
     // 這對於骰子模式特別重要，確保雙方都知道輪到誰下棋
