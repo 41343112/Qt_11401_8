@@ -681,6 +681,10 @@ QString ChessBoard::getGameResultString() const {
             return "0-1";  // 白方認輸，黑方獲勝
         case GameResult::BlackResigns:
             return "1-0";  // 黑方認輸，白方獲勝
+        case GameResult::WhiteTimeout:
+            return "0-1";  // 白方超時，黑方獲勝
+        case GameResult::BlackTimeout:
+            return "1-0";  // 黑方超時，白方獲勝
         case GameResult::InProgress:
         default:
             return "*";
