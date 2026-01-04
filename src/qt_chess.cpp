@@ -4195,6 +4195,10 @@ void Qt_Chess::updateTimeDisplaysFromServer() {
     qint64 elapsedMs = 0;
     if (m_serverLastSwitchTime > 0) {
         elapsedMs = currentUnixTimeMs - m_serverLastSwitchTime;
+        // 處理網路延遲：如果elapsed為負數（訊息還在傳輸中），設為0
+        if (elapsedMs < 0) {
+            elapsedMs = 0;
+        }
     }
     
     // 確定我是玩家 A (房主) 還是玩家 B (房客)
