@@ -6607,6 +6607,10 @@ void Qt_Chess::onOpponentMove(const QPoint& from, const QPoint& to, PieceType pr
     
     qDebug() << "[Qt_Chess::onOpponentMove] Current player before move:" << (int)currentPlayerBefore;
     
+    // 在執行移動之前檢測移動類型（用於播放正確的音效）
+    bool isCapture = isCaptureMove(from, to);
+    bool isCastling = isCastlingMove(from, to);
+    
     // 直接移動對手的棋子，movePiece 會驗證並自動切換回合
     if (m_chessBoard.movePiece(from, to)) {
         PieceColor currentPlayerAfter = m_chessBoard.getCurrentPlayer();
@@ -6727,9 +6731,7 @@ void Qt_Chess::onOpponentMove(const QPoint& from, const QPoint& to, PieceType pr
         repaint();
         QApplication::processEvents();
         
-        // 播放音效
-        bool isCapture = isCaptureMove(from, to);
-        bool isCastling = isCastlingMove(from, to);
+        // 播放音效（使用之前檢測的移動類型）
         playSoundForMove(isCapture, isCastling);
         
         // 檢查將軍
