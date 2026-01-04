@@ -2629,10 +2629,16 @@ void Qt_Chess::onSquareClicked(int displayRow, int displayCol) {
             // 播放適當的音效
             playSoundForMove(isCapture, isCastling);
 
-            // 更新時間顯示（計時器僅在已啟動時運行）
-            updateTimeDisplays();
-
-            updateStatus();
+            // 在骰子模式下，延遲 updateTimeDisplays() 和 updateStatus() 直到骰子邏輯確定最終玩家狀態
+            // 原因：movePiece() 會自動切換玩家，但在骰子模式下，如果還有剩餘移動次數，
+            // 玩家會被切換回來。如果我們在這裡立即調用這些更新函數，UI 會短暫顯示
+            // 對手的回合（包括計時器高亮和狀態），然後再切換回來，造成閃爍。
+            // 因此，我們延遲到骰子邏輯完成後再更新。
+            // 非骰子模式或本地遊戲則立即更新（保持原有行為）。
+            if (!m_diceModeEnabled || !m_isOnlineGame) {
+                updateTimeDisplays();
+                updateStatus();
+            }
             
             // 骰子模式：檢查是否會造成將軍中斷（在發送移動之前）
             bool willCauseCheckInterruption = false;
@@ -2709,6 +2715,11 @@ void Qt_Chess::onSquareClicked(int displayRow, int displayCol) {
                         qDebug() << "[Qt_Chess] Checkmate already handled by updateStatus(), skipping duplicate dialog";
                     }
                     
+                    // 更新狀態以反映遊戲結束
+                    updateDiceDisplay();
+                    updateTimeDisplays();
+                    updateStatus();
+                    
                     // 無論是否已處理，都要發送遊戲結束訊息給對手
                     if (m_networkManager) {
                         QString result = (opponentColor == PieceColor::White) ? "0-1" : "1-0";
@@ -2743,11 +2754,15 @@ void Qt_Chess::onSquareClicked(int displayRow, int displayCol) {
                     updateDiceDisplay();
                     
                     // 回合已經自動切換到對手，保持這個狀態讓對手解決將軍
+                    updateTimeDisplays();
                     updateStatus();
                     
                 } else if (allRolledPiecesMoved()) {
                     qDebug() << "[Qt_Chess] All rolled pieces moved, switching turn";
                     // 所有骰子都移動完畢，正常切換回合（棋盤會自動切換玩家）
+                    updateDiceDisplay();
+                    updateTimeDisplays();
+                    updateStatus();
                 } else {
                     // 還有骰子未移動，保持當前玩家回合
                     // 需要撤銷棋盤自動切換的玩家
@@ -2756,6 +2771,8 @@ void Qt_Chess::onSquareClicked(int displayRow, int displayCol) {
                     m_chessBoard.setCurrentPlayer(previousPlayer);
                     qDebug() << "[Qt_Chess] Dice moves remaining:" << m_diceMovesRemaining << ", keeping same player";
                     
+                    updateDiceDisplay();
+                    updateTimeDisplays();
                     updateStatus();
                 }
             }
@@ -3867,10 +3884,16 @@ void Qt_Chess::mouseReleaseEvent(QMouseEvent *event) {
                 // 播放適當的音效
                 playSoundForMove(isCapture, isCastling);
 
-                // 更新 time displays (timer only runs if already started)
-                updateTimeDisplays();
-
-                updateStatus();
+                // 在骰子模式下，延遲 updateTimeDisplays() 和 updateStatus() 直到骰子邏輯確定最終玩家狀態
+                // 原因：movePiece() 會自動切換玩家，但在骰子模式下，如果還有剩餘移動次數，
+                // 玩家會被切換回來。如果我們在這裡立即調用這些更新函數，UI 會短暫顯示
+                // 對手的回合（包括計時器高亮和狀態），然後再切換回來，造成閃爍。
+                // 因此，我們延遲到骰子邏輯完成後再更新。
+                // 非骰子模式或本地遊戲則立即更新（保持原有行為）。
+                if (!m_diceModeEnabled || !m_isOnlineGame) {
+                    updateTimeDisplays();
+                    updateStatus();
+                }
                 clearHighlights();
                 
                 // 骰子模式：檢查是否會造成將軍中斷（在發送移動之前）
@@ -3948,6 +3971,11 @@ void Qt_Chess::mouseReleaseEvent(QMouseEvent *event) {
                             qDebug() << "[Qt_Chess] Checkmate already handled by updateStatus() (drag), skipping duplicate dialog";
                         }
                         
+                        // 更新狀態以反映遊戲結束
+                        updateDiceDisplay();
+                        updateTimeDisplays();
+                        updateStatus();
+                        
                         // 無論是否已處理，都要發送遊戲結束訊息給對手
                         if (m_networkManager) {
                             QString result = (opponentColor == PieceColor::White) ? "0-1" : "1-0";
@@ -3982,11 +4010,15 @@ void Qt_Chess::mouseReleaseEvent(QMouseEvent *event) {
                         updateDiceDisplay();
                         
                         // 回合已經自動切換到對手，保持這個狀態讓對手解決將軍
+                        updateTimeDisplays();
                         updateStatus();
                         
                     } else if (allRolledPiecesMoved()) {
                         qDebug() << "[Qt_Chess] All rolled pieces moved (drag), switching turn";
                         // 所有骰子都移動完畢，正常切換回合（棋盤會自動切換玩家）
+                        updateDiceDisplay();
+                        updateTimeDisplays();
+                        updateStatus();
                     } else {
                         // 還有骰子未移動，保持當前玩家回合
                         // 需要撤銷棋盤自動切換的玩家
@@ -3995,6 +4027,8 @@ void Qt_Chess::mouseReleaseEvent(QMouseEvent *event) {
                         m_chessBoard.setCurrentPlayer(previousPlayer);
                         qDebug() << "[Qt_Chess] Dice moves remaining (drag):" << m_diceMovesRemaining << ", keeping same player";
                         
+                        updateDiceDisplay();
+                        updateTimeDisplays();
                         updateStatus();
                     }
                 }
@@ -9605,7 +9639,8 @@ void Qt_Chess::markPieceTypeAsMoved(PieceType type) {
             m_rolledPieceTypeCounts[i]--;
             m_diceMovesRemaining--;
             qDebug() << "[Qt_Chess::markPieceTypeAsMoved] Marked dice" << (i + 1) << "as moved. Remaining:" << m_diceMovesRemaining;
-            updateDiceDisplay();
+            // 注意：不在這裡調用 updateDiceDisplay()，因為此時玩家可能還沒有被最終確定
+            // updateDiceDisplay() 會在玩家狀態確定後由調用方統一調用
             return;
         }
     }
