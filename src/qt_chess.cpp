@@ -166,8 +166,10 @@ Qt_Chess::Qt_Chess(QWidget *parent)
     , m_requestDrawButton(nullptr)
     , m_exitButton(nullptr)
     , m_boardButtonPanel(nullptr)
+    , m_bgmToggleButton(nullptr)
     , m_boardWidget(nullptr)
     , m_menuBar(nullptr)
+    , m_toggleBgmAction(nullptr)
     , m_gameStarted(false)
     , m_isBoardFlipped(false)
     , m_lastMoveFrom(-1, -1)
@@ -342,13 +344,13 @@ Qt_Chess::Qt_Chess(QWidget *parent)
     connect(m_updateChecker, &UpdateChecker::updateCheckFailed, 
             this, &Qt_Chess::onUpdateCheckFailed);
     
-    // 啟動後自動檢查更新（延遲以免干擾啟動動畫）
+    // 啟動後自動檢查更新
     QTimer::singleShot(UPDATE_CHECK_DELAY_MS, this, [this]() {
         m_updateChecker->checkForUpdates();
     });
     
-    // 在視窗顯示後播放啟動動畫
-    QTimer::singleShot(100, this, &Qt_Chess::playStartupAnimation);
+    // 啟動動畫已移除（根據用戶要求）
+    // QTimer::singleShot(100, this, &Qt_Chess::playStartupAnimation);
 }
 
 Qt_Chess::~Qt_Chess()
@@ -722,6 +724,33 @@ void Qt_Chess::setupUI() {
     connect(m_exitButton, &QPushButton::clicked, this, &Qt_Chess::onExitClicked);
     boardButtonLayout->addWidget(m_exitButton);
     
+    // 背景音樂開關按鈕 - 始終可見
+    m_bgmToggleButton = new QPushButton(m_bgmEnabled ? "🎵 音樂" : "🔇 音樂", m_boardButtonPanel);
+    m_bgmToggleButton->setMinimumHeight(45);
+    m_bgmToggleButton->setMinimumWidth(100);
+    QFont bgmButtonFont;
+    bgmButtonFont.setPointSize(12);
+    bgmButtonFont.setBold(true);
+    m_bgmToggleButton->setFont(bgmButtonFont);
+    m_bgmToggleButton->setStyleSheet(QString(
+        "QPushButton { "
+        "  background-color: %1; "
+        "  color: %2; "
+        "  border: 1px solid %3; "
+        "  border-radius: 4px; "
+        "  padding: 8px; "
+        "}"
+        "QPushButton:hover { "
+        "  background-color: %4; "
+        "  border-color: %2; "
+        "}"
+        "QPushButton:pressed { "
+        "  background-color: %3; "
+        "}"
+    ).arg(THEME_BG_PANEL, THEME_TEXT_PRIMARY, THEME_BORDER, THEME_BG_DARK));
+    connect(m_bgmToggleButton, &QPushButton::clicked, this, &Qt_Chess::onToggleBackgroundMusicClicked);
+    boardButtonLayout->addWidget(m_bgmToggleButton);
+    
     boardContainerVLayout->addWidget(m_boardButtonPanel, 0);
 
     // 遊戲結束時我方的時間和吃子紀錄面板（棋盤下方，初始隱藏）
@@ -907,11 +936,11 @@ void Qt_Chess::setupMenuBar() {
     settingsMenu->addSeparator();
     
     // 背景音樂開關動作
-    QAction* toggleBgmAction = new QAction("🎵 背景音樂", this);
-    toggleBgmAction->setCheckable(true);
-    toggleBgmAction->setChecked(m_bgmEnabled);
-    connect(toggleBgmAction, &QAction::triggered, this, &Qt_Chess::onToggleBackgroundMusicClicked);
-    settingsMenu->addAction(toggleBgmAction);
+    m_toggleBgmAction = new QAction("🎵 背景音樂", this);
+    m_toggleBgmAction->setCheckable(true);
+    m_toggleBgmAction->setChecked(m_bgmEnabled);
+    connect(m_toggleBgmAction, &QAction::triggered, this, &Qt_Chess::onToggleBackgroundMusicClicked);
+    settingsMenu->addAction(m_toggleBgmAction);
     
     // 說明選單
     QMenu* helpMenu = m_menuBar->addMenu("❓ 說明");
@@ -6751,7 +6780,7 @@ void Qt_Chess::onStartGameReceived(int whiteTimeMs, int blackTimeMs, int increme
     // 儲存伺服器時間偏移和遊戲開始時間，用於線上模式的時間同步
     m_serverTimeOffset = serverTimeOffset;
     m_gameStartLocalTime = QDateTime::currentMSecsSinceEpoch();
-    m_currentTurnStartTime = m_gameStartLocalTime + m_serverTimeOffset;  // 初始化當前回合開始時間（使用同步時間）
+    m_currentTurnStartTime = 0;  // 初始化為 0，等待第一步棋後再設定（避免計入思考時間）
     
     // 儲存從伺服器接收的遊戲模式設定
     m_selectedGameModes = gameModes;
@@ -7241,7 +7270,17 @@ void Qt_Chess::onTimerStateReceived(qint64 timeA, qint64 timeB, const QString& c
     m_serverTimeA = timeA;
     m_serverTimeB = timeB;
     m_serverCurrentPlayer = currentPlayer;
-    m_serverLastSwitchTime = lastSwitchTime;
+    
+    // 調整 lastSwitchTime 以補償網路延遲
+    // 如果 lastSwitchTime > 0（不是第一步棋），將其調整為當前時間
+    // 這樣可以避免將網路延遲計入玩家的思考時間
+    if (lastSwitchTime > 0) {
+        m_serverLastSwitchTime = QDateTime::currentMSecsSinceEpoch();
+        qDebug() << "[Qt_Chess::onTimerStateReceived] Adjusted lastSwitchTime to current time to compensate for network delay";
+    } else {
+        m_serverLastSwitchTime = lastSwitchTime;
+    }
+    
     m_useServerTimer = true;  // 啟用伺服器計時器模式
     m_lastServerUpdateTime = QDateTime::currentMSecsSinceEpoch();  // 記錄更新時間
     
@@ -8159,6 +8198,16 @@ void Qt_Chess::toggleBackgroundMusic() {
         startBackgroundMusic();
     } else {
         stopBackgroundMusic();
+    }
+    
+    // 更新背景音樂開關按鈕的文字和圖示
+    if (m_bgmToggleButton) {
+        m_bgmToggleButton->setText(m_bgmEnabled ? "🎵 音樂" : "🔇 音樂");
+    }
+    
+    // 更新選單項目的勾選狀態
+    if (m_toggleBgmAction) {
+        m_toggleBgmAction->setChecked(m_bgmEnabled);
     }
 }
 
