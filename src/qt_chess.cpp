@@ -4695,6 +4695,11 @@ void Qt_Chess::handleGameEnd() {
         // 更新棋盤顯示
         updateBoard();
     }
+    
+    // 如果啟用霧戰模式，遊戲結束時更新棋盤以移除霧
+    if (m_fogOfWarEnabled) {
+        updateBoard();
+    }
 
     // 隱藏認輸和請求和棋按鈕
     if (m_resignButton) {
