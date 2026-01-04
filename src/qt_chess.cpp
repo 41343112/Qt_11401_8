@@ -8848,27 +8848,31 @@ void Qt_Chess::calculateVisibleSquares(PieceColor playerColor) {
         if (kingPos.x() >= 0 && kingPos.y() >= 0) {
             PieceColor opponentColor = (playerColor == PieceColor::White) ? PieceColor::Black : PieceColor::White;
             
-            // 遍歷所有對方棋子
+            // 獲取棋盤數據用於 piece.isValidMove()（一次性複製，避免重複複製）
+            std::vector<std::vector<ChessPiece>> boardCopy;
+            for (int r = 0; r < 8; ++r) {
+                std::vector<ChessPiece> rowCopy;
+                for (int c = 0; c < 8; ++c) {
+                    rowCopy.push_back(m_chessBoard.getPiece(r, c));
+                }
+                boardCopy.push_back(rowCopy);
+            }
+            QPoint enPassantTarget = m_chessBoard.getEnPassantTarget();
+            
+            // 遍歷所有對方棋子，找出能攻擊王的棋子
             for (int row = 0; row < 8; ++row) {
                 for (int col = 0; col < 8; ++col) {
                     const ChessPiece& piece = m_chessBoard.getPiece(row, col);
                     
-                    // 如果是對方的棋子
+                    // 如果是對方的棋子，檢查是否能攻擊王
                     if (piece.getColor() == opponentColor && piece.getType() != PieceType::None) {
                         QPoint from(col, row);
                         
-                        // 暫時改變當前玩家以檢查對方棋子的攻擊範圍
-                        PieceColor savedPlayer = m_chessBoard.getCurrentPlayer();
-                        const_cast<ChessBoard&>(m_chessBoard).setCurrentPlayer(opponentColor);
-                        
-                        // 檢查該對方棋子是否能攻擊王
-                        if (m_chessBoard.isValidMove(from, kingPos)) {
+                        // 直接使用 ChessPiece 的 isValidMove 檢查（不需要改變 currentPlayer）
+                        if (piece.isValidMove(from, kingPos, boardCopy, enPassantTarget)) {
                             // 讓攻擊王的對方棋子可見
                             m_visibleSquares[row][col] = true;
                         }
-                        
-                        // 恢復原來的玩家
-                        const_cast<ChessBoard&>(m_chessBoard).setCurrentPlayer(savedPlayer);
                     }
                 }
             }
