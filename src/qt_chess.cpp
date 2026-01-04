@@ -255,6 +255,7 @@ Qt_Chess::Qt_Chess(QWidget *parent)
     , m_lastDrawRequestTime(0)
     , m_fogOfWarEnabled(false)
     , m_gravityModeEnabled(false)
+    , m_boardRotationDegrees(0)
     , m_teleportModeEnabled(false)
     , m_diceModeEnabled(false)
     , m_diceDisplayPanel(nullptr)
@@ -1978,8 +1979,27 @@ void Qt_Chess::updateBoard() {
     
     for (int logicalRow = 0; logicalRow < 8; ++logicalRow) {
         for (int logicalCol = 0; logicalCol < 8; ++logicalCol) {
-            int displayRow = getDisplayRow(logicalRow);
-            int displayCol = getDisplayCol(logicalCol);
+            int displayRow, displayCol;
+            
+            // 處理重力模式的旋轉
+            if (m_gravityModeEnabled && m_boardRotationDegrees != 0) {
+                if (m_boardRotationDegrees == 90) {
+                    // 90度順時針：newRow = oldCol, newCol = 7 - oldRow
+                    displayRow = logicalCol;
+                    displayCol = 7 - logicalRow;
+                } else if (m_boardRotationDegrees == 270) {
+                    // 270度順時針：newRow = 7 - oldCol, newCol = oldRow
+                    displayRow = 7 - logicalCol;
+                    displayCol = logicalRow;
+                } else {
+                    displayRow = getDisplayRow(logicalRow);
+                    displayCol = getDisplayCol(logicalCol);
+                }
+            } else {
+                displayRow = getDisplayRow(logicalRow);
+                displayCol = getDisplayCol(logicalCol);
+            }
+            
             const ChessPiece& piece = m_chessBoard.getPiece(logicalRow, logicalCol);
             displayPieceOnSquare(m_squares[displayRow][displayCol], piece);
             updateSquareColor(displayRow, displayCol);
@@ -4554,6 +4574,9 @@ void Qt_Chess::handleGameEnd() {
         // 恢復棋盤UI到正常佈局（無論房主或房客都使用相同的恢復邏輯）
         rotateBoardDisplay(false);
         
+        // 重置旋轉角度
+        m_boardRotationDegrees = 0;
+        
         // 更新棋盤顯示
         updateBoard();
     }
@@ -6838,6 +6861,7 @@ void Qt_Chess::onStartGameReceived(int whiteTimeMs, int blackTimeMs, int increme
         applyGravity();
     } else {
         m_gravityModeEnabled = false;
+        m_boardRotationDegrees = 0;
     }
     
     // 檢查是否啟用傳送陣模式
@@ -6914,6 +6938,7 @@ void Qt_Chess::onStartGameReceived(int whiteTimeMs, int blackTimeMs, int increme
             // 由於 rotateBoardDisplay 的實現限制，我們需要手動實現270度旋轉
             // 270度順時針 = 90度逆時針
             // 公式：newRow = 7 - oldCol, newCol = oldRow
+            m_boardRotationDegrees = 270;
             if (m_boardWidget) {
                 QGridLayout* gridLayout = qobject_cast<QGridLayout*>(m_boardWidget->layout());
                 if (gridLayout) {
@@ -6944,6 +6969,7 @@ void Qt_Chess::onStartGameReceived(int whiteTimeMs, int blackTimeMs, int increme
             }
         } else {
             // 房主：標準90度旋轉
+            m_boardRotationDegrees = 90;
             rotateBoardDisplay(true);
         }
     }
