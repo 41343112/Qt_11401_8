@@ -18,6 +18,7 @@ public:
 
 private:
     void setupUI();
+    void applyClassicalDialogStyle();
 
     QPushButton* m_okButton;
     QPushButton* m_cancelButton;
