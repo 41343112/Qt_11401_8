@@ -269,7 +269,6 @@ private:
     
     // 地吸引力模式相關 (Gravity Mode)
     bool m_gravityModeEnabled;           // 是否啟用地吸引力模式
-    int m_boardRotationDegrees;          // 棋盤旋轉角度（0, 90, 270）
     
     // 傳送陣模式相關 (Teleportation Mode)
     bool m_teleportModeEnabled;          // 是否啟用傳送陣模式
