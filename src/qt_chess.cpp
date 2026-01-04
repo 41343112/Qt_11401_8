@@ -2717,6 +2717,7 @@ void Qt_Chess::onSquareClicked(int displayRow, int displayCol) {
                     }
                     
                     // 更新狀態以反映遊戲結束
+                    updateDiceDisplay();
                     updateStatus();
                     
                     // 無論是否已處理，都要發送遊戲結束訊息給對手
@@ -2758,6 +2759,7 @@ void Qt_Chess::onSquareClicked(int displayRow, int displayCol) {
                 } else if (allRolledPiecesMoved()) {
                     qDebug() << "[Qt_Chess] All rolled pieces moved, switching turn";
                     // 所有骰子都移動完畢，正常切換回合（棋盤會自動切換玩家）
+                    updateDiceDisplay();
                     updateStatus();
                 } else {
                     // 還有骰子未移動，保持當前玩家回合
@@ -2767,6 +2769,7 @@ void Qt_Chess::onSquareClicked(int displayRow, int displayCol) {
                     m_chessBoard.setCurrentPlayer(previousPlayer);
                     qDebug() << "[Qt_Chess] Dice moves remaining:" << m_diceMovesRemaining << ", keeping same player";
                     
+                    updateDiceDisplay();
                     updateStatus();
                 }
             }
@@ -3967,6 +3970,7 @@ void Qt_Chess::mouseReleaseEvent(QMouseEvent *event) {
                         }
                         
                         // 更新狀態以反映遊戲結束
+                        updateDiceDisplay();
                         updateStatus();
                         
                         // 無論是否已處理，都要發送遊戲結束訊息給對手
@@ -4008,6 +4012,7 @@ void Qt_Chess::mouseReleaseEvent(QMouseEvent *event) {
                     } else if (allRolledPiecesMoved()) {
                         qDebug() << "[Qt_Chess] All rolled pieces moved (drag), switching turn";
                         // 所有骰子都移動完畢，正常切換回合（棋盤會自動切換玩家）
+                        updateDiceDisplay();
                         updateStatus();
                     } else {
                         // 還有骰子未移動，保持當前玩家回合
@@ -4017,6 +4022,7 @@ void Qt_Chess::mouseReleaseEvent(QMouseEvent *event) {
                         m_chessBoard.setCurrentPlayer(previousPlayer);
                         qDebug() << "[Qt_Chess] Dice moves remaining (drag):" << m_diceMovesRemaining << ", keeping same player";
                         
+                        updateDiceDisplay();
                         updateStatus();
                     }
                 }
@@ -9619,7 +9625,8 @@ void Qt_Chess::markPieceTypeAsMoved(PieceType type) {
             m_rolledPieceTypeCounts[i]--;
             m_diceMovesRemaining--;
             qDebug() << "[Qt_Chess::markPieceTypeAsMoved] Marked dice" << (i + 1) << "as moved. Remaining:" << m_diceMovesRemaining;
-            updateDiceDisplay();
+            // 注意：不在這裡調用 updateDiceDisplay()，因為此時玩家可能還沒有被最終確定
+            // updateDiceDisplay() 會在玩家狀態確定後由調用方統一調用
             return;
         }
     }
