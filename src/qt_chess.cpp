@@ -4353,15 +4353,10 @@ void Qt_Chess::updateTimeDisplaysFromServer() {
     updateTimeDisplays();
     
     // 檢查超時（只檢查有設定時間限制的玩家）
-    // 需要檢查 m_gameStarted 以避免重複觸發
-    if (m_whiteTimeMs <= 0 && m_timeControlEnabled && m_whiteInitialTimeMs > 0 && m_gameStarted) {
-        m_chessBoard.setGameResult(GameResult::WhiteTimeout);
-        handleGameEnd();
-        showNonBlockingInfo("時間到", "白方超時！黑方獲勝！");
-    } else if (m_blackTimeMs <= 0 && m_timeControlEnabled && m_blackInitialTimeMs > 0 && m_gameStarted) {
-        m_chessBoard.setGameResult(GameResult::BlackTimeout);
-        handleGameEnd();
-        showNonBlockingInfo("時間到", "黑方超時！白方獲勝！");
+    if (m_whiteTimeMs <= 0 && m_timeControlEnabled && m_whiteInitialTimeMs > 0) {
+        handleTimeout(PieceColor::White);
+    } else if (m_blackTimeMs <= 0 && m_timeControlEnabled && m_blackInitialTimeMs > 0) {
+        handleTimeout(PieceColor::Black);
     }
 }
 
@@ -4470,9 +4465,7 @@ void Qt_Chess::onGameTimerTick() {
                 
                 if (m_whiteTimeMs <= 0) {
                     m_whiteTimeMs = 0;
-                    m_chessBoard.setGameResult(GameResult::WhiteTimeout);
-                    handleGameEnd();
-                    showNonBlockingInfo("時間到", "白方超時！黑方獲勝！");
+                    handleTimeout(PieceColor::White);
                     return;
                 }
             }
@@ -4486,9 +4479,7 @@ void Qt_Chess::onGameTimerTick() {
                 
                 if (m_blackTimeMs <= 0) {
                     m_blackTimeMs = 0;
-                    m_chessBoard.setGameResult(GameResult::BlackTimeout);
-                    handleGameEnd();
-                    showNonBlockingInfo("時間到", "黑方超時！白方獲勝！");
+                    handleTimeout(PieceColor::Black);
                     return;
                 }
             }
@@ -4501,9 +4492,7 @@ void Qt_Chess::onGameTimerTick() {
                 m_whiteTimeMs -= 100;
                 if (m_whiteTimeMs <= 0) {
                     m_whiteTimeMs = 0;
-                    m_chessBoard.setGameResult(GameResult::WhiteTimeout);
-                    handleGameEnd();
-                    showNonBlockingInfo("時間到", "白方超時！黑方獲勝！");
+                    handleTimeout(PieceColor::White);
                     return;
                 }
             }
@@ -4512,9 +4501,7 @@ void Qt_Chess::onGameTimerTick() {
                 m_blackTimeMs -= 100;
                 if (m_blackTimeMs <= 0) {
                     m_blackTimeMs = 0;
-                    m_chessBoard.setGameResult(GameResult::BlackTimeout);
-                    handleGameEnd();
-                    showNonBlockingInfo("時間到", "黑方超時！白方獲勝！");
+                    handleTimeout(PieceColor::Black);
                     return;
                 }
             }
@@ -4751,6 +4738,24 @@ void Qt_Chess::handleGameEnd() {
 
     // 當遊戲結束時，將右側伸展設為 0
     setRightPanelStretch(0);
+}
+
+void Qt_Chess::handleTimeout(PieceColor timeoutPlayer) {
+    // Check if game is still in progress to avoid duplicate triggers
+    if (!m_gameStarted) {
+        return;
+    }
+    
+    // Set the appropriate game result
+    if (timeoutPlayer == PieceColor::White) {
+        m_chessBoard.setGameResult(GameResult::WhiteTimeout);
+        handleGameEnd();
+        showNonBlockingInfo("時間到", "白方超時！黑方獲勝！");
+    } else {
+        m_chessBoard.setGameResult(GameResult::BlackTimeout);
+        handleGameEnd();
+        showNonBlockingInfo("時間到", "黑方超時！白方獲勝！");
+    }
 }
 
 void Qt_Chess::moveWidgetsForGameEnd() {
@@ -7350,6 +7355,18 @@ void Qt_Chess::onTimerStateReceived(qint64 timeA, qint64 timeB, const QString& c
     m_serverTimeB = timeB;
     m_serverCurrentPlayer = currentPlayer;
     
+    // Use server's lastSwitchTime directly without adjustment
+    // FIX: Previously, we adjusted lastSwitchTime to local time to "compensate for network delay".
+    // However, this caused time desynchronization between clients because:
+    // 1. Each client receives the message at different times (different network latency)
+    // 2. Each client would set lastSwitchTime to their own local time
+    // 3. When calculating elapsed time (currentTime - lastSwitchTime), different clients
+    //    would get different results, causing visible time differences
+    // 
+    // Correct approach: Use server's lastSwitchTime as the common reference point.
+    // Network latency is naturally included when calculating elapsed = currentLocalTime - serverLastSwitchTime
+    // Both clients calculate from the same reference, so they show the same time.
+    //
     // 直接使用伺服器的 lastSwitchTime，不調整
     // 客戶端在計算 elapsed 時會使用當前時間減去 lastSwitchTime
     // 這樣可以正確計算經過的時間，包括網路延遲

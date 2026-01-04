@@ -421,6 +421,7 @@ private:
     void loadTimeControlSettings();
     void saveTimeControlSettings();
     void handleGameEnd();
+    void handleTimeout(PieceColor timeoutPlayer);
     void moveWidgetsForGameEnd();
     void restoreWidgetsFromGameEnd();
     void showTimeControlAfterTimeout();
