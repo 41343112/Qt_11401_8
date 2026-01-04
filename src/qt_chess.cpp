@@ -4701,12 +4701,23 @@ void Qt_Chess::handleGameEnd() {
     // 將時間和吃子紀錄移動到棋盤上下方
     moveWidgetsForGameEnd();
 
-    // 顯示匯出 PGN 按鈕和複製棋譜按鈕
-    if (m_exportPGNButton) {
-        m_exportPGNButton->show();
-    }
-    if (m_copyPGNButton) {
-        m_copyPGNButton->show();
+    // 顯示匯出 PGN 按鈕和複製棋譜按鈕（僅在一般模式或僅霧戰模式時）
+    if (shouldShowPGNFeatures()) {
+        // 一般模式或僅霧戰模式：顯示 PGN 按鈕
+        if (m_exportPGNButton) {
+            m_exportPGNButton->show();
+        }
+        if (m_copyPGNButton) {
+            m_copyPGNButton->show();
+        }
+    } else {
+        // 其他特殊遊戲模式組合：隱藏 PGN 按鈕
+        if (m_exportPGNButton) {
+            m_exportPGNButton->hide();
+        }
+        if (m_copyPGNButton) {
+            m_copyPGNButton->hide();
+        }
     }
 
     // 更新回放按鈕狀態（遊戲結束後可以回放）
@@ -5101,6 +5112,15 @@ QString Qt_Chess::generatePGN() const {
     pgn += result + "\n";
 
     return pgn;
+}
+
+bool Qt_Chess::shouldShowPGNFeatures() const {
+    // 檢查是否應該顯示 PGN 相關功能（匯出、複製、棋譜列表）
+    // 只有一般模式（無任何特殊模式）或僅啟用霧戰模式（沒有其他特殊模式）時才顯示
+    bool hasBombMode = m_selectedGameModes.contains(GAME_MODE_BOMB) && m_selectedGameModes[GAME_MODE_BOMB];
+    bool hasOtherSpecialModes = m_gravityModeEnabled || m_teleportModeEnabled || 
+                                 m_diceModeEnabled || hasBombMode;
+    return !hasOtherSpecialModes;
 }
 
 // ============================================================================
@@ -7031,13 +7051,14 @@ void Qt_Chess::onStartGameReceived(int whiteTimeMs, int blackTimeMs, int increme
         }
     }
     
-    // 檢查是否有任何特殊遊戲模式啟用
-    bool hasSpecialGameMode = m_fogOfWarEnabled || m_gravityModeEnabled || 
-                              m_teleportModeEnabled || m_diceModeEnabled ||
-                              (m_selectedGameModes.contains(GAME_MODE_BOMB) && m_selectedGameModes[GAME_MODE_BOMB]);
-    
-    // 如果有特殊遊戲模式，隱藏棋譜相關元件
-    if (hasSpecialGameMode) {
+    // 檢查是否應該顯示棋譜記錄功能（詳見 shouldShowPGNFeatures() 方法）
+    if (shouldShowPGNFeatures()) {
+        // 顯示棋譜相關元件（一般模式或僅霧戰模式）
+        if (m_moveListTitle) m_moveListTitle->show();
+        if (m_moveListWidget) m_moveListWidget->show();
+        // 注意：PGN按鈕在遊戲結束時顯示，回放按鈕在 updateReplayButtons() 中控制
+    } else {
+        // 隱藏棋譜相關元件（其他特殊遊戲模式組合）
         if (m_moveListTitle) m_moveListTitle->hide();
         if (m_moveListWidget) m_moveListWidget->hide();
         if (m_exportPGNButton) m_exportPGNButton->hide();
@@ -7047,10 +7068,6 @@ void Qt_Chess::onStartGameReceived(int whiteTimeMs, int blackTimeMs, int increme
         if (m_replayPrevButton) m_replayPrevButton->hide();
         if (m_replayNextButton) m_replayNextButton->hide();
         if (m_replayLastButton) m_replayLastButton->hide();
-    } else {
-        if (m_moveListTitle) m_moveListTitle->show();
-        if (m_moveListWidget) m_moveListWidget->show();
-        // 注意：PGN按鈕和回放按鈕在其他地方控制顯示/隱藏
     }
     
     // 如果啟用地吸引力模式，在更新棋盤前先應用旋轉
