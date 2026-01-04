@@ -6751,7 +6751,7 @@ void Qt_Chess::onStartGameReceived(int whiteTimeMs, int blackTimeMs, int increme
     // 儲存伺服器時間偏移和遊戲開始時間，用於線上模式的時間同步
     m_serverTimeOffset = serverTimeOffset;
     m_gameStartLocalTime = QDateTime::currentMSecsSinceEpoch();
-    m_currentTurnStartTime = m_gameStartLocalTime + m_serverTimeOffset;  // 初始化當前回合開始時間（使用同步時間）
+    m_currentTurnStartTime = 0;  // 初始化為 0，等待第一步棋後再設定（避免計入思考時間）
     
     // 儲存從伺服器接收的遊戲模式設定
     m_selectedGameModes = gameModes;
@@ -7241,7 +7241,17 @@ void Qt_Chess::onTimerStateReceived(qint64 timeA, qint64 timeB, const QString& c
     m_serverTimeA = timeA;
     m_serverTimeB = timeB;
     m_serverCurrentPlayer = currentPlayer;
-    m_serverLastSwitchTime = lastSwitchTime;
+    
+    // 調整 lastSwitchTime 以補償網路延遲
+    // 如果 lastSwitchTime > 0（不是第一步棋），將其調整為當前時間
+    // 這樣可以避免將網路延遲計入玩家的思考時間
+    if (lastSwitchTime > 0) {
+        m_serverLastSwitchTime = QDateTime::currentMSecsSinceEpoch();
+        qDebug() << "[Qt_Chess::onTimerStateReceived] Adjusted lastSwitchTime to current time to compensate for network delay";
+    } else {
+        m_serverLastSwitchTime = lastSwitchTime;
+    }
+    
     m_useServerTimer = true;  // 啟用伺服器計時器模式
     m_lastServerUpdateTime = QDateTime::currentMSecsSinceEpoch();  // 記錄更新時間
     
