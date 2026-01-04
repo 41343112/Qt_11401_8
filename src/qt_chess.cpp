@@ -1982,20 +1982,16 @@ void Qt_Chess::updateBoard() {
             int displayRow, displayCol;
             
             // 處理重力模式的旋轉
-            if (m_gravityModeEnabled && m_boardRotationDegrees != 0) {
-                if (m_boardRotationDegrees == 90) {
-                    // 90度順時針：newRow = oldCol, newCol = 7 - oldRow
-                    displayRow = logicalCol;
-                    displayCol = 7 - logicalRow;
-                } else if (m_boardRotationDegrees == 270) {
-                    // 270度順時針：newRow = 7 - oldCol, newCol = oldRow
-                    displayRow = 7 - logicalCol;
-                    displayCol = logicalRow;
-                } else {
-                    displayRow = getDisplayRow(logicalRow);
-                    displayCol = getDisplayCol(logicalCol);
-                }
+            if (m_gravityModeEnabled && m_boardRotationDegrees == 90) {
+                // 90度順時針：newRow = oldCol, newCol = 7 - oldRow
+                displayRow = logicalCol;
+                displayCol = 7 - logicalRow;
+            } else if (m_gravityModeEnabled && m_boardRotationDegrees == 270) {
+                // 270度順時針：newRow = 7 - oldCol, newCol = oldRow
+                displayRow = 7 - logicalCol;
+                displayCol = logicalRow;
             } else {
+                // 無旋轉或重力模式未啟用，使用標準轉換（處理翻轉）
                 displayRow = getDisplayRow(logicalRow);
                 displayCol = getDisplayCol(logicalCol);
             }
