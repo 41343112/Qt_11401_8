@@ -4695,6 +4695,11 @@ void Qt_Chess::handleGameEnd() {
         // 更新棋盤顯示
         updateBoard();
     }
+    
+    // 如果啟用霧戰模式，遊戲結束時更新棋盤以移除霧
+    if (m_fogOfWarEnabled) {
+        updateBoard();
+    }
 
     // 隱藏認輸和請求和棋按鈕
     if (m_resignButton) {
@@ -6675,6 +6680,12 @@ void Qt_Chess::onOpponentMove(const QPoint& from, const QPoint& to, PieceType pr
         if (m_teleportModeEnabled) {
             // 應用對手傳送後的最終位置
             applyFinalPosition(to, finalPosition);
+        }
+        
+        // 記錄對手的移動用於高亮顯示（霧戰模式下不顯示對方移動高光）
+        if (!m_fogOfWarEnabled) {
+            m_lastMoveFrom = from;
+            m_lastMoveTo = finalPosition.x() >= 0 ? finalPosition : to;  // 如果有傳送，使用最終位置
         }
         
         updateBoard();
@@ -8837,9 +8848,29 @@ void Qt_Chess::calculateVisibleSquares(PieceColor playerColor) {
             }
         }
     }
+    
+    // 如果玩家攻擊對方的王，讓對方的王可見
+    PieceColor opponentColor = (playerColor == PieceColor::White) ? PieceColor::Black : PieceColor::White;
+    if (m_chessBoard.isInCheck(opponentColor)) {
+        QPoint opponentKingPos = m_chessBoard.findKing(opponentColor);
+        if (opponentKingPos.x() >= 0 && opponentKingPos.y() >= 0) {
+            // 讓對方的王可見
+            m_visibleSquares[opponentKingPos.y()][opponentKingPos.x()] = true;
+        }
+    }
 }
 
 void Qt_Chess::updateVisibleSquares() {
+    // 如果遊戲已結束，顯示所有方格（不顯示霧）
+    if (m_chessBoard.getGameResult() != GameResult::InProgress) {
+        for (int row = 0; row < 8; ++row) {
+            for (int col = 0; col < 8; ++col) {
+                m_visibleSquares[row][col] = true;
+            }
+        }
+        return;
+    }
+    
     if (!m_fogOfWarEnabled || !m_isOnlineGame) {
         // 如果霧戰模式未啟用或不是線上遊戲，所有方格都可見
         for (int row = 0; row < 8; ++row) {
