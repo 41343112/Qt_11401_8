@@ -1978,11 +1978,8 @@ void Qt_Chess::updateBoard() {
     
     for (int logicalRow = 0; logicalRow < 8; ++logicalRow) {
         for (int logicalCol = 0; logicalCol < 8; ++logicalCol) {
-            int displayRow, displayCol;
-            
-            // 使用重力模式座標轉換（如果啟用）
-            getGravityDisplayCoords(logicalRow, logicalCol, displayRow, displayCol);
-            
+            int displayRow = getDisplayRow(logicalRow);
+            int displayCol = getDisplayCol(logicalCol);
             const ChessPiece& piece = m_chessBoard.getPiece(logicalRow, logicalCol);
             displayPieceOnSquare(m_squares[displayRow][displayCol], piece);
             updateSquareColor(displayRow, displayCol);
@@ -2201,8 +2198,8 @@ void Qt_Chess::highlightValidMoves() {
     if (!m_pieceSelected) return;
 
     // 高亮選中的格子（m_selectedSquare 是邏輯坐標）- 現代科技風格霓虹綠（不透明）
-    int displayRow, displayCol;
-    getGravityDisplayCoords(m_selectedSquare.y(), m_selectedSquare.x(), displayRow, displayCol);
+    int displayRow = getDisplayRow(m_selectedSquare.y());
+    int displayCol = getDisplayCol(m_selectedSquare.x());
     QString selectedTextColor = getPieceTextColor(m_selectedSquare.y(), m_selectedSquare.x());
     m_squares[displayRow][displayCol]->setStyleSheet(
         QString("QPushButton { background-color: rgba(0, 255, 136, 1.0); border: 3px solid %1; color: %2; }").arg(THEME_ACCENT_SUCCESS, selectedTextColor)
@@ -2214,8 +2211,8 @@ void Qt_Chess::highlightValidMoves() {
             QPoint targetSquare(logicalCol, logicalRow);
             if (m_chessBoard.isValidMove(m_selectedSquare, targetSquare)) {
                 bool isCapture = isCaptureMove(m_selectedSquare, targetSquare);
-                int validDisplayRow, validDisplayCol;
-                getGravityDisplayCoords(logicalRow, logicalCol, validDisplayRow, validDisplayCol);
+                int displayRow = getDisplayRow(logicalRow);
+                int displayCol = getDisplayCol(logicalCol);
                 // 使用邏輯坐標確定淺色/深色格子
                 bool isLight = (logicalRow + logicalCol) % 2 == 0;
                 QString textColor = getPieceTextColor(logicalRow, logicalCol);
@@ -2223,13 +2220,13 @@ void Qt_Chess::highlightValidMoves() {
                 if (isCapture) {
                     // 將吃子移動高亮為霓虹紅/粉色（不透明）
                     QString color = isLight ? "rgba(255, 100, 120, 1.0)" : "rgba(233, 69, 96, 1.0)";
-                    m_squares[validDisplayRow][validDisplayCol]->setStyleSheet(
+                    m_squares[displayRow][displayCol]->setStyleSheet(
                         QString("QPushButton { background-color: %1; border: 3px solid %2; color: %3; }").arg(color, THEME_ACCENT_SECONDARY, textColor)
                         );
                 } else {
                     // 將非吃子移動高亮為霓虹黃色（不透明）
                     QString color = isLight ? "rgba(255, 217, 61, 1.0)" : "rgba(255, 217, 61, 1.0)";
-                    m_squares[validDisplayRow][validDisplayCol]->setStyleSheet(
+                    m_squares[displayRow][displayCol]->setStyleSheet(
                         QString("QPushButton { background-color: %1; border: 3px solid %2; color: %3; }").arg(color, THEME_ACCENT_WARNING, textColor)
                         );
                 }
@@ -2261,8 +2258,8 @@ void Qt_Chess::applyCheckHighlight(const QPoint& excludeSquare) {
         if (kingPos.x() >= 0 && kingPos.y() >= 0 && kingPos != excludeSquare) {
             int logicalRow = kingPos.y();
             int logicalCol = kingPos.x();
-            int displayRow, displayCol;
-            getGravityDisplayCoords(logicalRow, logicalCol, displayRow, displayCol);
+            int displayRow = getDisplayRow(logicalRow);
+            int displayCol = getDisplayCol(logicalCol);
             QString textColor = getPieceTextColor(logicalRow, logicalCol);
             m_squares[displayRow][displayCol]->setStyleSheet(
                 QString("QPushButton { background-color: rgba(255, 80, 80, 0.85); border: 2px solid #FF3333; color: %1; }").arg(textColor)
@@ -2278,8 +2275,8 @@ void Qt_Chess::applyLastMoveHighlight() {
     }
     
     // 高亮「從」格子（黃色）
-    int fromDisplayRow, fromDisplayCol;
-    getGravityDisplayCoords(m_lastMoveFrom.y(), m_lastMoveFrom.x(), fromDisplayRow, fromDisplayCol);
+    int fromDisplayRow = getDisplayRow(m_lastMoveFrom.y());
+    int fromDisplayCol = getDisplayCol(m_lastMoveFrom.x());
     bool fromIsLight = (m_lastMoveFrom.y() + m_lastMoveFrom.x()) % 2 == 0;
     QString fromColor = fromIsLight ? LAST_MOVE_LIGHT_COLOR : LAST_MOVE_DARK_COLOR;
     QString fromTextColor = getPieceTextColor(m_lastMoveFrom.y(), m_lastMoveFrom.x());
@@ -2288,8 +2285,8 @@ void Qt_Chess::applyLastMoveHighlight() {
     );
     
     // 高亮「到」格子（黃色）
-    int toDisplayRow, toDisplayCol;
-    getGravityDisplayCoords(m_lastMoveTo.y(), m_lastMoveTo.x(), toDisplayRow, toDisplayCol);
+    int toDisplayRow = getDisplayRow(m_lastMoveTo.y());
+    int toDisplayCol = getDisplayCol(m_lastMoveTo.x());
     bool toIsLight = (m_lastMoveTo.y() + m_lastMoveTo.x()) % 2 == 0;
     QString toColor = toIsLight ? LAST_MOVE_LIGHT_COLOR : LAST_MOVE_DARK_COLOR;
     QString toTextColor = getPieceTextColor(m_lastMoveTo.y(), m_lastMoveTo.x());
@@ -2312,31 +2309,6 @@ int Qt_Chess::getLogicalRow(int displayRow) const {
 
 int Qt_Chess::getLogicalCol(int displayCol) const {
     return m_isBoardFlipped ? (7 - displayCol) : displayCol;
-}
-
-// 重力模式座標轉換：將邏輯座標轉換為考慮旋轉的顯示座標
-void Qt_Chess::getGravityDisplayCoords(int logicalRow, int logicalCol, int& displayRow, int& displayCol) const {
-    if (!m_gravityModeEnabled) {
-        // 無重力模式，使用標準轉換
-        displayRow = getDisplayRow(logicalRow);
-        displayCol = getDisplayCol(logicalCol);
-        return;
-    }
-    
-    // 檢查是否為房客（270度旋轉）
-    bool isGuest = m_networkManager && m_networkManager->getRole() == NetworkRole::Guest;
-    
-    if (isGuest) {
-        // 房客：270度順時針旋轉
-        // 公式：displayRow = 7 - logicalCol, displayCol = logicalRow
-        displayRow = 7 - logicalCol;
-        displayCol = logicalRow;
-    } else {
-        // 房主：90度順時針旋轉
-        // 公式：displayRow = logicalCol, displayCol = 7 - logicalRow
-        displayRow = logicalCol;
-        displayCol = 7 - logicalRow;
-    }
 }
 
 QPoint Qt_Chess::getSquareAtPosition(const QPoint& pos) const {
