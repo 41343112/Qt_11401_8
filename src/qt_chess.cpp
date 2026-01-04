@@ -4263,13 +4263,16 @@ void Qt_Chess::updateTimeDisplaysFromServer() {
     // 獲取當前 UNIX 毫秒數
     qint64 currentUnixTimeMs = QDateTime::currentMSecsSinceEpoch();
     
-    // 計算距離最後切換經過的時間（毫秒）
-    // m_serverLastSwitchTime 已經是毫秒數（從伺服器的 Date.now() 獲得）
-    // 如果 lastSwitchTime 為 0，表示計時器尚未啟動（等待第一步棋）
+    // 計算距離最後更新經過的時間（毫秒）
+    // FIX: Use m_lastServerUpdateTime instead of m_serverLastSwitchTime
+    // This prevents counting network delay as elapsed time.
+    // When we receive a timer state update, m_lastServerUpdateTime is set to current local time.
+    // We only count time elapsed since we received the update, not since the server processed the move.
+    // 計算距離最後更新經過的時間（不包含網路延遲）
     qint64 elapsedMs = 0;
-    if (m_serverLastSwitchTime > 0) {
-        elapsedMs = currentUnixTimeMs - m_serverLastSwitchTime;
-        // 處理網路延遲：如果elapsed為負數（訊息還在傳輸中），設為0
+    if (m_lastServerUpdateTime > 0) {
+        elapsedMs = currentUnixTimeMs - m_lastServerUpdateTime;
+        // 處理異常：如果elapsed為負數，設為0
         if (elapsedMs < 0) {
             elapsedMs = 0;
         }
@@ -7355,15 +7358,16 @@ void Qt_Chess::onTimerStateReceived(qint64 timeA, qint64 timeB, const QString& c
     m_serverTimeB = timeB;
     m_serverCurrentPlayer = currentPlayer;
     
-    // Use server's lastSwitchTime directly without adjustment (Time Sync Bug Fix)
-    // Adjusting to local time caused desynchronization between clients due to different network latencies.
-    // Using server time as common reference ensures both clients calculate same elapsed time.
-    // See TIMER_BUG_FIXES.md for detailed explanation.
-    // 直接使用伺服器的 lastSwitchTime，不調整（時間同步錯誤修復）
+    // Use server's lastSwitchTime for reference (stored but not used for elapsed calculation)
+    // FIX: We store lastSwitchTime but use m_lastServerUpdateTime for elapsed calculation.
+    // This prevents network delay from being counted as player thinking time.
+    // When server sends lastSwitchTime=1000 and client receives at localTime=1003,
+    // we don't want to immediately show 3 seconds elapsed. We want to start counting from 0.
+    // 儲存伺服器的 lastSwitchTime（作為參考，但不用於經過時間計算）
     m_serverLastSwitchTime = lastSwitchTime;
     
     m_useServerTimer = true;  // 啟用伺服器計時器模式
-    m_lastServerUpdateTime = QDateTime::currentMSecsSinceEpoch();  // 記錄更新時間
+    m_lastServerUpdateTime = QDateTime::currentMSecsSinceEpoch();  // 記錄更新時間（用於計算經過時間）
     
     // 同步棋盤的當前玩家與伺服器狀態
     // 這對於骰子模式特別重要，確保雙方都知道輪到誰下棋
