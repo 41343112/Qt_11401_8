@@ -344,13 +344,13 @@ Qt_Chess::Qt_Chess(QWidget *parent)
     connect(m_updateChecker, &UpdateChecker::updateCheckFailed, 
             this, &Qt_Chess::onUpdateCheckFailed);
     
-    // 啟動後自動檢查更新（延遲以免干擾啟動動畫）
+    // 啟動後自動檢查更新
     QTimer::singleShot(UPDATE_CHECK_DELAY_MS, this, [this]() {
         m_updateChecker->checkForUpdates();
     });
     
-    // 在視窗顯示後播放啟動動畫
-    QTimer::singleShot(100, this, &Qt_Chess::playStartupAnimation);
+    // 啟動動畫已移除（根據用戶要求）
+    // QTimer::singleShot(100, this, &Qt_Chess::playStartupAnimation);
 }
 
 Qt_Chess::~Qt_Chess()
