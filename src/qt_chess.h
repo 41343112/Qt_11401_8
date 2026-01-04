@@ -120,6 +120,7 @@ private:
     QHBoxLayout* m_contentLayout;        // 主內容佈局，用於調整伸展因子
     int m_rightStretchIndex;             // 右側伸展項的索引
     QMenuBar* m_menuBar;
+    QAction* m_toggleBgmAction;          // 背景音樂開關選單項目
     
     // ========================================
     // UI 元件 - 棋盤 (UI Components - Chess Board)
@@ -142,6 +143,7 @@ private:
     QPushButton* m_exitButton;           // 退出遊戲按鈕
     QWidget* m_boardButtonPanel;         // 棋盤下方按鈕面板
     QPushButton* m_startButton;
+    QPushButton* m_bgmToggleButton;      // 背景音樂開關按鈕
     
     // ========================================
     // UI 元件 - 主選單 (UI Components - Main Menu)

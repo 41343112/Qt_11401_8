@@ -166,8 +166,10 @@ Qt_Chess::Qt_Chess(QWidget *parent)
     , m_requestDrawButton(nullptr)
     , m_exitButton(nullptr)
     , m_boardButtonPanel(nullptr)
+    , m_bgmToggleButton(nullptr)
     , m_boardWidget(nullptr)
     , m_menuBar(nullptr)
+    , m_toggleBgmAction(nullptr)
     , m_gameStarted(false)
     , m_isBoardFlipped(false)
     , m_lastMoveFrom(-1, -1)
@@ -722,6 +724,33 @@ void Qt_Chess::setupUI() {
     connect(m_exitButton, &QPushButton::clicked, this, &Qt_Chess::onExitClicked);
     boardButtonLayout->addWidget(m_exitButton);
     
+    // 背景音樂開關按鈕 - 始終可見
+    m_bgmToggleButton = new QPushButton(m_bgmEnabled ? "🎵 音樂" : "🔇 音樂", m_boardButtonPanel);
+    m_bgmToggleButton->setMinimumHeight(45);
+    m_bgmToggleButton->setMinimumWidth(100);
+    QFont bgmButtonFont;
+    bgmButtonFont.setPointSize(12);
+    bgmButtonFont.setBold(true);
+    m_bgmToggleButton->setFont(bgmButtonFont);
+    m_bgmToggleButton->setStyleSheet(QString(
+        "QPushButton { "
+        "  background-color: %1; "
+        "  color: %2; "
+        "  border: 1px solid %3; "
+        "  border-radius: 4px; "
+        "  padding: 8px; "
+        "}"
+        "QPushButton:hover { "
+        "  background-color: %4; "
+        "  border-color: %2; "
+        "}"
+        "QPushButton:pressed { "
+        "  background-color: %3; "
+        "}"
+    ).arg(THEME_BG_PANEL, THEME_TEXT_PRIMARY, THEME_BORDER, THEME_BG_DARK));
+    connect(m_bgmToggleButton, &QPushButton::clicked, this, &Qt_Chess::onToggleBackgroundMusicClicked);
+    boardButtonLayout->addWidget(m_bgmToggleButton);
+    
     boardContainerVLayout->addWidget(m_boardButtonPanel, 0);
 
     // 遊戲結束時我方的時間和吃子紀錄面板（棋盤下方，初始隱藏）
@@ -907,11 +936,11 @@ void Qt_Chess::setupMenuBar() {
     settingsMenu->addSeparator();
     
     // 背景音樂開關動作
-    QAction* toggleBgmAction = new QAction("🎵 背景音樂", this);
-    toggleBgmAction->setCheckable(true);
-    toggleBgmAction->setChecked(m_bgmEnabled);
-    connect(toggleBgmAction, &QAction::triggered, this, &Qt_Chess::onToggleBackgroundMusicClicked);
-    settingsMenu->addAction(toggleBgmAction);
+    m_toggleBgmAction = new QAction("🎵 背景音樂", this);
+    m_toggleBgmAction->setCheckable(true);
+    m_toggleBgmAction->setChecked(m_bgmEnabled);
+    connect(m_toggleBgmAction, &QAction::triggered, this, &Qt_Chess::onToggleBackgroundMusicClicked);
+    settingsMenu->addAction(m_toggleBgmAction);
     
     // 說明選單
     QMenu* helpMenu = m_menuBar->addMenu("❓ 說明");
@@ -8169,6 +8198,16 @@ void Qt_Chess::toggleBackgroundMusic() {
         startBackgroundMusic();
     } else {
         stopBackgroundMusic();
+    }
+    
+    // 更新背景音樂開關按鈕的文字和圖示
+    if (m_bgmToggleButton) {
+        m_bgmToggleButton->setText(m_bgmEnabled ? "🎵 音樂" : "🔇 音樂");
+    }
+    
+    // 更新選單項目的勾選狀態
+    if (m_toggleBgmAction) {
+        m_toggleBgmAction->setChecked(m_bgmEnabled);
     }
 }
 
