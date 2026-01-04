@@ -9477,43 +9477,75 @@ void Qt_Chess::updateDiceDisplay() {
                     default: pieceTypeName = "?"; break;
                 }
                 
-                // 顯示棋子類型（移除剩餘次數顯示）
-                QString displayText = QString("%1").arg(pieceTypeName);
-                label->setText(displayText);
-                
                 // 判斷是否應該灰階顯示：
                 // 1. 剩餘移動次數已用完，或
                 // 2. 該類型棋子已不存在或沒有合法移動
                 PieceColor diceOwnerColor = m_chessBoard.getCurrentPlayer();
                 bool canMove = canPieceTypeMove(type, diceOwnerColor);
+                bool isGrayed = (remainingMoves <= 0 || !canMove);
                 
-                if (remainingMoves <= 0 || !canMove) {
+                // 嘗試獲取棋子圖示並顯示（如果可用）
+                QPixmap piecePixmap = getCachedPieceIcon(type, diceOwnerColor);
+                
+                // 如果有自訂圖示，使用圖示顯示，否則使用文字
+                if (!piecePixmap.isNull() && m_pieceIconSettings.useCustomIcons) {
+                    // 使用圖示模式：將圖示縮放到合適大小並設置
+                    QPixmap scaledPixmap = piecePixmap.scaled(50, 50, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+                    
+                    // 如果需要灰階，對圖片應用灰階效果
+                    if (isGrayed) {
+                        QImage image = scaledPixmap.toImage();
+                        for (int y = 0; y < image.height(); ++y) {
+                            for (int x = 0; x < image.width(); ++x) {
+                                QColor color = image.pixelColor(x, y);
+                                int gray = qGray(color.rgb());
+                                image.setPixelColor(x, y, QColor(gray, gray, gray, color.alpha()));
+                            }
+                        }
+                        scaledPixmap = QPixmap::fromImage(image);
+                    }
+                    
+                    label->setPixmap(scaledPixmap);
+                    label->setText("");  // 清除文字
+                    label->setAlignment(Qt::AlignCenter);
+                } else {
+                    // 使用文字模式：顯示棋子類型文字
+                    label->setPixmap(QPixmap());  // 清除圖示
+                    QString displayText = QString("%1").arg(pieceTypeName);
+                    label->setText(displayText);
+                }
+                
+                // 設置樣式（增大字體和邊框以更明顯，使用明亮的底色）
+                if (isGrayed) {
                     label->setStyleSheet(QString(
                         "QLabel { "
                         "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1, "
-                        "    stop:0 rgba(80, 80, 80, 0.5), stop:1 rgba(40, 40, 40, 0.7)); "
-                        "  color: #808080; "
-                        "  border: 2px solid #606060; "
-                        "  border-radius: 8px; "
-                        "  padding: 5px; "
-                        "  font-size: 11pt; "
+                        "    stop:0 rgba(180, 180, 180, 0.8), stop:1 rgba(140, 140, 140, 0.9)); "
+                        "  color: #505050; "
+                        "  border: 3px solid #909090; "
+                        "  border-radius: 10px; "
+                        "  padding: 8px; "
+                        "  font-size: 16pt; "
+                        "  font-weight: bold; "
                         "}"
                     ));
                 } else {
                     label->setStyleSheet(QString(
                         "QLabel { "
                         "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1, "
-                        "    stop:0 rgba(33, 150, 243, 0.3), stop:1 rgba(26, 26, 46, 0.95)); "
-                        "  color: %1; "
-                        "  border: 2px solid %2; "
-                        "  border-radius: 8px; "
-                        "  padding: 5px; "
-                        "  font-size: 11pt; "
+                        "    stop:0 rgba(100, 200, 255, 0.9), stop:1 rgba(60, 160, 240, 0.95)); "
+                        "  color: #FFFFFF; "
+                        "  border: 3px solid %1; "
+                        "  border-radius: 10px; "
+                        "  padding: 8px; "
+                        "  font-size: 16pt; "
+                        "  font-weight: bold; "
                         "}"
-                    ).arg(THEME_TEXT_PRIMARY, THEME_ACCENT_PRIMARY));
+                    ).arg(THEME_ACCENT_PRIMARY));
                 }
             } else {
                 label->setText("--");
+                label->setPixmap(QPixmap());
             }
         }
     } else {
