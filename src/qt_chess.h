@@ -280,6 +280,7 @@ private:
     QPoint m_teleportPortal1;            // 傳送門位置1
     QPoint m_teleportPortal2;            // 傳送門位置2
     QPixmap m_teleportIconCache;         // 傳送門圖示快取
+    static constexpr int MAX_TELEPORT_ITERATIONS = 3;  // 重力後傳送的最大迭代次數
     
     // 骰子模式相關 (Dice Mode)
     bool m_diceModeEnabled;              // 是否啟用骰子模式
@@ -529,6 +530,7 @@ private:
     bool performTeleportationMove(const QPoint& from, const QPoint& to);  // 執行傳送動作（不重置傳送門）
     QPoint handleTeleportationAndGetFinalPosition(const QPoint& from, const QPoint& to);  // 處理傳送並返回最終位置
     void applyFinalPosition(const QPoint& to, const QPoint& finalPosition);  // 應用最終位置（用於接收對手的傳送結果）
+    void applyTeleportationAfterGravity();  // 重力後檢查並傳送落在傳送門上的棋子
     
     // 骰子模式 (Dice Mode)
     void rollDiceForTurn();              // 為當前回合骰出3個棋子類型

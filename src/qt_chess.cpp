@@ -2601,12 +2601,6 @@ void Qt_Chess::onSquareClicked(int displayRow, int displayCol) {
                 needsUpdate = true;
             }
             
-            // 應用地吸引力模式（如果啟用）
-            if (m_gravityModeEnabled) {
-                applyGravity();
-                needsUpdate = true;
-            }
-            
             // 處理傳送陣模式（如果啟用）並獲取最終位置
             QPoint finalPosition = clickedSquare;  // 默認就是點擊的位置
             if (m_teleportModeEnabled) {
@@ -2614,7 +2608,18 @@ void Qt_Chess::onSquareClicked(int displayRow, int displayCol) {
                 needsUpdate = true;
             }
             
-            // 更新棋盤顯示（在升變和地吸引力之後統一更新）
+            // 應用地吸引力模式（如果啟用）
+            if (m_gravityModeEnabled) {
+                applyGravity();
+                needsUpdate = true;
+                
+                // 重力後檢查並傳送落在傳送門上的棋子
+                if (m_teleportModeEnabled) {
+                    applyTeleportationAfterGravity();
+                }
+            }
+            
+            // 更新棋盤顯示（在升變、傳送陣和地吸引力之後統一更新）
             if (needsUpdate) {
                 updateBoard();
             }
@@ -3856,12 +3861,6 @@ void Qt_Chess::mouseReleaseEvent(QMouseEvent *event) {
                     needsUpdate = true;
                 }
                 
-                // 應用地吸引力模式（如果啟用）
-                if (m_gravityModeEnabled) {
-                    applyGravity();
-                    needsUpdate = true;
-                }
-                
                 // 處理傳送陣模式（如果啟用）並獲取最終位置
                 QPoint finalPosition = logicalDropSquare;  // 默認就是拖放的位置
                 if (m_teleportModeEnabled) {
@@ -3869,7 +3868,18 @@ void Qt_Chess::mouseReleaseEvent(QMouseEvent *event) {
                     needsUpdate = true;
                 }
                 
-                // 更新棋盤顯示（在升變和地吸引力之後統一更新）
+                // 應用地吸引力模式（如果啟用）
+                if (m_gravityModeEnabled) {
+                    applyGravity();
+                    needsUpdate = true;
+                    
+                    // 重力後檢查並傳送落在傳送門上的棋子
+                    if (m_teleportModeEnabled) {
+                        applyTeleportationAfterGravity();
+                    }
+                }
+                
+                // 更新棋盤顯示（在升變、傳送陣和地吸引力之後統一更新）
                 if (needsUpdate) {
                     updateBoard();
                 }
@@ -5916,19 +5926,24 @@ void Qt_Chess::onEngineBestMove(const QString& move) {
             needsUpdate = true;
         }
         
-        // 應用地吸引力模式（如果啟用）
-        if (m_gravityModeEnabled) {
-            applyGravity();
-            needsUpdate = true;
-        }
-        
         // 處理傳送陣模式（如果啟用）
         if (m_teleportModeEnabled) {
             handleTeleportation(from, to);
             needsUpdate = true;
         }
         
-        // 更新棋盤顯示（在升變和地吸引力之後統一更新）
+        // 應用地吸引力模式（如果啟用）
+        if (m_gravityModeEnabled) {
+            applyGravity();
+            needsUpdate = true;
+            
+            // 重力後檢查並傳送落在傳送門上的棋子
+            if (m_teleportModeEnabled) {
+                applyTeleportationAfterGravity();
+            }
+        }
+        
+        // 更新棋盤顯示（在升變、傳送陣和地吸引力之後統一更新）
         if (needsUpdate) {
             updateBoard();
         }
@@ -6749,15 +6764,20 @@ void Qt_Chess::onOpponentMove(const QPoint& from, const QPoint& to, PieceType pr
             m_chessBoard.promotePawn(to, promotionType);
         }
         
-        // 應用地吸引力模式（如果啟用）
-        if (m_gravityModeEnabled) {
-            applyGravity();
-        }
-        
         // 處理傳送陣模式（如果啟用）
         if (m_teleportModeEnabled) {
             // 應用對手傳送後的最終位置
             applyFinalPosition(to, finalPosition);
+        }
+        
+        // 應用地吸引力模式（如果啟用）
+        if (m_gravityModeEnabled) {
+            applyGravity();
+            
+            // 重力後檢查並傳送落在傳送門上的棋子
+            if (m_teleportModeEnabled) {
+                applyTeleportationAfterGravity();
+            }
         }
         
         // 記錄對手的移動用於高亮顯示（霧戰模式下不顯示對方移動高光）
@@ -9269,6 +9289,92 @@ void Qt_Chess::applyFinalPosition(const QPoint& to, const QPoint& finalPosition)
             
             // 注意：不重置自己的傳送門，因為每個玩家的傳送門是獨立的
             updateBoard();  // 更新顯示
+        }
+    }
+}
+
+void Qt_Chess::applyTeleportationAfterGravity() {
+    if (!m_teleportModeEnabled || !m_gravityModeEnabled) {
+        return;
+    }
+    
+    qDebug() << "[Qt_Chess::applyTeleportationAfterGravity] Checking for pieces on portals after gravity";
+    
+    // 輔助函數：檢查位置是否在棋盤範圍內
+    auto isValidBoardPosition = [](const QPoint& pos) -> bool {
+        return pos.x() >= 0 && pos.x() < 8 && pos.y() >= 0 && pos.y() < 8;
+    };
+    
+    // 需要多次檢查，因為傳送後還要再執行重力，重力後可能又落在傳送門上
+    // 但為了避免無限循環，限制最大檢查次數
+    for (int iteration = 0; iteration < MAX_TELEPORT_ITERATIONS; ++iteration) {
+        bool anyTeleported = false;
+        
+        // 檢查傳送門1上是否有棋子
+        if (isValidBoardPosition(m_teleportPortal1)) {
+            ChessPiece& piece1 = m_chessBoard.getPiece(m_teleportPortal1.y(), m_teleportPortal1.x());
+            if (piece1.getType() != PieceType::None) {
+                qDebug() << "[Qt_Chess::applyTeleportationAfterGravity] Piece found on portal 1 at" << m_teleportPortal1;
+                
+                // 確定目標傳送門並驗證其有效性
+                QPoint targetPortal = m_teleportPortal2;
+                if (isValidBoardPosition(targetPortal)) {
+                    const ChessPiece& targetPiece = m_chessBoard.getPiece(targetPortal.y(), targetPortal.x());
+                    
+                    // 檢查目標傳送門是否可用
+                    if (targetPiece.getType() == PieceType::None || targetPiece.getColor() != piece1.getColor()) {
+                        // 執行傳送（如果目標有對方棋子，會被吃掉）
+                        m_chessBoard.setPiece(targetPortal.y(), targetPortal.x(), piece1);
+                        m_chessBoard.setPiece(m_teleportPortal1.y(), m_teleportPortal1.x(), ChessPiece(PieceType::None, PieceColor::None));
+                        
+                        qDebug() << "[Qt_Chess::applyTeleportationAfterGravity] Teleported piece from portal 1 to" << targetPortal;
+                        anyTeleported = true;
+                        
+                        // 重置傳送門
+                        resetTeleportPortals();
+                        
+                        // 傳送後再執行一次重力
+                        qDebug() << "[Qt_Chess::applyTeleportationAfterGravity] Applying gravity after teleportation";
+                        applyGravity();
+                    }
+                }
+            }
+        }
+        
+        // 檢查傳送門2上是否有棋子（獨立檢查，不依賴傳送門1的結果）
+        if (!anyTeleported && isValidBoardPosition(m_teleportPortal2)) {
+            ChessPiece& piece2 = m_chessBoard.getPiece(m_teleportPortal2.y(), m_teleportPortal2.x());
+            if (piece2.getType() != PieceType::None) {
+                qDebug() << "[Qt_Chess::applyTeleportationAfterGravity] Piece found on portal 2 at" << m_teleportPortal2;
+                
+                // 確定目標傳送門並驗證其有效性
+                QPoint targetPortal = m_teleportPortal1;
+                if (isValidBoardPosition(targetPortal)) {
+                    const ChessPiece& targetPiece = m_chessBoard.getPiece(targetPortal.y(), targetPortal.x());
+                    
+                    // 檢查目標傳送門是否可用
+                    if (targetPiece.getType() == PieceType::None || targetPiece.getColor() != piece2.getColor()) {
+                        // 執行傳送（如果目標有對方棋子，會被吃掉）
+                        m_chessBoard.setPiece(targetPortal.y(), targetPortal.x(), piece2);
+                        m_chessBoard.setPiece(m_teleportPortal2.y(), m_teleportPortal2.x(), ChessPiece(PieceType::None, PieceColor::None));
+                        
+                        qDebug() << "[Qt_Chess::applyTeleportationAfterGravity] Teleported piece from portal 2 to" << targetPortal;
+                        anyTeleported = true;
+                        
+                        // 重置傳送門
+                        resetTeleportPortals();
+                        
+                        // 傳送後再執行一次重力
+                        qDebug() << "[Qt_Chess::applyTeleportationAfterGravity] Applying gravity after teleportation";
+                        applyGravity();
+                    }
+                }
+            }
+        }
+        
+        // 如果這次迭代沒有傳送，就跳出循環
+        if (!anyTeleported) {
+            break;
         }
     }
 }
