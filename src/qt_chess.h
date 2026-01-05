@@ -529,6 +529,7 @@ private:
     bool performTeleportationMove(const QPoint& from, const QPoint& to);  // 執行傳送動作（不重置傳送門）
     QPoint handleTeleportationAndGetFinalPosition(const QPoint& from, const QPoint& to);  // 處理傳送並返回最終位置
     void applyFinalPosition(const QPoint& to, const QPoint& finalPosition);  // 應用最終位置（用於接收對手的傳送結果）
+    void applyTeleportationAfterGravity();  // 重力後檢查並傳送落在傳送門上的棋子
     
     // 骰子模式 (Dice Mode)
     void rollDiceForTurn();              // 為當前回合骰出3個棋子類型
