@@ -308,6 +308,10 @@ make
 - `resources.qrc` - 嵌入音效檔案的 Qt 資源檔案
 - `engine/` - Stockfish 西洋棋引擎目錄
 
+📖 **詳細程式碼說明請參閱：**
+- [程式碼位置和說明指南（中文）](docs/CODE_LOCATION_GUIDE.md) - 設定和棋子判斷功能的詳細程式碼說明
+- [Code Location Guide (English)](docs/CODE_LOCATION_GUIDE_EN.md) - Detailed code explanation for settings and piece judgment features
+
 ## 授權條款
 
 這是一個用於學習 Qt 和遊戲開發的教育專案。
