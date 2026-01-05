@@ -308,6 +308,15 @@ make
 - `resources.qrc` - 嵌入音效檔案的 Qt 資源檔案
 - `engine/` - Stockfish 西洋棋引擎目錄
 
+## 程式碼說明文件
+
+專案提供詳細的程式碼說明文件，幫助開發者理解各個模組的實現細節：
+
+- 📚 [伺服器程式碼說明](docs/SERVER_DOCUMENTATION.md) - WebSocket 伺服器架構、房間管理、訊息路由、計時器同步
+- 📚 [遊戲規則程式碼說明](docs/GAME_RULES_DOCUMENTATION.md) - 棋盤架構、標準西洋棋規則、特殊走法、將軍與將死、遊戲模式
+- 📚 [AI 引擎程式碼說明](docs/AI_ENGINE_DOCUMENTATION.md) - Stockfish 整合、UCI 協議、難度設定、移動生成、FEN 與 UCI 轉換
+- 📚 [骰子模式程式碼說明](docs/DICE_MODE_DOCUMENTATION.md) - 核心機制、客戶端/伺服器實現、將軍中斷規則、同步機制
+
 ## 授權條款
 
 這是一個用於學習 Qt 和遊戲開發的教育專案。
