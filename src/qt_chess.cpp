@@ -7732,9 +7732,15 @@ void Qt_Chess::onOpponentDisconnected() {
         
         // 確保遊戲完全重置到初始狀態
         resetBoardState();
+        
+        // 顯示明確的通知對話框告知用戶對手已斷線且遊戲已結束
+        showNonBlockingInfo("對手斷線", "對手已斷開連接，遊戲自動結束。");
     } else {
         // 更新連線狀態標籤顯示對手斷線
         m_connectionStatusLabel->setText(QString("❌ 對手已斷開連接"));
+        
+        // 顯示通知對話框告知用戶對手在遊戲開始前斷線
+        showNonBlockingInfo("對手斷線", "對手已斷開連接。");
     }
     
     // 更新房間資訊標籤顯示房號
