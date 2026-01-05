@@ -144,7 +144,13 @@ class BoardColorSettingsDialog : public QDialog
         WoodDark,     // Wood and dark colors
         OceanBlue,    // Ocean blue
         LightTheme,   // Light pastel colors
-        Custom1-7     // Custom user-selected color slots 1-7
+        Custom1,      // Custom user-selected color slot 1
+        Custom2,      // Custom user-selected color slot 2
+        Custom3,      // Custom user-selected color slot 3
+        Custom4,      // Custom user-selected color slot 4
+        Custom5,      // Custom user-selected color slot 5
+        Custom6,      // Custom user-selected color slot 6
+        Custom7       // Custom user-selected color slot 7
     };
 
     struct BoardColorSettings {
