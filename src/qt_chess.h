@@ -280,6 +280,7 @@ private:
     QPoint m_teleportPortal1;            // 傳送門位置1
     QPoint m_teleportPortal2;            // 傳送門位置2
     QPixmap m_teleportIconCache;         // 傳送門圖示快取
+    static constexpr int MAX_TELEPORT_ITERATIONS = 3;  // 重力後傳送的最大迭代次數
     
     // 骰子模式相關 (Dice Mode)
     bool m_diceModeEnabled;              // 是否啟用骰子模式

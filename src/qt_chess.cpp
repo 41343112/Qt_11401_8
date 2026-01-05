@@ -9305,7 +9305,6 @@ void Qt_Chess::applyTeleportationAfterGravity() {
     
     // 需要多次檢查，因為傳送後的位置可能又是另一個傳送門
     // 但為了避免無限循環，限制最大檢查次數
-    const int MAX_TELEPORT_ITERATIONS = 3;
     for (int iteration = 0; iteration < MAX_TELEPORT_ITERATIONS; ++iteration) {
         bool teleportedThisIteration = false;
         
@@ -9328,14 +9327,12 @@ void Qt_Chess::applyTeleportationAfterGravity() {
                     qDebug() << "[Qt_Chess::applyTeleportationAfterGravity] Teleported piece from portal 1 to" << targetPortal;
                     teleportedThisIteration = true;
                     anyTeleported = true;
-                    // 重置傳送門
-                    resetTeleportPortals();
                 }
             }
         }
         
-        // 檢查傳送門2上是否有棋子（如果傳送門還沒被重置）
-        if (!teleportedThisIteration && m_teleportPortal2.x() >= 0 && m_teleportPortal2.y() >= 0) {
+        // 檢查傳送門2上是否有棋子（獨立檢查，不依賴傳送門1的結果）
+        if (m_teleportPortal2.x() >= 0 && m_teleportPortal2.y() >= 0) {
             ChessPiece& piece = m_chessBoard.getPiece(m_teleportPortal2.y(), m_teleportPortal2.x());
             if (piece.getType() != PieceType::None) {
                 qDebug() << "[Qt_Chess::applyTeleportationAfterGravity] Piece found on portal 2 at" << m_teleportPortal2;
@@ -9353,8 +9350,6 @@ void Qt_Chess::applyTeleportationAfterGravity() {
                     qDebug() << "[Qt_Chess::applyTeleportationAfterGravity] Teleported piece from portal 2 to" << targetPortal;
                     teleportedThisIteration = true;
                     anyTeleported = true;
-                    // 重置傳送門
-                    resetTeleportPortals();
                 }
             }
         }
@@ -9365,8 +9360,10 @@ void Qt_Chess::applyTeleportationAfterGravity() {
         }
     }
     
+    // 在所有傳送完成後統一重置傳送門
     if (anyTeleported) {
-        qDebug() << "[Qt_Chess::applyTeleportationAfterGravity] At least one piece was teleported after gravity";
+        qDebug() << "[Qt_Chess::applyTeleportationAfterGravity] At least one piece was teleported after gravity, resetting portals";
+        resetTeleportPortals();
     }
 }
 
