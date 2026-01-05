@@ -9305,8 +9305,8 @@ void Qt_Chess::applyTeleportationAfterGravity() {
     
     // 需要多次檢查，因為傳送後的位置可能又是另一個傳送門
     // 但為了避免無限循環，限制最大檢查次數
-    int maxIterations = 3;
-    for (int iteration = 0; iteration < maxIterations; ++iteration) {
+    const int MAX_TELEPORT_ITERATIONS = 3;
+    for (int iteration = 0; iteration < MAX_TELEPORT_ITERATIONS; ++iteration) {
         bool teleportedThisIteration = false;
         
         // 檢查傳送門1上是否有棋子
@@ -9315,9 +9315,17 @@ void Qt_Chess::applyTeleportationAfterGravity() {
             if (piece.getType() != PieceType::None) {
                 qDebug() << "[Qt_Chess::applyTeleportationAfterGravity] Piece found on portal 1 at" << m_teleportPortal1;
                 
-                // 執行傳送
-                if (performTeleportationMove(m_teleportPortal1, m_teleportPortal1)) {
-                    qDebug() << "[Qt_Chess::applyTeleportationAfterGravity] Teleported piece from portal 1";
+                // 確定目標傳送門
+                QPoint targetPortal = m_teleportPortal2;
+                const ChessPiece& targetPiece = m_chessBoard.getPiece(targetPortal.y(), targetPortal.x());
+                
+                // 檢查目標傳送門是否可用
+                if (targetPiece.getType() == PieceType::None || targetPiece.getColor() != piece.getColor()) {
+                    // 執行傳送（如果目標有對方棋子，會被吃掉）
+                    m_chessBoard.setPiece(targetPortal.y(), targetPortal.x(), piece);
+                    m_chessBoard.setPiece(m_teleportPortal1.y(), m_teleportPortal1.x(), ChessPiece(PieceType::None, PieceColor::None));
+                    
+                    qDebug() << "[Qt_Chess::applyTeleportationAfterGravity] Teleported piece from portal 1 to" << targetPortal;
                     teleportedThisIteration = true;
                     anyTeleported = true;
                     // 重置傳送門
@@ -9332,9 +9340,17 @@ void Qt_Chess::applyTeleportationAfterGravity() {
             if (piece.getType() != PieceType::None) {
                 qDebug() << "[Qt_Chess::applyTeleportationAfterGravity] Piece found on portal 2 at" << m_teleportPortal2;
                 
-                // 執行傳送
-                if (performTeleportationMove(m_teleportPortal2, m_teleportPortal2)) {
-                    qDebug() << "[Qt_Chess::applyTeleportationAfterGravity] Teleported piece from portal 2";
+                // 確定目標傳送門
+                QPoint targetPortal = m_teleportPortal1;
+                const ChessPiece& targetPiece = m_chessBoard.getPiece(targetPortal.y(), targetPortal.x());
+                
+                // 檢查目標傳送門是否可用
+                if (targetPiece.getType() == PieceType::None || targetPiece.getColor() != piece.getColor()) {
+                    // 執行傳送（如果目標有對方棋子，會被吃掉）
+                    m_chessBoard.setPiece(targetPortal.y(), targetPortal.x(), piece);
+                    m_chessBoard.setPiece(m_teleportPortal2.y(), m_teleportPortal2.x(), ChessPiece(PieceType::None, PieceColor::None));
+                    
+                    qDebug() << "[Qt_Chess::applyTeleportationAfterGravity] Teleported piece from portal 2 to" << targetPortal;
                     teleportedThisIteration = true;
                     anyTeleported = true;
                     // 重置傳送門
