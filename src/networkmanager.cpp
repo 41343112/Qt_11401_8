@@ -397,7 +397,6 @@ void NetworkManager::onDisconnected()
 {
     qDebug() << "[NetworkManager] Disconnected from server";
     emit disconnected();
-    emit opponentDisconnected();
     
     m_status = ConnectionStatus::Disconnected;
 }
