@@ -9305,13 +9305,10 @@ void Qt_Chess::applyTeleportationAfterGravity() {
         return pos.x() >= 0 && pos.x() < 8 && pos.y() >= 0 && pos.y() < 8;
     };
     
-    // 檢查所有棋盤上的棋子是否在傳送門上
-    bool anyTeleported = false;
-    
-    // 需要多次檢查，因為傳送後的位置可能又是另一個傳送門
+    // 需要多次檢查，因為傳送後還要再執行重力，重力後可能又落在傳送門上
     // 但為了避免無限循環，限制最大檢查次數
     for (int iteration = 0; iteration < MAX_TELEPORT_ITERATIONS; ++iteration) {
-        bool teleportedThisIteration = false;
+        bool anyTeleported = false;
         
         // 檢查傳送門1上是否有棋子
         if (isValidBoardPosition(m_teleportPortal1)) {
@@ -9331,15 +9328,21 @@ void Qt_Chess::applyTeleportationAfterGravity() {
                         m_chessBoard.setPiece(m_teleportPortal1.y(), m_teleportPortal1.x(), ChessPiece(PieceType::None, PieceColor::None));
                         
                         qDebug() << "[Qt_Chess::applyTeleportationAfterGravity] Teleported piece from portal 1 to" << targetPortal;
-                        teleportedThisIteration = true;
                         anyTeleported = true;
+                        
+                        // 重置傳送門
+                        resetTeleportPortals();
+                        
+                        // 傳送後再執行一次重力
+                        qDebug() << "[Qt_Chess::applyTeleportationAfterGravity] Applying gravity after teleportation";
+                        applyGravity();
                     }
                 }
             }
         }
         
         // 檢查傳送門2上是否有棋子（獨立檢查，不依賴傳送門1的結果）
-        if (isValidBoardPosition(m_teleportPortal2)) {
+        if (!anyTeleported && isValidBoardPosition(m_teleportPortal2)) {
             ChessPiece& piece2 = m_chessBoard.getPiece(m_teleportPortal2.y(), m_teleportPortal2.x());
             if (piece2.getType() != PieceType::None) {
                 qDebug() << "[Qt_Chess::applyTeleportationAfterGravity] Piece found on portal 2 at" << m_teleportPortal2;
@@ -9356,23 +9359,23 @@ void Qt_Chess::applyTeleportationAfterGravity() {
                         m_chessBoard.setPiece(m_teleportPortal2.y(), m_teleportPortal2.x(), ChessPiece(PieceType::None, PieceColor::None));
                         
                         qDebug() << "[Qt_Chess::applyTeleportationAfterGravity] Teleported piece from portal 2 to" << targetPortal;
-                        teleportedThisIteration = true;
                         anyTeleported = true;
+                        
+                        // 重置傳送門
+                        resetTeleportPortals();
+                        
+                        // 傳送後再執行一次重力
+                        qDebug() << "[Qt_Chess::applyTeleportationAfterGravity] Applying gravity after teleportation";
+                        applyGravity();
                     }
                 }
             }
         }
         
         // 如果這次迭代沒有傳送，就跳出循環
-        if (!teleportedThisIteration) {
+        if (!anyTeleported) {
             break;
         }
-    }
-    
-    // 在所有傳送完成後統一重置傳送門
-    if (anyTeleported) {
-        qDebug() << "[Qt_Chess::applyTeleportationAfterGravity] At least one piece was teleported after gravity, resetting portals";
-        resetTeleportPortals();
     }
 }
 
