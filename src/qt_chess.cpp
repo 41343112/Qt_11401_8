@@ -6529,9 +6529,6 @@ void Qt_Chess::onPlayerLeft() {
         // 遊戲進行中，對手斷線/離開
         qDebug() << "[Qt_Chess::onPlayerLeft] Game was active, ending game due to opponent disconnect";
         
-        // 更新連線狀態標籤顯示對手斷線和遊戲結束
-        m_connectionStatusLabel->setText(QString("❌ 對手已斷線 | 遊戲自動結束"));
-        
         // 結束遊戲並更新狀態
         handleGameEnd();
         updateStatus();
@@ -6540,10 +6537,18 @@ void Qt_Chess::onPlayerLeft() {
         resetBoardState();
         
         // 顯示明確的通知對話框告知用戶對手已斷線且遊戲已結束
-        showNonBlockingInfo("對手斷線", "對手已斷線，遊戲自動結束。");
+        showNonBlockingInfo("對手斷線", "對手已斷線，遊戲已結束。等待新對手加入...");
         
         // 獲取房號用於顯示
         QString roomNumber = m_networkManager ? m_networkManager->getRoomNumber() : QString();
+        
+        // 保持線上模式，等待新對手加入
+        m_isOnlineGame = true;
+        m_waitingForOpponent = true;
+        
+        // 更新連線狀態標籤：顯示等待新對手
+        m_connectionStatusLabel->setText(QString("⏳ 對手已離開，等待新對手加入..."));
+        m_connectionStatusLabel->show();
         
         // 更新房間資訊標籤顯示房號
         if (m_roomInfoLabel && !roomNumber.isEmpty()) {
@@ -6551,53 +6556,20 @@ void Qt_Chess::onPlayerLeft() {
             m_roomInfoLabel->show();
         }
         
-        m_isOnlineGame = false;
-        m_waitingForOpponent = false;
-        
-        // 隱藏退出房間按鈕
-        if (m_exitRoomButton) {
-            m_exitRoomButton->hide();
-        }
-        
-        // 恢復開始按鈕的原始功能和樣式
+        // 隱藏開始按鈕（等待對手加入後才能開始）
         if (m_startButton) {
-            m_startButton->show();  // 確保按鈕顯示
-            m_startButton->setText("▶ 開始對弈");
-            m_startButton->setEnabled(true);
-            m_startButton->setStyleSheet(QString(
-                "QPushButton { "
-                "  background: qlineargradient(x1:0, y1:0, x2:1, y2:0, "
-                "    stop:0 %1, stop:0.5 rgba(0, 255, 136, 0.8), stop:1 %1); "
-                "  color: %2; "
-                "  border: 3px solid %1; "
-                "  border-radius: 12px; "
-                "  padding: 10px; "
-                "}"
-                "QPushButton:hover { "
-                "  background: qlineargradient(x1:0, y1:0, x2:1, y2:0, "
-                "    stop:0 %1, stop:0.3 rgba(0, 255, 136, 0.9), stop:0.7 rgba(0, 217, 255, 0.9), stop:1 %1); "
-                "  border-color: white; "
-                "}"
-                "QPushButton:pressed { "
-                "  background: %1; "
-                "}"
-                "QPushButton:disabled { "
-                "  background: rgba(50, 50, 70, 0.6); "
-                "  color: #666; "
-                "  border-color: #444; "
-                "}"
-            ).arg(THEME_ACCENT_SUCCESS, THEME_BG_DARK));
+            m_startButton->hide();
         }
         
-        // 恢復時間控制
+        // 保持退出房間按鈕可見
+        if (m_exitRoomButton) {
+            m_exitRoomButton->show();
+        }
+        
+        // 恢復時間控制（為下一局做準備）
         if (m_whiteTimeLimitSlider) m_whiteTimeLimitSlider->setEnabled(true);
         if (m_blackTimeLimitSlider) m_blackTimeLimitSlider->setEnabled(true);
         if (m_incrementSlider) m_incrementSlider->setEnabled(true);
-        
-        // 返回雙人模式
-        m_currentGameMode = GameMode::HumanVsHuman;
-        m_connectionStatusLabel->hide();
-        m_roomInfoLabel->hide();
     } else {
         // 遊戲尚未開始，對手離開
         // 只有房主會收到這個通知（因為只有房主在等待對手）
