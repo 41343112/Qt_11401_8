@@ -2601,12 +2601,6 @@ void Qt_Chess::onSquareClicked(int displayRow, int displayCol) {
                 needsUpdate = true;
             }
             
-            // 應用地吸引力模式（如果啟用）
-            if (m_gravityModeEnabled) {
-                applyGravity();
-                needsUpdate = true;
-            }
-            
             // 處理傳送陣模式（如果啟用）並獲取最終位置
             QPoint finalPosition = clickedSquare;  // 默認就是點擊的位置
             if (m_teleportModeEnabled) {
@@ -2614,7 +2608,13 @@ void Qt_Chess::onSquareClicked(int displayRow, int displayCol) {
                 needsUpdate = true;
             }
             
-            // 更新棋盤顯示（在升變和地吸引力之後統一更新）
+            // 應用地吸引力模式（如果啟用）
+            if (m_gravityModeEnabled) {
+                applyGravity();
+                needsUpdate = true;
+            }
+            
+            // 更新棋盤顯示（在升變、傳送陣和地吸引力之後統一更新）
             if (needsUpdate) {
                 updateBoard();
             }
@@ -3856,12 +3856,6 @@ void Qt_Chess::mouseReleaseEvent(QMouseEvent *event) {
                     needsUpdate = true;
                 }
                 
-                // 應用地吸引力模式（如果啟用）
-                if (m_gravityModeEnabled) {
-                    applyGravity();
-                    needsUpdate = true;
-                }
-                
                 // 處理傳送陣模式（如果啟用）並獲取最終位置
                 QPoint finalPosition = logicalDropSquare;  // 默認就是拖放的位置
                 if (m_teleportModeEnabled) {
@@ -3869,7 +3863,13 @@ void Qt_Chess::mouseReleaseEvent(QMouseEvent *event) {
                     needsUpdate = true;
                 }
                 
-                // 更新棋盤顯示（在升變和地吸引力之後統一更新）
+                // 應用地吸引力模式（如果啟用）
+                if (m_gravityModeEnabled) {
+                    applyGravity();
+                    needsUpdate = true;
+                }
+                
+                // 更新棋盤顯示（在升變、傳送陣和地吸引力之後統一更新）
                 if (needsUpdate) {
                     updateBoard();
                 }
@@ -5916,19 +5916,19 @@ void Qt_Chess::onEngineBestMove(const QString& move) {
             needsUpdate = true;
         }
         
-        // 應用地吸引力模式（如果啟用）
-        if (m_gravityModeEnabled) {
-            applyGravity();
-            needsUpdate = true;
-        }
-        
         // 處理傳送陣模式（如果啟用）
         if (m_teleportModeEnabled) {
             handleTeleportation(from, to);
             needsUpdate = true;
         }
         
-        // 更新棋盤顯示（在升變和地吸引力之後統一更新）
+        // 應用地吸引力模式（如果啟用）
+        if (m_gravityModeEnabled) {
+            applyGravity();
+            needsUpdate = true;
+        }
+        
+        // 更新棋盤顯示（在升變、傳送陣和地吸引力之後統一更新）
         if (needsUpdate) {
             updateBoard();
         }
@@ -6749,15 +6749,15 @@ void Qt_Chess::onOpponentMove(const QPoint& from, const QPoint& to, PieceType pr
             m_chessBoard.promotePawn(to, promotionType);
         }
         
-        // 應用地吸引力模式（如果啟用）
-        if (m_gravityModeEnabled) {
-            applyGravity();
-        }
-        
         // 處理傳送陣模式（如果啟用）
         if (m_teleportModeEnabled) {
             // 應用對手傳送後的最終位置
             applyFinalPosition(to, finalPosition);
+        }
+        
+        // 應用地吸引力模式（如果啟用）
+        if (m_gravityModeEnabled) {
+            applyGravity();
         }
         
         // 記錄對手的移動用於高亮顯示（霧戰模式下不顯示對方移動高光）
