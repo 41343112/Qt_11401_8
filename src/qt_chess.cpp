@@ -9300,6 +9300,11 @@ void Qt_Chess::applyTeleportationAfterGravity() {
     
     qDebug() << "[Qt_Chess::applyTeleportationAfterGravity] Checking for pieces on portals after gravity";
     
+    // 輔助函數：檢查位置是否在棋盤範圍內
+    auto isValidBoardPosition = [](const QPoint& pos) -> bool {
+        return pos.x() >= 0 && pos.x() < 8 && pos.y() >= 0 && pos.y() < 8;
+    };
+    
     // 檢查所有棋盤上的棋子是否在傳送門上
     bool anyTeleported = false;
     
@@ -9309,22 +9314,20 @@ void Qt_Chess::applyTeleportationAfterGravity() {
         bool teleportedThisIteration = false;
         
         // 檢查傳送門1上是否有棋子
-        if (m_teleportPortal1.x() >= 0 && m_teleportPortal1.x() < 8 && 
-            m_teleportPortal1.y() >= 0 && m_teleportPortal1.y() < 8) {
-            ChessPiece& piece = m_chessBoard.getPiece(m_teleportPortal1.y(), m_teleportPortal1.x());
-            if (piece.getType() != PieceType::None) {
+        if (isValidBoardPosition(m_teleportPortal1)) {
+            ChessPiece& piece1 = m_chessBoard.getPiece(m_teleportPortal1.y(), m_teleportPortal1.x());
+            if (piece1.getType() != PieceType::None) {
                 qDebug() << "[Qt_Chess::applyTeleportationAfterGravity] Piece found on portal 1 at" << m_teleportPortal1;
                 
                 // 確定目標傳送門並驗證其有效性
                 QPoint targetPortal = m_teleportPortal2;
-                if (targetPortal.x() >= 0 && targetPortal.x() < 8 && 
-                    targetPortal.y() >= 0 && targetPortal.y() < 8) {
+                if (isValidBoardPosition(targetPortal)) {
                     const ChessPiece& targetPiece = m_chessBoard.getPiece(targetPortal.y(), targetPortal.x());
                     
                     // 檢查目標傳送門是否可用
-                    if (targetPiece.getType() == PieceType::None || targetPiece.getColor() != piece.getColor()) {
+                    if (targetPiece.getType() == PieceType::None || targetPiece.getColor() != piece1.getColor()) {
                         // 執行傳送（如果目標有對方棋子，會被吃掉）
-                        m_chessBoard.setPiece(targetPortal.y(), targetPortal.x(), piece);
+                        m_chessBoard.setPiece(targetPortal.y(), targetPortal.x(), piece1);
                         m_chessBoard.setPiece(m_teleportPortal1.y(), m_teleportPortal1.x(), ChessPiece(PieceType::None, PieceColor::None));
                         
                         qDebug() << "[Qt_Chess::applyTeleportationAfterGravity] Teleported piece from portal 1 to" << targetPortal;
@@ -9336,22 +9339,20 @@ void Qt_Chess::applyTeleportationAfterGravity() {
         }
         
         // 檢查傳送門2上是否有棋子（獨立檢查，不依賴傳送門1的結果）
-        if (m_teleportPortal2.x() >= 0 && m_teleportPortal2.x() < 8 && 
-            m_teleportPortal2.y() >= 0 && m_teleportPortal2.y() < 8) {
-            ChessPiece& piece = m_chessBoard.getPiece(m_teleportPortal2.y(), m_teleportPortal2.x());
-            if (piece.getType() != PieceType::None) {
+        if (isValidBoardPosition(m_teleportPortal2)) {
+            ChessPiece& piece2 = m_chessBoard.getPiece(m_teleportPortal2.y(), m_teleportPortal2.x());
+            if (piece2.getType() != PieceType::None) {
                 qDebug() << "[Qt_Chess::applyTeleportationAfterGravity] Piece found on portal 2 at" << m_teleportPortal2;
                 
                 // 確定目標傳送門並驗證其有效性
                 QPoint targetPortal = m_teleportPortal1;
-                if (targetPortal.x() >= 0 && targetPortal.x() < 8 && 
-                    targetPortal.y() >= 0 && targetPortal.y() < 8) {
+                if (isValidBoardPosition(targetPortal)) {
                     const ChessPiece& targetPiece = m_chessBoard.getPiece(targetPortal.y(), targetPortal.x());
                     
                     // 檢查目標傳送門是否可用
-                    if (targetPiece.getType() == PieceType::None || targetPiece.getColor() != piece.getColor()) {
+                    if (targetPiece.getType() == PieceType::None || targetPiece.getColor() != piece2.getColor()) {
                         // 執行傳送（如果目標有對方棋子，會被吃掉）
-                        m_chessBoard.setPiece(targetPortal.y(), targetPortal.x(), piece);
+                        m_chessBoard.setPiece(targetPortal.y(), targetPortal.x(), piece2);
                         m_chessBoard.setPiece(m_teleportPortal2.y(), m_teleportPortal2.x(), ChessPiece(PieceType::None, PieceColor::None));
                         
                         qDebug() << "[Qt_Chess::applyTeleportationAfterGravity] Teleported piece from portal 2 to" << targetPortal;
