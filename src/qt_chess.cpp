@@ -6521,17 +6521,42 @@ void Qt_Chess::onOpponentJoined() {
 }
 
 void Qt_Chess::onPlayerLeft() {
-    // 對手在遊戲開始前離開房間
-    qDebug() << "[Qt_Chess::onPlayerLeft] Opponent left the room before game started";
+    // 對手離開房間（遊戲開始前或進行中）
+    qDebug() << "[Qt_Chess::onPlayerLeft] Opponent left the room";
     
-    // 只有房主會收到這個通知（因為只有房主在等待對手）
-    if (m_networkManager->getRole() == NetworkRole::Host) {
+    // 檢查遊戲是否已開始或正在進行中，如果是則自動結束遊戲
+    if (m_gameStarted || m_timerStarted) {
+        // 遊戲進行中，對手斷線/離開
+        qDebug() << "[Qt_Chess::onPlayerLeft] Game was active, ending game due to opponent disconnect";
+        
+        // 結束遊戲並更新狀態
+        handleGameEnd();
+        updateStatus();
+        
+        // 確保遊戲完全重置到初始狀態
+        resetBoardState();
+        
+        // 顯示明確的通知對話框告知用戶對手已斷線且遊戲已結束
+        showNonBlockingInfo("對手斷線", "對手已斷線，遊戲已結束。等待新對手加入...");
+        
+        // 獲取房號用於顯示
+        QString roomNumber = m_networkManager ? m_networkManager->getRoomNumber() : QString();
+        
+        // 保持線上模式，等待新對手加入
+        m_isOnlineGame = true;
         m_waitingForOpponent = true;
         
-        // 更新狀態標籤
-        m_connectionStatusLabel->setText("⏳ 對手已離開，等待新對手加入...");
+        // 更新連線狀態標籤：顯示等待新對手
+        m_connectionStatusLabel->setText(QString("⏳ 對手已離開，等待新對手加入..."));
+        m_connectionStatusLabel->show();
         
-        // 隱藏開始按鈕
+        // 更新房間資訊標籤顯示房號
+        if (m_roomInfoLabel && !roomNumber.isEmpty()) {
+            m_roomInfoLabel->setText(QString("🎮 房號: %1").arg(roomNumber));
+            m_roomInfoLabel->show();
+        }
+        
+        // 隱藏開始按鈕（等待對手加入後才能開始）
         if (m_startButton) {
             m_startButton->hide();
         }
@@ -6539,6 +6564,30 @@ void Qt_Chess::onPlayerLeft() {
         // 保持退出房間按鈕可見
         if (m_exitRoomButton) {
             m_exitRoomButton->show();
+        }
+        
+        // 恢復時間控制（為下一局做準備）
+        if (m_whiteTimeLimitSlider) m_whiteTimeLimitSlider->setEnabled(true);
+        if (m_blackTimeLimitSlider) m_blackTimeLimitSlider->setEnabled(true);
+        if (m_incrementSlider) m_incrementSlider->setEnabled(true);
+    } else {
+        // 遊戲尚未開始，對手離開
+        // 只有房主會收到這個通知（因為只有房主在等待對手）
+        if (m_networkManager->getRole() == NetworkRole::Host) {
+            m_waitingForOpponent = true;
+            
+            // 更新狀態標籤
+            m_connectionStatusLabel->setText("⏳ 對手已離開，等待新對手加入...");
+            
+            // 隱藏開始按鈕
+            if (m_startButton) {
+                m_startButton->hide();
+            }
+            
+            // 保持退出房間按鈕可見
+            if (m_exitRoomButton) {
+                m_exitRoomButton->show();
+            }
         }
     }
 }
@@ -7723,8 +7772,8 @@ void Qt_Chess::onOpponentDisconnected() {
     // 檢查遊戲是否已開始或正在進行中，如果是則自動結束遊戲並退出棋盤
     // 即使遊戲剛開始還沒有走任何一步，也要結束遊戲
     if (m_gameStarted || m_timerStarted) {
-        // 更新連線狀態標籤顯示對手退出和遊戲結束
-        m_connectionStatusLabel->setText(QString("❌ 對手已退出遊戲 | 遊戲自動結束"));
+        // 更新連線狀態標籤顯示對手斷線和遊戲結束
+        m_connectionStatusLabel->setText(QString("❌ 對手已斷線 | 遊戲自動結束"));
         
         // 結束遊戲並更新狀態
         handleGameEnd();
@@ -7732,9 +7781,15 @@ void Qt_Chess::onOpponentDisconnected() {
         
         // 確保遊戲完全重置到初始狀態
         resetBoardState();
+        
+        // 顯示明確的通知對話框告知用戶對手已斷線且遊戲已結束
+        showNonBlockingInfo("對手斷線", "對手已斷線，遊戲自動結束。");
     } else {
         // 更新連線狀態標籤顯示對手斷線
-        m_connectionStatusLabel->setText(QString("❌ 對手已斷開連接"));
+        m_connectionStatusLabel->setText(QString("❌ 對手已斷線"));
+        
+        // 顯示通知對話框告知用戶對手在遊戲開始前斷線
+        showNonBlockingInfo("對手斷線", "對手已斷線。");
     }
     
     // 更新房間資訊標籤顯示房號
