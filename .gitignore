@@ -69,6 +69,10 @@ moc_predefs.h
 # Python byte code
 *.pyc
 
+# Temporary document generator scripts
+generate_proposal_pdf.py
+generate_proposal_word.py
+
 # Binaries
 # --------
 *.dll
